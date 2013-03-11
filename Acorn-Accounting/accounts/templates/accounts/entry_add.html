@@ -1,0 +1,67 @@
+{% extends 'site.html' %}
+
+
+{% block content %}
+<script type="text/javascript" src="/static/jquery.formset.min.js"></script>
+<script type="text/javascript">
+    $(function() {
+        $('#accounts_chart tbody tr').formset({
+            prefix: '{{ transaction_formset.prefix }}',
+            extraClasses: ['main','alt'],
+            deleteText: '<input type="checkbox" align="middle">',
+            deleteCssClass: 'delete-row'});
+    })
+</script>
+
+<h1>Add a Journal Entry</h1>
+
+<form action="." method="POST">
+{% csrf_token %}
+<div id="add_entry">
+<table id="entry">
+    {{entry_form}}
+</table>
+<ul class="errorlist">
+{% for error in transaction_formset.non_form_errors %}
+    <li>{{ error }}</li>
+{% endfor %}
+</ul><!-- 
+{% for dict in transaction_formset.errors %}
+    <ul class="errorlist">
+    {% for error in dict.values %}
+        <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+{% endfor %} -->
+<table id="accounts_chart">
+{{ transaction_formset.management_form }}
+{% for form in transaction_formset %}
+    {% if forloop.first %}
+    <thead><tr>
+        {% for field in form.visible_fields %}
+            <th>{{ field.label|capfirst }}</th>
+        {% endfor %}
+    </tr></thead>
+    {% endif %}
+    <tr class="{% cycle main,alt %}">
+    {% for field in form.visible_fields %}
+        <td>
+        {# Include the hidden fields in the form #}
+        {% if forloop.first %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+        {% endif %}
+        {{ field.errors.as_ul }}
+        {{ field }}
+        </td>
+    {% endfor %}
+    </tr>
+{% endfor %}
+</table>
+<br />
+<input type="submit" value="Submit">
+<br />
+</div>
+</form>
+{% endblock %}

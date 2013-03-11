@@ -1,0 +1,49 @@
+{% extends "site.html" %}
+
+{% load accounting_filters %}
+
+{% block content %}
+<h2>General Ledger</h2>
+<h3>{{ startdate }} - {{ stopdate }}</h3>
+<form action="." method="GET">
+    <table>
+        {{ form.as_table }}
+        <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
+    </table>
+</form>
+<br />
+<table summary="General Ledger" id="accounts_chart">
+{% for entry in journal_entries %}
+    <tbody>
+    <tr class="header clickable">
+        <td><a href="{{ entry.get_absolute_url }}">{{ entry.get_number }}</a></td>
+        <td>{{ entry.date|date:"m/d/Y" }}</td>
+        <td colspan="4" class="center">{{ entry.memo|capwords }}</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>Account</td>
+        <td>Detail</td>
+        <td class="right">Debit</td>
+        <td class="right">Credit</td>
+        <td class="right">Event</td>
+    </tr>
+    {% for transaction in entry.transaction_set.all %}
+        <tr class="{% cycle 'main' 'alt' %} clickable">
+            <td></td>
+            <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
+            <td>{{ transaction.detail }}</td>
+            {% if transaction.balance_delta < 0 %}
+                <td class="right">{{ transaction.balance_delta|currency }}</td>
+                <td class="right"></td>
+            {% else %}
+                <td class="right"></td>
+                <td class="right">{{ transaction.balance_delta|currency }}</td>
+            {% endif %}
+            <td class="right">{{ transaction.job }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+{% endfor %} 
+</table><br /><br />
+{% endblock %}

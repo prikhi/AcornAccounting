@@ -1,0 +1,40 @@
+{% extends "site.html" %}
+
+{% load mptt_tags %}
+{% load accounting_filters %}
+
+
+{% block content %}
+<table summary="Chart of Accounts" id="accounts_chart">
+    <caption>Chart of Accounts</caption>
+    <thead>
+    <tr>
+        <th scope="col">Number</th>
+        <th scope="col">Name</th>
+        <th scope="col">Description</th>
+        <th scope="col">Balance</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% recursetree nodes %}
+	    <tr class="header clickable">
+	        <td><a href="{{ node.get_absolute_url }}">{{ node.get_full_number }}</a></td>
+	        <td>{{ node.level|int_to_tabs}}{{ node.name|capwords }}</td>
+            <td>{{ node.description }}</td>
+	        <td class="right">{{ node.get_account_balance|currency }}</td>
+	    </tr>
+	    {% if node.account_set.all %}
+	        {% for account in node.account_set.all %}
+		    <tr class="{% cycle 'main' 'alt' %} clickable">
+	            <td><a href="{{ account.get_absolute_url }}">{{ account.get_full_number }}</a></td>
+	            <td >{{ account.level|int_to_tabs}}{{ account.name|capwords }}</td>
+	            <td >{{ account.description }}</td>
+	            <td class="right">{{ account.get_balance|currency}}</td>
+	        </tr>
+	        {% endfor %}
+	    {% endif %}
+	    {{ children }}
+    {% endrecursetree %}
+    </tbody>
+</table>
+{% endblock %}
