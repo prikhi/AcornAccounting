@@ -6,19 +6,21 @@ Replace this with more appropriate tests for your application.
 """
 import datetime
 
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.test import TestCase
 
-from models import Header, Account, JournalEntry, Transaction
+from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
+from .forms import BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet
 
 
 def create_header(name, parent=None, cat_type=2):
     return Header.objects.create(name=name, parent=parent, type=cat_type, slug=slugify(name))
 
 
-def create_account(name, parent, balance, cat_type=2):
+def create_account(name, parent, balance, cat_type=2, bank=False):
     return Account.objects.create(name=name, slug=slugify(name), parent=parent, balance=balance,
-                                  type=cat_type)
+                                  type=cat_type, bank=bank)
 
 
 def create_entry(date, memo):
@@ -30,7 +32,7 @@ def create_transaction(entry, account, delta):
                                       balance_delta=delta)
 
 
-class BaseAccountModelTest(TestCase):
+class BaseAccountModelTests(TestCase):
     def test_balance_flip(self):
         '''
         Tests that Asset, Expense, Cost of Sales, and Other Expenses
@@ -210,3 +212,363 @@ class TransactionTest(TestCase):
         trans_newer = create_transaction(entry=entry, account=source, delta=-20)
         self.assertEqual(trans_older.get_final_account_balance(), -20)
         self.assertEqual(trans_newer.get_final_account_balance(), -40)
+
+
+class BankEntryViewTests(TestCase):
+    '''
+    Test the BankSpendingEntry and BankReceivingEntry add and detail views
+    '''
+    def setUp(self):
+        '''
+        Bank Entries require a Bank Account(Assets) and a normal Account(assume Expense)
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.expense_header = create_header('expense', cat_type=6)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.expense_account = create_account('expense', self.expense_header, 0, 6)
+
+    def test_bank_receiving_add_view_initial(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CR`
+        should display BankReceving Forms and Formsets.
+        '''
+        response = self.client.get(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], BankReceivingForm))
+        self.failUnless(isinstance(response.context['transaction_formset'], BankReceivingTransactionFormSet))
+
+    def test_bank_receiving_add_view_success(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CR`
+        should create a new BankReceivingEntry and issue a redirect.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id
+                                          })
+
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).get_balance(), 20)
+        self.assertEqual(Account.objects.get(bank=False).get_balance(), -20)
+
+    def test_bank_receiving_add_view_failure_entry(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a journal type of `CR` with
+        invalid entry data will not create a BankReceivingEntry and displays
+        an error message.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': '',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'payor', 'This field is required.')
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_receiving_add_view_failure_transaction(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a journal type of `CR` with
+        invalid transaction data will not create a BankReceivingEntry and displays
+        an error message.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 18,
+                                          'transaction-0-account': self.expense_account.id})
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['transaction_formset'].is_valid())
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Transactions are out of balance.')
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_receiving_add_view_edit(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CR` and
+        a `journal_id` should display BankReceiving Forms and Formsets using an
+        instance of the BankReceivingEntry with id `journal_id`.
+        '''
+        self.test_bank_receiving_add_view_success()
+        entry = BankReceivingEntry.objects.get(id=1)
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CR',
+                                                   'journal_id': 1}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], BankReceivingForm))
+        self.failUnless(isinstance(response.context['transaction_formset'], BankReceivingTransactionFormSet))
+        self.assertEqual(response.context['entry_form'].instance, entry)
+        self.assertEqual(response.context['entry_form'].initial['amount'],
+                         -1 * entry.transaction_set.get(account__bank=True).balance_delta)
+        self.assertEqual(response.context['entry_form'].initial['account'],
+                         entry.transaction_set.get(account__bank=True).account)
+        self.assertEqual(response.context['transaction_formset'].forms[0].instance,
+                         entry.transaction_set.get(account__bank=False))
+        self.assertEqual(response.context['transaction_formset'].forms[0].initial['amount'],
+                         entry.transaction_set.get(account__bank=False).balance_delta)
+
+    def test_bank_receiving_add_view_edit_success(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CR` with
+        a `journal_id` should edit the respective BankReceivingEntry and issue a
+        redirect.
+        '''
+        self.test_bank_receiving_add_view_success()
+        new_bank_account = create_account('2nd bank', self.asset_header, 0, 1, True)
+        new_expense_account = create_account('2nd expense', self.expense_header, 0, 6)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR',
+                                                                                     'journal_id': 1}),
+                                    data={'entry-account': new_bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 15,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 1,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 2,
+                                          'transaction-0-bankreceive_entry': 1,
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 15,
+                                          'transaction-0-account': new_expense_account.id
+                                          })
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        bank_account = Account.objects.get(name='bank')
+        expense_account = Account.objects.get(name='expense')
+        new_bank_account = Account.objects.get(name='2nd bank')
+        new_expense_account = Account.objects.get(name='2nd expense')
+        self.assertEqual(bank_account.get_balance(), 0)
+        self.assertEqual(expense_account.get_balance(), 0)
+        self.assertEqual(new_bank_account.get_balance(), 15)
+        self.assertEqual(new_expense_account.get_balance(), -15)
+        self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
+        self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
+
+    def test_bank_receiving_show_view(self):
+        '''
+        A `GET` to the `show_bank_entry` view with a journal type of `CD` and a
+        journal_id will retrieve a BankReceivingEntry passing the respective
+        journal_entry, main_transaction and transaction set
+        '''
+        self.test_bank_receiving_add_view_success()
+        response = self.client.get(reverse('accounts.views.show_bank_entry',
+                                           kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_bankreceive_detail.html')
+        self.failUnless(isinstance(response.context['journal_entry'], BankReceivingEntry))
+        self.assertEqual(BankReceivingEntry.objects.get(id=1), response.context['journal_entry'])
+        self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
+        self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])
+
+    def test_bank_spending_add_view_initial(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CD`
+        should display BankSpending Forms and Formsets.
+        '''
+        response = self.client.get(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], BankSpendingForm))
+        self.failUnless(isinstance(response.context['transaction_formset'], BankSpendingTransactionFormSet))
+
+    def test_bank_spending_add_view_success(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CD`
+        should create a new BankSpendingEntry and issue a redirect.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id
+                                          })
+
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).get_balance(), -20)
+        self.assertEqual(Account.objects.get(bank=False).get_balance(), 20)
+
+    def test_bank_spending_add_view_failure_entry(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a journal type of `CD` with
+        invalid entry data will not create a BankSpendingEntry and displays
+        an error message.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': False,
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', None, 'A check number is required if this is not an ACH payment.')
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_spending_add_view_failure_transaction(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a journal type of `CD` with
+        invalid transaction data will not create a BankSpendingEntry and displays
+        an error message.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 18,
+                                          'transaction-0-account': self.expense_account.id})
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['transaction_formset'].is_valid())
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Transactions are out of balance.')
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_spending_add_view_edit(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CD` and
+        a `journal_id` should display BankSpending Forms and Formsets editing
+        the BankSpendingEntry with id of `journal_id`.
+        '''
+        self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.get(id=1)
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CD',
+                                                   'journal_id': 1}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], BankSpendingForm))
+        self.failUnless(isinstance(response.context['transaction_formset'], BankSpendingTransactionFormSet))
+        self.assertEqual(response.context['entry_form'].instance, entry)
+        self.assertEqual(response.context['entry_form'].initial['amount'],
+                         entry.transaction_set.get(account__bank=True).balance_delta)
+        self.assertEqual(response.context['entry_form'].initial['account'],
+                         entry.transaction_set.get(account__bank=True).account)
+        self.assertEqual(response.context['transaction_formset'].forms[0].instance,
+                         entry.transaction_set.get(account__bank=False))
+        self.assertEqual(response.context['transaction_formset'].forms[0].initial['amount'],
+                         -1 * entry.transaction_set.get(account__bank=False).balance_delta)
+
+    def test_bank_spending_add_view_edit_success(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CD` with
+        a `journal_id` should edit the respective BankSpendingEntry and issue a
+        redirect.
+        '''
+        self.test_bank_spending_add_view_success()
+        new_bank_account = create_account('2nd bank', self.asset_header, 0, 1, True)
+        new_expense_account = create_account('2nd expense', self.expense_header, 0, 6)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD',
+                                                                                     'journal_id': 1}),
+                                    data={'entry-account': new_bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
+                                          'entry-amount': 15,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 1,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 2,
+                                          'transaction-0-bankreceive_entry': 1,
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 15,
+                                          'transaction-0-account': new_expense_account.id
+                                          })
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        bank_account = Account.objects.get(name='bank')
+        expense_account = Account.objects.get(name='expense')
+        new_bank_account = Account.objects.get(name='2nd bank')
+        new_expense_account = Account.objects.get(name='2nd expense')
+        self.assertEqual(bank_account.get_balance(), 0)
+        self.assertEqual(expense_account.get_balance(), 0)
+        self.assertEqual(new_bank_account.get_balance(), -15)
+        self.assertEqual(new_expense_account.get_balance(), 15)
+        self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
+        self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
+
+    def test_bank_spending_show_view(self):
+        '''
+        A `GET` to the `show_bank_entry` view with a journal type of `CD` and a
+        journal_id will retrieve the respective BankSpendingEntry
+        '''
+        self.test_bank_spending_add_view_success()
+        response = self.client.get(reverse('accounts.views.show_bank_entry',
+                                           kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_bankspend_detail.html')
+        self.failUnless(isinstance(response.context['journal_entry'], BankSpendingEntry))
+        self.assertEqual(BankSpendingEntry.objects.get(id=1), response.context['journal_entry'])
+        self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
+        self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])

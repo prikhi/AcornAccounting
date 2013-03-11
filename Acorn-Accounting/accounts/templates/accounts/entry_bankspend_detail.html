@@ -4,9 +4,9 @@
 
 
 {% block content %}
-<h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ journal_entry.memo|capwords }}</h1>
-<h2>{{ journal_entry.get_number }}</h2><br/>
-Created: {{ journal_entry.created_at|date:"m/d/Y" }} Updated: {{ journal_entry.updated_at|date:"m/d/Y" }}<br />
+<h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ main_transaction.account }}: {{ journal_entry.memo|capwords }}</h1>
+<h2>{{ journal_entry.get_number }} - Payee: {{ journal_entry.payee }} - Amount: {{ main_transaction.balance_delta|currency }}</h2><br/>
+Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{ journal_entry.updated_at|date:"m/d/Y" }}{% endif %}<br />
 <a href="{{ journal_entry.get_edit_url }}">Edit</a>
 <br /><br />
 <table summary="{{ account.name }} Details" id="accounts_chart">
@@ -14,8 +14,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} Updated: {{ journal_entry.u
     <tr>
         <th scope="col">Account</th>
         <th scope="col">Detail</th>
-        <th scope="col" class="right">Debit</th>
-        <th scope="col" class="right">Credit</th>
+        <th scope="col" class="right">Amount</th>
         <th scope="col" class="right">Job</th>
     </tr>
     </thead>
@@ -24,13 +23,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} Updated: {{ journal_entry.u
     <tr class="{% cycle 'main' 'alt' %} clickable">
         <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
         <td>{{ transaction.detail|capwords }}</td>
-        {% if transaction.balance_delta < 0 %}
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
-            <td class="right"></td>
-        {% else %}
-            <td class="right"></td>
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
-        {% endif %}
+        <td class="right">{{ transaction.balance_delta|currency }}</td>
         <td>{{ transaction.job }}</td>
     </tr>
 {% endfor %}

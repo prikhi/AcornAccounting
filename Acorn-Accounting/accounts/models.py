@@ -163,7 +163,10 @@ class BaseJournalEntry(models.Model):
         return self.memo
 
     def get_absolute_url(self):
-        return reverse('accounts.views.show_journal_entry', args=['GJ', str(self.id)])
+        return reverse('accounts.views.show_journal_entry', args=[str(self.id)])
+
+    def get_edit_url(self):
+        return reverse('accounts.views.add_journal_entry', args=[str(self.id)])
 
     def get_number(self):
         return "GJ#{0:06d}".format(self.id)
@@ -182,7 +185,6 @@ class BankSpendingEntry(BaseJournalEntry):
     ach_payment = models.BooleanField(default=False, help_text="Invalidates Check Number")
     payee = models.CharField(max_length=20, blank=True, null=True)
     void = models.BooleanField(default=False, help_text="Refunds Associated Transactions.")
-    main_transaction = models.OneToOneField('Transaction')
 
     class Meta:
         verbose_name_plural = "bank spending entries"
@@ -192,7 +194,11 @@ class BankSpendingEntry(BaseJournalEntry):
         return self.memo
 
     def get_absolute_url(self):
-        return reverse('accounts.views.show_journal_entry', args=['CD', str(self.id)])
+        return reverse('accounts.views.show_bank_entry', kwargs={'journal_id': str(self.id),
+                                                                 'journal_type': 'CD'})
+
+    def get_edit_url(self):
+        return reverse('accounts.views.add_bank_entry', args=['CD', str(self.id)])
 
     def save(self, *args, **kwargs):
         if self.ach_payment:
@@ -208,7 +214,6 @@ class BankSpendingEntry(BaseJournalEntry):
 
 class BankReceivingEntry(BaseJournalEntry):
     payor = models.CharField(max_length=50)
-    main_transaction = models.OneToOneField('Transaction')
 
     class Meta:
         verbose_name_plural = "bank receiving entries"
@@ -218,7 +223,11 @@ class BankReceivingEntry(BaseJournalEntry):
         return self.memo
 
     def get_absolute_url(self):
-        return reverse('accounts.views.show_journal_entry', args=['CR', str(self.id)])
+        return reverse('accounts.views.show_bank_entry', kwargs={'journal_id': str(self.id),
+                                                                 'journal_type': 'CR'})
+
+    def get_edit_url(self):
+        return reverse('accounts.views.add_bank_entry', args=['CR', str(self.id)])
 
     def get_number(self):
         return "CR#{0:06d}".format(self.id)
@@ -287,39 +296,19 @@ class Transaction(models.Model):
         super(Transaction, self).delete()
 
     def get_date(self):
-        if self.journal_entry:
-            return self.journal_entry.date
-        elif self.bankspend_entry:
-            return self.bankspend_entry.date
-        elif self.bankreceive_entry:
-            return self.bankspend_entry.date
-        # For main_transaction
-        elif self.bankspendingentry:
-            return self.bankspendingentry.date
-        elif self.bankreceivingentry:
-            return self.bankreceivingentry.date
+        return self.get_journal_entry().date
 
     def get_entry_number(self):
-        if self.journal_entry:
-            return self.journal_entry.get_number()
-        elif self.bankspend_entry:
-            return self.bankspend_entry.get_number()
-        elif self.bankreceive_entry:
-            return self.bankspend_entry.get_number()
-        # For main_transaction
-        elif self.bankspendingentry:
-            return self.bankspendingentry.get_number()
-        elif self.bankreceivingentry:
-            return self.bankreceivingentry.get_number()
+        return self.get_journal_entry().get_number()
 
     def get_final_account_balance(self):
         """Returns Account balance after transaction has occured."""
         date = self.get_date()
         acct_balance = self.account.balance
         query = (models.Q(journal_entry__date__gt=date) | models.Q(bankspend_entry__date__gt=date) |
-                 models.Q(bankspendingentry__date__gt=date) | models.Q(bankreceive_entry__date__gt=date) |
+                 models.Q(bankreceive_entry__date__gt=date) |
                 ((models.Q(journal_entry__date=date) | models.Q(bankspend_entry__date=date) |
-                    models.Q(bankspendingentry__date=date) | models.Q(bankreceive_entry__date=date))
+                  models.Q(bankreceive_entry__date=date))
                     & models.Q(id__gt=self.id)))
         newer_transactions = self.account.transaction_set.filter(query)
         for transaction in newer_transactions:
@@ -335,15 +324,13 @@ class Transaction(models.Model):
         else:
             return final - self.balance_delta
 
-    def get_memo(self):
+    def get_journal_entry(self):
         if self.journal_entry:
-            return self.journal_entry.memo
+            return self.journal_entry
         elif self.bankspend_entry:
-            return self.bankspend_entry.memo
+            return self.bankspend_entry
         elif self.bankreceive_entry:
-            return self.bankspend_entry.memo
-        # For main_transaction
-        elif self.bankspendingentry:
-            return self.bankspendingentry.memo
-        elif self.bankreceivingentry:
-            return self.bankreceivingentry.memo
+            return self.bankreceive_entry
+
+    def get_memo(self):
+        return self.get_journal_entry().memo

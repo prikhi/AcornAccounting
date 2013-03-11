@@ -1,9 +1,9 @@
 <h3>Add Entry:</h3>
 <ul>
-    <li><a href="{% url accounts.views.add_journal_entry journal_type='GJ' %}">General Journal</a></li>
+    <li><a href="{% url accounts.views.add_journal_entry %}">General Journal</a></li>
     <li><a href="{% url accounts.views.add_transfer_entry %}">Internal Transfer</a></li>
-    <li><a href="{% url accounts.views.add_journal_entry journal_type='CD' %}">Bank Spending</a></li>
-    <li><a href="{% url accounts.views.add_journal_entry journal_type='CR' %}">Bank Receiving</a></li>
+    <li><a href="{% url accounts.views.add_bank_entry journal_type='CD' %}">Bank Spending</a></li>
+    <li><a href="{% url accounts.views.add_bank_entry journal_type='CR' %}">Bank Receiving</a></li>
 </ul>
 <h3>Quick Links:</h3>
 <ul>

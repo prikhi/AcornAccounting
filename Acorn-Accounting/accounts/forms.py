@@ -128,11 +128,27 @@ class BankSpendingForm(BaseBankForm):
         model = BankSpendingEntry
         fields = ('account', 'date', 'check_number', 'ach_payment', 'payee', 'amount', 'memo',)
 
+    def clean(self):
+        '''If ACH is not checked check_number is required'''
+        super(BankSpendingForm, self).clean()
+        if any(self.errors):
+            return self.cleaned_data
+        check_number = self.cleaned_data.get('check_number')
+        ach_payment = self.cleaned_data.get('ach_payment', False)
+        if not check_number and not ach_payment:
+            raise forms.ValidationError("A check number is required if this is not an ACH payment.")
+        return self.cleaned_data
+
 
 class BankReceivingForm(BaseBankForm):
     class Meta:
         model = BankReceivingEntry
         fields = ('account', 'date', 'payor', 'amount', 'memo',)
+
+    def clean_amount(self):
+        '''Should be negative(debit) for receiving money'''
+        amount = self.cleaned_data.get('amount')
+        return -1 * amount
 
 
 class BankTransactionForm(forms.ModelForm):
@@ -144,27 +160,34 @@ class BankTransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4})}
 
+    def __init__(self, *args, **kwargs):
+        super(BankTransactionForm, self).__init__(*args, **kwargs)
+        self.fields['account'].queryset = Account.objects.filter(bank=False)
+
     def clean(self):
         super(BankTransactionForm, self).clean()
         if any(self.errors):
-            return
+            return self.cleaned_data
         cleaned_data = self.cleaned_data
-        cleaned_data['balance_delta'] = -1 * cleaned_data['amount']
+        cleaned_data['balance_delta'] = cleaned_data['amount']
         return cleaned_data
 
 
 class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super(BaseBankTransactionFormSet, self).__init__(*args, **kwargs)
+        self.queryset = Transaction.objects.filter(**{self.fk.name: self.instance}).filter(account__bank=False)
+
     def clean(self):
         '''Checks that Transaction amounts balance Entry amount'''
         super(BaseBankTransactionFormSet, self).clean()
         if any(self.errors):
             return
-        balance = self.entry_form.cleaned_data['amount']
+        balance = abs(self.entry_form.cleaned_data['amount'])
         for form in self.forms:
-            balance += -1 * form.cleaned_data.get('amount', 0)
+                balance += -1 * abs(form.cleaned_data.get('amount', 0))
         if balance != 0:
             raise forms.ValidationError("Transactions are out of balance.")
-        return self.cleaned_data
 
 BankSpendingTransactionFormSet = inlineformset_factory(BankSpendingEntry, Transaction,
                                                        form=BankTransactionForm, formset=BaseBankTransactionFormSet,
