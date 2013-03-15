@@ -2,21 +2,32 @@ import datetime
 
 from django.db.models import Q
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
 
 from .accounting import process_date_range_form
-from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet
+from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm, \
+                   BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
-from accounts.forms import BankSpendingForm, BankReceivingForm,\
-    BankReceivingTransactionFormSet, BankSpendingTransactionFormSet
 
 
 def quick_account_search(request):
     '''Processes search for quick_account tag'''
-    account = get_object_or_404(Account, pk=request.GET['account'])
-    return HttpResponseRedirect(reverse('show_account_detail', args=[account.slug]))
+    if 'account' in request.GET:
+        account = get_object_or_404(Account, pk=request.GET['account'])
+        return HttpResponseRedirect(reverse('show_account_detail', args=[account.slug]))
+    else:
+        raise Http404
+
+
+def quick_bank_search(request):
+    '''Processes search for bank registers'''
+    if 'bank' in request.GET:
+        account = get_object_or_404(Account, pk=request.GET['bank'], bank=True)
+        return HttpResponseRedirect(reverse('bank_register', kwargs={'account_slug': account.slug}))
+    else:
+        raise Http404
 
 
 def show_accounts_chart(request, header_slug=None, template_name="accounts/account_charts.html"):
@@ -42,7 +53,7 @@ def show_account_detail(request, account_slug,
             )
     transactions = list(account.transaction_set.filter(query))
     transactions.sort(key=lambda x: x.get_date())
-    if transactions:        # Calculate final balances with simple math instead of many db queries
+    if transactions:        # Calculate final balances with math instead of many db queries
         startbalance = transactions[0].get_initial_account_balance()
         endbalance = startbalance
         for transaction in transactions:
@@ -63,6 +74,17 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
                               context_instance=RequestContext(request))
 
 
+def bank_register(request, account_slug, template_name="accounts/bank_register.html"):
+    form, startdate, stopdate = process_date_range_form(request)
+    account = get_object_or_404(Account, slug=account_slug, bank=True)
+    transactions = Transaction.objects.filter(account=account).filter(
+                                             (Q(bankspend_entry__isnull=False) | Q(bankreceive_entry__isnull=False)) &
+                                             ((Q(bankspend_entry__date__lte=stopdate) & Q(bankspend_entry__date__gte=startdate)) |
+                                              (Q(bankreceive_entry__date__lte=stopdate) & Q(bankreceive_entry__date__gte=startdate))))
+    return render_to_response(template_name, locals(),
+                              context_instance=RequestContext(request))
+
+
 def show_journal_entry(request, journal_id, journal_type="GJ",
                        template_name="accounts/entry_detail.html"):
     entry_types = {'GJ': JournalEntry, 'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
@@ -78,7 +100,7 @@ def show_bank_entry(request, journal_id, journal_type):
     templates = {'CR': 'accounts/entry_bankreceive_detail.html', 'CD': 'accounts/entry_bankspend_detail.html'}
     entry_type = entry_types[journal_type]
     template_name = templates[journal_type]
-    journal_entry = get_object_or_404(entry_type, pk=journal_id)
+    journal_entry = get_object_or_404(entry_type, id=journal_id)
     updated = (journal_entry.created_at - journal_entry.updated_at).days == 0
     main_transaction = journal_entry.transaction_set.get(account__bank=True)
     transactions = journal_entry.transaction_set.filter(account__bank=False)

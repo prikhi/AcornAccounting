@@ -205,6 +205,12 @@ class BankSpendingEntry(BaseJournalEntry):
             self.check_number = None
         super(BankSpendingEntry, self).save(*args, **kwargs)
 
+    def get_bank_transaction(self):
+        return self.transaction_set.get(account__bank=True)
+
+    def get_main_transactions(self):
+        return self.transaction_set.filter(account__bank=False)
+
     def get_number(self):
         if self.ach_payment:
             return "##ACH##"
@@ -228,6 +234,12 @@ class BankReceivingEntry(BaseJournalEntry):
 
     def get_edit_url(self):
         return reverse('accounts.views.add_bank_entry', args=['CR', str(self.id)])
+
+    def get_bank_transaction(self):
+        return self.transaction_set.get(account__bank=True)
+
+    def get_main_transactions(self):
+        return self.transaction_set.filter(account__bank=False)
 
     def get_number(self):
         return "CR#{0:06d}".format(self.id)
@@ -257,6 +269,9 @@ class Transaction(models.Model):
 
     def __unicode__(self):
         return self.detail
+
+    def get_absolute_url(self):
+        return self.get_journal_entry().get_absolute_url()
 
     def save(self, *args, **kwargs):
         '''Changes Account balances if Account or balance_delta is changed'''

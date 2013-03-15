@@ -24,6 +24,12 @@ class QuickAccountForm(forms.Form):
                                      label='', empty_label='Jump to an Account')
 
 
+class QuickBankForm(forms.Form):
+    bank = forms.ModelChoiceField(queryset=Account.objects.filter(bank=True),
+                                     widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
+                                     label='', empty_label='Jump to a Register')
+
+
 class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry

@@ -3,20 +3,32 @@
 '''
 import datetime
 
-from .forms import DateRangeForm
-from accounts.forms import QuickAccountForm
+from .forms import DateRangeForm, QuickAccountForm, QuickBankForm
 
 
-def process_quick_search_form(request):
+def process_quick_account_form(GET):
     '''
     Returns a quick account dropdown select form and an Account id
     '''
     form = QuickAccountForm()
     account_id = None
-    if 'account' in request:
-        form = QuickAccountForm(request)
+    if 'account' in GET:
+        form = QuickAccountForm(GET)
         if form.is_valid():
             account_id = form.cleaned_data['account']
+    return form, account_id
+
+
+def process_quick_bank_form(GET):
+    '''
+    Returns a quick bank register dropdown select form and an Account id
+    '''
+    form = QuickBankForm()
+    account_id = None
+    if 'bank' in GET:
+        form = QuickBankForm(GET)
+        if form.is_valid():
+            account_id = form.cleaned_data['bank']
     return form, account_id
 
 

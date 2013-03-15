@@ -9,9 +9,11 @@ import datetime
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.test import TestCase
+from django.test.testcases import TransactionTestCase
 
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
-from .forms import BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet
+from .forms import BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, \
+                   BankSpendingTransactionFormSet, DateRangeForm, QuickAccountForm, QuickBankForm
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -49,7 +51,7 @@ class BaseAccountModelTests(TestCase):
         cost_acc = create_account('cost', cost_header, 0, 5)
         oth_expense_acc = create_account('oth_expense', oth_expense_header, 0, 8)
 
-        entry = create_entry(datetime.datetime.today(), 'Entry')
+        entry = create_entry(datetime.date.today(), 'Entry')
         create_transaction(entry, asset_acc, -20)
         create_transaction(entry, expense_acc, -20)
         create_transaction(entry, cost_acc, -20)
@@ -77,7 +79,7 @@ class BaseAccountModelTests(TestCase):
         self.assertEqual(oth_expense_header.get_account_balance(), -20)
 
 
-class TransactionTest(TestCase):
+class TransactionModelTests(TestCase):
     def test_creation(self):
         '''
         Tests that created Transactions affect Account balances.
@@ -214,6 +216,71 @@ class TransactionTest(TestCase):
         self.assertEqual(trans_newer.get_final_account_balance(), -40)
 
 
+class QuickSearchViewTests(TestCase):
+    '''
+    Test views for redirecting dropdowns to Account details or a Bank Account's
+    register
+    '''
+    def setUp(self):
+        '''
+        An Account and Bank Account are required the respective searches
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.liability_header = create_header('liability', cat_type=2)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.liability_account = create_account('liability', self.liability_header, 0, 2)
+
+    def test_quick_account_success(self):
+        '''
+        A `GET` to the `quick_account_search` view with an `account_id` should
+        redirect to the Account's detail page
+        '''
+        response = self.client.get(reverse('accounts.views.quick_account_search'),
+                                   data={'account': self.liability_account.id})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail', args=[self.liability_account.slug]))
+
+    def test_quick_account_fail(self):
+        '''
+        A `GET` to the `quick_account_search` view with an `account_id` should
+        return a 404 if the Account does not exist
+        '''
+        response = self.client.get(reverse('accounts.views.quick_account_search'),
+                                   data={'account': 9001})
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_quick_bank_success(self):
+        '''
+        A `GET` to the `quick_bank_search` view with an `account_id` should
+        redirect to the Account's register page
+        '''
+        response = self.client.get(reverse('accounts.views.quick_bank_search'),
+                                   data={'bank': self.bank_account.id})
+
+        self.assertRedirects(response, reverse('accounts.views.bank_register', args=[self.bank_account.slug]))
+
+    def test_quick_bank_fail_not_bank(self):
+        '''
+        A `GET` to the `quick_bank_search` view with an `account_id` should
+        return a 404 if the Account is not a bank
+        '''
+        response = self.client.get(reverse('accounts.views.quick_bank_search'),
+                                   data={'bank': self.liability_account.id})
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_quick_bank_fail_not_account(self):
+        '''
+        A `GET` to the `quick_bank_search` view with an `account_id` should
+        return a 404 if the Account does not exist
+        '''
+        response = self.client.get(reverse('accounts.views.quick_bank_search'),
+                                   data={'bank': 9001})
+
+        self.assertEqual(response.status_code, 404)
+
+
 class BankEntryViewTests(TestCase):
     '''
     Test the BankSpendingEntry and BankReceivingEntry add and detail views
@@ -262,8 +329,8 @@ class BankEntryViewTests(TestCase):
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CR', 'journal_id': 1}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
-        self.assertEqual(Account.objects.get(bank=True).get_balance(), 20)
-        self.assertEqual(Account.objects.get(bank=False).get_balance(), -20)
+        self.assertEqual(Account.objects.get(bank=True).balance, -20)
+        self.assertEqual(Account.objects.get(bank=False).balance, 20)
 
     def test_bank_receiving_add_view_failure_entry(self):
         '''
@@ -326,7 +393,7 @@ class BankEntryViewTests(TestCase):
         instance of the BankReceivingEntry with id `journal_id`.
         '''
         self.test_bank_receiving_add_view_success()
-        entry = BankReceivingEntry.objects.get(id=1)
+        entry = BankReceivingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.add_bank_entry',
                                            kwargs={'journal_type': 'CR',
                                                    'journal_id': 1}))
@@ -376,10 +443,10 @@ class BankEntryViewTests(TestCase):
         expense_account = Account.objects.get(name='expense')
         new_bank_account = Account.objects.get(name='2nd bank')
         new_expense_account = Account.objects.get(name='2nd expense')
-        self.assertEqual(bank_account.get_balance(), 0)
-        self.assertEqual(expense_account.get_balance(), 0)
-        self.assertEqual(new_bank_account.get_balance(), 15)
-        self.assertEqual(new_expense_account.get_balance(), -15)
+        self.assertEqual(bank_account.balance, 0)
+        self.assertEqual(expense_account.balance, 0)
+        self.assertEqual(new_bank_account.balance, -15)
+        self.assertEqual(new_expense_account.balance, 15)
         self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
         self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
 
@@ -395,7 +462,7 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_bankreceive_detail.html')
         self.failUnless(isinstance(response.context['journal_entry'], BankReceivingEntry))
-        self.assertEqual(BankReceivingEntry.objects.get(id=1), response.context['journal_entry'])
+        self.assertEqual(BankReceivingEntry.objects.all()[0], response.context['journal_entry'])
         self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
         self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])
 
@@ -435,8 +502,8 @@ class BankEntryViewTests(TestCase):
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CD', 'journal_id': 1}))
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
-        self.assertEqual(Account.objects.get(bank=True).get_balance(), -20)
-        self.assertEqual(Account.objects.get(bank=False).get_balance(), 20)
+        self.assertEqual(Account.objects.get(bank=True).balance, 20)
+        self.assertEqual(Account.objects.get(bank=False).balance, -20)
 
     def test_bank_spending_add_view_failure_entry(self):
         '''
@@ -500,7 +567,7 @@ class BankEntryViewTests(TestCase):
         the BankSpendingEntry with id of `journal_id`.
         '''
         self.test_bank_spending_add_view_success()
-        entry = BankSpendingEntry.objects.get(id=1)
+        entry = BankSpendingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.add_bank_entry',
                                            kwargs={'journal_type': 'CD',
                                                    'journal_id': 1}))
@@ -551,10 +618,10 @@ class BankEntryViewTests(TestCase):
         expense_account = Account.objects.get(name='expense')
         new_bank_account = Account.objects.get(name='2nd bank')
         new_expense_account = Account.objects.get(name='2nd expense')
-        self.assertEqual(bank_account.get_balance(), 0)
-        self.assertEqual(expense_account.get_balance(), 0)
-        self.assertEqual(new_bank_account.get_balance(), -15)
-        self.assertEqual(new_expense_account.get_balance(), 15)
+        self.assertEqual(bank_account.balance, 0)
+        self.assertEqual(expense_account.balance, 0)
+        self.assertEqual(new_bank_account.balance, 15)
+        self.assertEqual(new_expense_account.balance, -15)
         self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
         self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
 
@@ -572,3 +639,87 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(BankSpendingEntry.objects.get(id=1), response.context['journal_entry'])
         self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
         self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])
+
+
+class BankRegisterViewTests(TransactionTestCase):
+    '''
+    Test view for showing Bank Entry register for a Bank Account
+    '''
+
+    def setUp(self):
+        '''
+        Bank Entries require a Bank Account and a normal Account
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.liability_header = create_header('liability', cat_type=2)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.liability_account = create_account('liability', self.liability_header, 0, 2)
+
+    def test_bank_register_view_initial(self):
+        '''
+        A `GET` to the `show_bank_register` view should return a list of
+        BankSpendingEntries and BankReceivingEntries associated with the bank
+        account, from the beginning of this month to today
+        '''
+        receive = BankReceivingEntry.objects.create(date=datetime.date.today(),
+                                     memo='receive entry',
+                                     payor='test payor')
+        Transaction.objects.create(bankreceive_entry=receive, account=self.bank_account, balance_delta=-20, detail='bank rec')
+        Transaction.objects.create(bankreceive_entry=receive, account=self.liability_account, balance_delta=20, detail='acc rec')
+
+        spend = BankSpendingEntry.objects.create(date=datetime.date.today(), memo='spend entry',
+                                  ach_payment=True, payee='test payee')
+        Transaction.objects.create(bankspend_entry=spend, account=self.bank_account, balance_delta=50, detail='bank spend')
+        Transaction.objects.create(bankspend_entry=spend, account=self.liability_account, balance_delta=-50, detail='acc spend')
+        response = self.client.get(reverse('accounts.views.bank_register',
+                                   kwargs={'account_slug': self.bank_account.slug}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/bank_register.html')
+        self.failUnless(isinstance(response.context['form'], DateRangeForm))
+        self.assertItemsEqual(response.context['transactions'],
+                              Transaction.objects.filter(account=self.bank_account))
+        today = datetime.date.today()
+        self.assertEqual(response.context['startdate'], datetime.date(today.year, today.month, 1))
+        self.assertEqual(response.context['stopdate'], today)
+
+    def test_bank_register_view_date_filter(self):
+        '''
+        A `GET` to the `show_bank_register` view submitted with a `start_date`
+        and `stop_date` returns the Bank Entries for the account during the time
+        period
+        '''
+        date_range = ('1/1/11', '3/7/12')
+        in_range_date = datetime.date(2012, 1, 1)
+        out_range_date = datetime.date(2013, 5, 8)
+        out_range_date2 = datetime.date(2010, 12, 1)
+
+        receive = BankReceivingEntry.objects.create(date=in_range_date, memo='receive entry',
+                                     payor='test payor')
+
+        banktran_receive = Transaction.objects.create(bankreceive_entry=receive, account=self.bank_account, balance_delta=-20)
+        Transaction.objects.create(bankreceive_entry=receive, account=self.liability_account, balance_delta=20)
+
+        spend = BankSpendingEntry.objects.create(date=in_range_date, memo='spend entry',
+                                                 ach_payment=True, payee='test payee')
+        banktran_spend = Transaction.objects.create(bankspend_entry=spend, account=self.bank_account, balance_delta=50)
+        Transaction.objects.create(bankspend_entry=spend, account=self.liability_account, balance_delta=-50)
+
+        out_receive = BankReceivingEntry.objects.create(date=out_range_date2, memo='newer receive entry',
+                                         payor='test payor')
+
+        Transaction.objects.create(bankreceive_entry=out_receive, account=self.bank_account, balance_delta=-20)
+        Transaction.objects.create(bankreceive_entry=out_receive, account=self.liability_account, balance_delta=20)
+
+        out_spend = BankSpendingEntry.objects.create(date=out_range_date, memo='older spend entry',
+                                                     ach_payment=True, payee='test payee')
+        Transaction.objects.create(bankspend_entry=out_spend, account=self.bank_account, balance_delta=50)
+        Transaction.objects.create(bankspend_entry=out_spend, account=self.liability_account, balance_delta=-50)
+
+        response = self.client.get(reverse('accounts.views.bank_register', args=[self.bank_account.slug]),
+                                   data={'startdate': date_range[0],
+                                         'stopdate': date_range[1]})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertItemsEqual(response.context['transactions'], [banktran_receive, banktran_spend])
+        self.assertEqual(response.context['startdate'], datetime.date(2011, 1, 1))
+        self.assertEqual(response.context['stopdate'], datetime.date(2012, 3, 7))

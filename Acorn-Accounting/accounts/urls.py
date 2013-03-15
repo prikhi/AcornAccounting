@@ -8,6 +8,7 @@ urlpatterns = patterns('accounts.views',
         {'template_name': 'accounts/account_detail.html'}, 'show_account_detail'),
 
     (r'^search/quick/account/$', 'quick_account_search'),
+    (r'^search/quick/register/$', 'quick_bank_search'),
 
     (r'^add/$', 'add_journal_entry',),
     (r'^add/(?P<journal_type>C[DR])/$', 'add_bank_entry'),
@@ -21,4 +22,5 @@ urlpatterns = patterns('accounts.views',
     (r'^(?P<journal_type>C[DR])/(?P<journal_id>\d+)/$', 'show_bank_entry'),
 
     (r'^journal/$', 'journal_ledger', {'template_name': 'accounts/journal_ledger.html'}, 'journal_ledger'),
+    (r'^register/(?P<account_slug>[-\w]+)/$', 'bank_register', {'template_name': 'accounts/bank_register.html'}, 'bank_register'),
 )

@@ -1,0 +1,59 @@
+{% extends "site.html" %}
+
+{% load accounting_filters %}
+
+{% block content %}
+<h2>{{ account.name|capwords }} - Register</h2>
+<h3>{{ startdate }} - {{ stopdate }}</h3>
+<form action="." method="GET">
+    <table>
+        {{ form.as_table }}
+        <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
+    </table>
+</form>
+<br />
+<table summary="Bank Register: {{ account.name }}" id="accounts_chart">
+    <thead>
+    <tr>
+        <th scope="col"></th>
+        <th scope="col">Account</th>
+        <th scope="col">Detail</th>
+        <th scope="col" class="right">Debit</th>
+        <th scope="col" class="right">Credit</th>
+        <th scope="col" class="right">Event</th>
+    </tr>
+    </thead>
+{% for transaction in transactions %}
+    <tbody>
+    <tr class="header clickable">
+        <td><a href="{{ transaction.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
+        <td>{{ transaction.get_date|date:"m/d/Y" }}</td>
+        <td>{{ transaction.get_memo|capwords }}</td>
+        {% if transaction.balance_delta < 0 %}
+            <td class="right">{{ transaction.balance_delta|currency }}</td>
+            <td class="right"></td>
+        {% else %}
+            <td class="right"></td>
+            <td class="right">{{ transaction.balance_delta|currency }}</td>
+        {% endif %}
+        <td></td>
+    </tr>
+    {% for main_transaction in transaction.get_journal_entry.get_main_transactions %}
+        <tr class="{% cycle 'main' 'alt' %} clickable">
+            <td></td>
+            <td><a href="{{ main_transaction.account.get_absolute_url }}">{{ main_transaction.account }}</a></td>
+            <td>{{ main_transaction.detail }}</td>
+            {% if main_transaction.balance_delta < 0 %}
+                <td class="right">{{ main_transaction.balance_delta|currency }}</td>
+                <td class="right"></td>
+            {% else %}
+                <td class="right"></td>
+                <td class="right">{{ main_transaction.balance_delta|currency }}</td>
+            {% endif %}
+            <td class="right">{{ main_transaction.job }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+{% endfor %} 
+</table><br /><br />
+{% endblock %}
