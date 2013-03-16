@@ -8,7 +8,9 @@
     lang="{% firstof LANGUGE_CODE 'en' %}">
     <head>
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css.css" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}jquery-ui.min.css" />
         <script type="text/javascript" src="{{ STATIC_URL }}jquery.min.js"></script>
+        <script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
         <script type="text/javascript"> 
             $(document).ready(function() {
                 $('#accounts_chart tr').click(function() {
