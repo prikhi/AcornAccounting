@@ -14,7 +14,7 @@ urlpatterns = patterns('accounts.views',
     (r'^add/(?P<journal_type>C[DR])/$', 'add_bank_entry'),
     (r'^add/transfer/$', 'add_transfer_entry'),
 
-    (r'^edit/(?P<journal_type>GJ)/(?P<journal_id>\d+)/$', 'add_journal_entry',),
+    (r'^edit/GJ/(?P<journal_id>\d+)/$', 'add_journal_entry',),
     (r'^edit/(?P<journal_type>C[DR])/(?P<journal_id>\d+)/$', 'add_bank_entry'),
 
     (r'^GJ/(?P<journal_id>\d+)/$', 'show_journal_entry',

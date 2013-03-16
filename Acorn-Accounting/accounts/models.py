@@ -1,10 +1,10 @@
 from decimal import Decimal
 import datetime
 
+from django import forms
 from django.core.urlresolvers import reverse
 from django.db import models
 from mptt.models import MPTTModel, TreeForeignKey
-from django import forms
 
 
 class BankAccountManager(models.Manager):
@@ -303,12 +303,6 @@ class Transaction(models.Model):
         super(Transaction, self).clean()
         if not (self.journal_entry or self.bankreceive_entry or self.bankspend_entry):
             raise forms.ValidationError("A Journal or Bank Entry must be assigned.")
-
-    def delete(self):
-        '''Refunds Transaction before deleting from database.'''
-        self.account.balance = self.account.balance - self.balance_delta
-        self.account.save()
-        super(Transaction, self).delete()
 
     def get_date(self):
         return self.get_journal_entry().date

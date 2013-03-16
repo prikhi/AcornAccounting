@@ -60,7 +60,14 @@
 {% endfor %}
 </table>
 <br />
-<input type="submit" value="Submit">
+<input type="submit" name="submit" value="Submit">
+{% if entry_form.instance.pk %}
+<br />
+<br />
+<br />
+<br />
+<input class="fr" type="submit" name="submit" value="Delete">
+{% endif %}
 <br />
 </div>
 </form>

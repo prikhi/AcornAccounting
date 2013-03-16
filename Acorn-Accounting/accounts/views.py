@@ -122,26 +122,35 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
         entry.date = datetime.date.today
 
     if request.method == 'POST':
-        entry_form = JournalEntryForm(request.POST, prefix='entry', instance=entry)
-        transaction_formset = TransactionFormSet(request.POST, prefix='transaction', instance=entry)
-        if entry_form.is_valid():
-            entry = entry_form.save(commit=False)
-            transaction_formset.entry_form = entry_form
-            if transaction_formset.is_valid():
-                entry_form.save()
-                transaction_formset.save(commit=False)
-                for form in transaction_formset.forms:
-                    if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
-                        if transaction_formset.instance is TransactionFormSet:
-                            form.instance.journal_entry = entry
-                        elif transaction_formset.instance is BankReceivingTransactionFormSet:
-                            form.instance.bankspend_entry = entry
-                        elif transaction_formset.instance is BankReceivingTransactionFormSet:
-                            form.instance.bankreceive_entry = entry
-                        form.instance.balance_delta = form.cleaned_data['balance_delta']
-                        form.instance.save()
-                return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
-                                                    kwargs={'journal_id': entry.id}))
+        if 'submit' in request.POST and request.POST['submit'] == 'Submit':
+            entry_form = JournalEntryForm(request.POST, prefix='entry', instance=entry)
+            transaction_formset = TransactionFormSet(request.POST, prefix='transaction', instance=entry)
+            if entry_form.is_valid():
+                entry = entry_form.save(commit=False)
+                transaction_formset.entry_form = entry_form
+                if transaction_formset.is_valid():
+                    entry_form.save()
+                    transaction_formset.save(commit=False)
+                    for form in transaction_formset.forms:
+                        if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
+                            if transaction_formset.instance is TransactionFormSet:
+                                form.instance.journal_entry = entry
+                            elif transaction_formset.instance is BankReceivingTransactionFormSet:
+                                form.instance.bankspend_entry = entry
+                            elif transaction_formset.instance is BankReceivingTransactionFormSet:
+                                form.instance.bankreceive_entry = entry
+                            form.instance.balance_delta = form.cleaned_data['balance_delta']
+                            form.instance.save()
+                    return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
+                                                        kwargs={'journal_id': entry.id}))
+        elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
+            if entry.pk:
+                entry.delete()
+                return HttpResponseRedirect(reverse('accounts.views.journal_ledger'))
+            else:
+                raise Http404
+        else:
+            raise Http404
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transaction_formset = TransactionFormSet(prefix='transaction', instance=entry)
@@ -173,40 +182,51 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry = entry_type()
         entry.date = datetime.date.today
     if request.method == 'POST':
-        entry_form = EntryTypeForm(request.POST, prefix='entry', instance=entry)
-        transaction_formset = InlineFormSet(request.POST, prefix='transaction', instance=entry)
-        if entry_form.is_valid():
-            transaction_formset.entry_form = entry_form     # Used for clean function
-            if transaction_formset.is_valid():
-                entry.save()
-                try:
-                    main_transaction = entry.transaction_set.get(account__bank=True)
-                    main_transaction.account = entry_form.cleaned_data['account']
-                    main_transaction.balance_delta = entry_form.cleaned_data['amount']
-                    main_transaction.detail = entry_form.cleaned_data['memo']
-                except Transaction.DoesNotExist:
-                    if EntryTypeForm is BankSpendingForm:
-                        main_transaction = Transaction(account=entry_form.cleaned_data['account'],
-                                                       balance_delta=entry_form.cleaned_data['amount'],
-                                                       detail=entry_form.cleaned_data['memo'], bankspend_entry=entry)
-                    elif EntryTypeForm is BankReceivingForm:
-                        main_transaction = Transaction(account=entry_form.cleaned_data['account'],
-                                                       balance_delta=entry_form.cleaned_data['amount'],
-                                                       detail=entry_form.cleaned_data['memo'], bankreceive_entry=entry)
-                main_transaction.save()
-                transaction_formset.save(commit=False)
-                for form in transaction_formset.forms:
-                    if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
+        if 'submit' in request.POST and request.POST['submit'] == 'Submit':
+            entry_form = EntryTypeForm(request.POST, prefix='entry', instance=entry)
+            transaction_formset = InlineFormSet(request.POST, prefix='transaction', instance=entry)
+            if entry_form.is_valid():
+                transaction_formset.entry_form = entry_form     # Used for clean function
+                if transaction_formset.is_valid():
+                    entry.save()
+                    try:
+                        main_transaction = entry.transaction_set.get(account__bank=True)
+                        main_transaction.account = entry_form.cleaned_data['account']
+                        main_transaction.balance_delta = entry_form.cleaned_data['amount']
+                        main_transaction.detail = entry_form.cleaned_data['memo']
+                    except Transaction.DoesNotExist:
                         if EntryTypeForm is BankSpendingForm:
-                            form.instance.bankspend_entry = entry
-                            form.instance.balance_delta = -1 * form.cleaned_data['balance_delta']
+                            main_transaction = Transaction(account=entry_form.cleaned_data['account'],
+                                                           balance_delta=entry_form.cleaned_data['amount'],
+                                                           detail=entry_form.cleaned_data['memo'], bankspend_entry=entry)
                         elif EntryTypeForm is BankReceivingForm:
-                            form.instance.bankreceive_entry = entry
-                            form.instance.balance_delta = form.cleaned_data['balance_delta']
-                        form.instance.save()
-                return HttpResponseRedirect(reverse('accounts.views.show_bank_entry',
-                                                    kwargs={'journal_id': entry.id,
-                                                            'journal_type': journal_type}))
+                            main_transaction = Transaction(account=entry_form.cleaned_data['account'],
+                                                           balance_delta=entry_form.cleaned_data['amount'],
+                                                           detail=entry_form.cleaned_data['memo'], bankreceive_entry=entry)
+                    main_transaction.save()
+                    transaction_formset.save(commit=False)
+                    for form in transaction_formset.forms:
+                        if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
+                            if EntryTypeForm is BankSpendingForm:
+                                form.instance.bankspend_entry = entry
+                                form.instance.balance_delta = -1 * form.cleaned_data['balance_delta']
+                            elif EntryTypeForm is BankReceivingForm:
+                                form.instance.bankreceive_entry = entry
+                                form.instance.balance_delta = form.cleaned_data['balance_delta']
+                            form.instance.save()
+                    return HttpResponseRedirect(reverse('accounts.views.show_bank_entry',
+                                                        kwargs={'journal_id': entry.id,
+                                                                'journal_type': journal_type}))
+        elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
+            if entry.pk:
+                bank_account = entry.get_bank_transaction().account
+                entry.delete()
+                return HttpResponseRedirect(reverse('accounts.views.bank_register',
+                                                kwargs={'account_slug': bank_account.slug}))
+            else:
+                raise Http404
+        else:
+            raise Http404
     else:
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
         transaction_formset = InlineFormSet(prefix='transaction', instance=entry, queryset=Transaction.objects.filter(account__bank=False))

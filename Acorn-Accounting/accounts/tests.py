@@ -13,7 +13,7 @@ from django.test.testcases import TransactionTestCase
 
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
 from .forms import BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, \
-                   BankSpendingTransactionFormSet, DateRangeForm, QuickAccountForm, QuickBankForm
+                   BankSpendingTransactionFormSet, DateRangeForm
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -281,6 +281,65 @@ class QuickSearchViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class JournalEntryViewTests(TestCase):
+    '''
+    Test JournalEntry add and detail views
+    '''
+    def setUp(self):
+        '''
+        JournalEntries require two accounts
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.expense_header = create_header('expense', cat_type=6)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+        self.expense_account = create_account('expense', self.expense_header, 0, 6)
+
+    def test_add_journal_entry_view_delete(self):
+        '''
+        A `POST` to the `add_journal_entry` view with a `journal_id` and
+        `journal_type` will delete the JournalEntry and all related Transactions,
+        refunding the respective Accounts.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.asset_account, 50)
+        create_transaction(entry, self.expense_account, -50)
+
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.get(name='asset').balance, 50)
+        self.assertEqual(Account.objects.get(name='expense').balance, -50)
+
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                            kwargs={'journal_id': entry.id}),
+                                    data={'submit': 'Delete'})
+
+        self.assertRedirects(response, reverse('accounts.views.journal_ledger'))
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_add_journal_entry_view_delete_fail(self):
+        '''
+        A `POST` to the `add_journal_entry` view with an invalid `journal_id` and
+        `journal_type` will return a 404.
+        '''
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                            kwargs={'journal_id': 9001}),
+                                    data={'submit': 'Delete'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_add_journal_entry_view_post_fail(self):
+        '''
+        A `POST` to the `add_journal_entry` view with no 'submit' value will
+        return a 404.
+        '''
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                            kwargs={'journal_id': 9001}))
+        self.assertEqual(response.status_code, 404)
+
+
 class BankEntryViewTests(TestCase):
     '''
     Test the BankSpendingEntry and BankReceivingEntry add and detail views
@@ -323,7 +382,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
-                                          'transaction-0-account': self.expense_account.id
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
@@ -351,7 +411,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
-                                          'transaction-0-account': self.expense_account.id
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
@@ -378,13 +439,53 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 18,
-                                          'transaction-0-account': self.expense_account.id})
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
+                                          })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'Transactions are out of balance.')
         self.assertEqual(BankReceivingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_receiving_add_view_delete(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a `journal_id` and
+        `journal_type` of 'CR' will delete the BankReceivingEntry and all related
+        Transactions, refunding the respective Accounts.
+        '''
+        self.test_bank_receiving_add_view_success()
+        entry = BankReceivingEntry.objects.all()[0]
+
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.get(name='bank').balance, -20)
+        self.assertEqual(Account.objects.get(name='expense').balance, 20)
+
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': entry.id,
+                                                    'journal_type': 'CR'}),
+                                    data={'submit': 'Delete'})
+
+        self.assertRedirects(response, reverse('accounts.views.bank_register',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='bank').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_bank_receiving_add_view_delete_fail(self):
+        '''
+        A `POST` to the `add_bank_entry` view with an invalid `journal_id` and
+        `journal_type` of 'CR' will return a 404.
+        '''
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': 9001,
+                                                    'journal_type': 'CR'}),
+                                    data={'submit': 'Delete'})
+        self.assertEqual(response.status_code, 404)
 
     def test_bank_receiving_add_view_edit(self):
         '''
@@ -434,7 +535,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankreceive_entry': 1,
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
-                                          'transaction-0-account': new_expense_account.id
+                                          'transaction-0-account': new_expense_account.id,
+                                          'submit': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CR', 'journal_id': 1}))
@@ -449,6 +551,16 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(new_expense_account.balance, 15)
         self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
         self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
+
+    def test_bank_receiving_add_view_post_fail(self):
+        '''
+        A `POST` to the `add_bank_entry` view with no submit value will return a
+        404
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': 9001,
+                                                    'journal_type': 'CR'}))
+        self.assertEqual(response.status_code, 404)
 
     def test_bank_receiving_show_view(self):
         '''
@@ -496,7 +608,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
-                                          'transaction-0-account': self.expense_account.id
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
@@ -524,7 +637,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
-                                          'transaction-0-account': self.expense_account.id
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
@@ -552,13 +666,53 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankspend_entry': '',
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 18,
-                                          'transaction-0-account': self.expense_account.id})
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit',
+                                          })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'Transactions are out of balance.')
         self.assertEqual(BankSpendingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_spending_add_view_delete(self):
+        '''
+        A `POST` to the `add_bank_entry` view with a `journal_id` and
+        `journal_type` of 'CD' will delete the BankSpendingEntry and all related
+        Transactions, refunding the respective Accounts.
+        '''
+        self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.all()[0]
+
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.get(name='bank').balance, 20)
+        self.assertEqual(Account.objects.get(name='expense').balance, -20)
+
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': entry.id,
+                                                    'journal_type': 'CD'}),
+                                    data={'submit': 'Delete'})
+
+        self.assertRedirects(response, reverse('accounts.views.bank_register',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='bank').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_bank_spending_add_view_delete_fail(self):
+        '''
+        A `POST` to the `add_bank_entry` view with an invalid `journal_id` and
+        `journal_type` of 'CD' will return a 404
+        '''
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': 9001,
+                                                    'journal_type': 'CD'}),
+                                    data={'submit': 'Delete'})
+        self.assertEqual(response.status_code, 404)
 
     def test_bank_spending_add_view_edit(self):
         '''
@@ -609,7 +763,8 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-bankreceive_entry': 1,
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
-                                          'transaction-0-account': new_expense_account.id
+                                          'transaction-0-account': new_expense_account.id,
+                                          'submit': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CD', 'journal_id': 1}))
@@ -624,6 +779,16 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(new_expense_account.balance, -15)
         self.assertEqual(new_bank_account, Transaction.objects.get(id=1).account)
         self.assertEqual(new_expense_account, Transaction.objects.get(id=2).account)
+
+    def test_bank_spending_add_view_post_fail(self):
+        '''
+        A `POST` to the `add_bank_entry` view with no value for submit will
+        return a 404.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry',
+                                            kwargs={'journal_id': 9001,
+                                                    'journal_type': 'CD'}))
+        self.assertEqual(response.status_code, 404)
 
     def test_bank_spending_show_view(self):
         '''
