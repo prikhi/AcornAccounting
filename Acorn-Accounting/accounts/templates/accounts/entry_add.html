@@ -60,15 +60,43 @@
 {% endfor %}
 </table>
 <br />
-<input type="submit" name="submit" value="Submit">
+<input type="submit" name="submit" value="Submit" />
 {% if entry_form.instance.pk %}
-<br />
-<br />
-<br />
-<br />
-<input class="fr" type="submit" name="submit" value="Delete">
+
+<input class="delete" type="submit" name="submit" value="Delete" /">
 {% endif %}
 <br />
 </div>
 </form>
+{% if entry_form.instance.pk %}
+<div id="dialog-confirm" title="Delete Entry?">
+<span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>This Entry and it's Transactions will be permanently deleted and cannot be recovered. Are you sure?
+</div>
+<script type="text/javascript">
+    var currentForm;
+    $(function() {
+        $("#dialog-confirm").dialog({
+            resizable: false,
+            width: 350,
+            modal: true,
+            autoOpen: false,
+            closeOnEscape: true,
+            buttons: {
+                'Delete': function() {
+                    $(this).dialog('close');
+                    currentForm.submit();
+                },
+                'Cancel': function() {
+                    $(this).dialog('close');
+                }
+            }
+        });
+        $(".delete").click(function() {
+          currentForm = $(this).closest('form');
+          $("#dialog-confirm").dialog('open');
+          return false;
+        });
+    });
+</script>
+ {% endif %}
 {% endblock %}
