@@ -12,8 +12,9 @@ from django.test import TestCase
 from django.test.testcases import TransactionTestCase
 
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
-from .forms import BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, \
-                   BankSpendingTransactionFormSet, DateRangeForm
+from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm, \
+                   BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet, \
+                   DateRangeForm
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -294,6 +295,18 @@ class JournalEntryViewTests(TestCase):
         self.asset_account = create_account('asset', self.asset_header, 0, 1)
         self.expense_account = create_account('expense', self.expense_header, 0, 6)
 
+    def test_journal_add_view_initial(self):
+        '''
+        A `GET` to the `add_journal_entry` view should display JournalEntry Form
+        and Transaction Formset.
+        '''
+        response = self.client.get(reverse('accounts.views.add_journal_entry'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], JournalEntryForm))
+        self.assertEqual(response.context['journal_type'], 'GJ')
+        self.failUnless(isinstance(response.context['transaction_formset'], TransactionFormSet))
+
     def test_add_journal_entry_view_delete(self):
         '''
         A `POST` to the `add_journal_entry` view with a `journal_id` and
@@ -340,6 +353,23 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class TransferEntryViewTests(TestCase):
+    '''
+    Test TransferEntry add view
+    '''
+    def test_transfer_add_view_initial(self):
+        '''
+        A `GET` to the `add_transfer_entry` view should display a JournalEntry Form
+        and Transfer Formset.
+        '''
+        response = self.client.get(reverse('accounts.views.add_transfer_entry'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+        self.failUnless(isinstance(response.context['entry_form'], JournalEntryForm))
+        self.assertFalse('journal_type' in response.context)
+        self.failUnless(isinstance(response.context['transaction_formset'], TransferFormSet))
+
+
 class BankEntryViewTests(TestCase):
     '''
     Test the BankSpendingEntry and BankReceivingEntry add and detail views
@@ -362,6 +392,7 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_add.html')
         self.failUnless(isinstance(response.context['entry_form'], BankReceivingForm))
+        self.assertEqual(response.context['journal_type'], 'CR')
         self.failUnless(isinstance(response.context['transaction_formset'], BankReceivingTransactionFormSet))
 
     def test_bank_receiving_add_view_success(self):
@@ -587,6 +618,7 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_add.html')
         self.failUnless(isinstance(response.context['entry_form'], BankSpendingForm))
+        self.assertEqual(response.context['journal_type'], 'CD')
         self.failUnless(isinstance(response.context['transaction_formset'], BankSpendingTransactionFormSet))
 
     def test_bank_spending_add_view_success(self):

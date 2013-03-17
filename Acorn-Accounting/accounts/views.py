@@ -162,6 +162,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                     form.initial['debit'] = -1 * form.instance.balance_delta
     return render_to_response(template_name,
                               {'entry_form': entry_form,
+                               'journal_type': 'GJ',
                                'transaction_formset': transaction_formset},
                               context_instance=RequestContext(request))
 

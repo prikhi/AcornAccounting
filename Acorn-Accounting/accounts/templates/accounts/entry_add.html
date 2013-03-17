@@ -9,7 +9,9 @@
             prefix: '{{ transaction_formset.prefix }}',
             extraClasses: ['main','alt'],
             deleteText: '<input type="checkbox" align="middle">',
-            deleteCssClass: 'delete-row'});
+            deleteCssClass: 'delete-row',
+            added: addActions,
+            removed: newSum});
     })
 </script>
 
@@ -58,6 +60,43 @@
     {% endfor %}
     </tr>
 {% endfor %}
+    <tfoot>
+    {% if journal_type == 'GJ' %}
+        <tr class="summary">
+            <td></td>
+            <td class="right">Total:</td>
+            <td id="debit_total"></td>
+            <td id="credit_total"></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr class="out_of_balance">
+            <td></td>
+            <td class="right">Out of Balance:</td>
+            <td id="debit_oob"></td>
+            <td id="credit_oob"></td>
+            <td></td>
+            <td></td>
+        </tr>
+    {% else %}
+    {% if journal_type == 'CR' or journal_type == 'CD' %}
+        <tr class="summary">
+            <td></td>
+            <td class="right">Total:</td>
+            <td id="amount_total"></td>
+            <td ></td>
+            <td></td>
+        </tr>
+        <tr class="out_of_balance">
+            <td></td>
+            <td class="right">Out of Balance:</td>
+            <td id="amount_oob"></td>
+            <td></td>
+            <td></td>
+        </tr>
+    {% endif %}
+    {% endif %}
+    </tfoot>
 </table>
 <br />
 <input type="submit" name="submit" value="Submit" />
@@ -68,11 +107,96 @@
 <br />
 </div>
 </form>
+{% if journal_type == 'GJ' %}
+    <script type="text/javascript">
+    /* Update Total and Out of Balance amounts on input change or delete */
+    $(document).ready(addActions());
+    function addActions(){
+        $(".credit").each(function() {
+            var that = this; // fix a reference to the <input> element selected
+            $(this).keyup(function(){
+                newSum.call(that);
+            });
+        });
+        $(".debit").each(function() {
+            var that = this;
+            $(this).keyup(function(){
+                newSum.call(that);
+            });
+        });
+    }
+    function newSum() {
+        var credit_sum = 0;
+        $(".credit").filter(":visible").each( function(){
+            if(!isNaN(this.value) && this.value.length != 0) {
+                credit_sum += parseFloat(this.value);
+            }
+        });
+        $('#credit_total').text('$' + credit_sum.toFixed(2));
+        var debit_sum = 0;
+        $(".debit").filter(":visible").each( function(){
+            if(!isNaN(this.value) && this.value.length != 0) {
+              debit_sum += parseFloat(this.value);
+            }
+        });
+        $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
+        if(debit_sum > credit_sum) {
+            $('#debit_oob').text('');
+            $('#credit_oob').text('$' + (debit_sum - credit_sum).toFixed(2));
+        } else if (credit_sum > debit_sum) {
+            $('#debit_oob').text('($' + (credit_sum - debit_sum).toFixed(2) + ')');
+            $('#credit_oob').text('');
+        } else {
+            $('#debit_oob').text('$0.00');
+            $('#credit_oob').text('$0.00');
+        }
+    }
+    </script>
+{% else %}
+{% if journal_type == 'CR' or journal_type == 'CD' %}
+{% comment %}
+    Exclude transfer entries
+{% endcomment %}
+    <script type="text/javascript">
+    /* Update Total and Out of Balance amounts on input change or delete */
+    $(document).ready(addActions);
+    function addActions(){
+        $(".amount").each(function() {
+            var that = this;
+            $(this).keyup(function(){
+                newSum.call(that)
+            });
+        });
+        $("#entry_amount").keyup(function(){newSum()});
+    }
+    function newSum() {
+        var amount_sum = 0;
+        $(".amount").filter(":visible").each( function(){
+            if(!isNaN(this.value) && this.value.length != 0) {
+            amount_sum += parseFloat(this.value);
+            }
+        });
+        var entry_amount = 0;
+        if(!isNaN(parseFloat($("#entry_amount").val()))) {
+            entry_amount = parseFloat($("#entry_amount").val());
+        }
+        $('#amount_total').text('$' + amount_sum.toFixed(2));
+        if(entry_amount >= amount_sum) {
+            $('#amount_oob').text('$' + (entry_amount - amount_sum).toFixed(2));
+        } else {
+            $('#amount_oob').text('($' + (amount_sum - entry_amount).toFixed(2) + ')');
+        }
+    }
+    </script>
+{% endif %}
+{% endif %}
+
 {% if entry_form.instance.pk %}
 <div id="dialog-confirm" title="Delete Entry?">
 <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>This Entry and it's Transactions will be permanently deleted and cannot be recovered. Are you sure?
 </div>
 <script type="text/javascript">
+/* Delete button confirmation using jquery-ui */
     var currentForm;
     $(function() {
         $("#dialog-confirm").dialog({

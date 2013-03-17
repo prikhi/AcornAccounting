@@ -37,9 +37,11 @@ class JournalEntryForm(forms.ModelForm):
 
 class TransactionForm(forms.ModelForm):
     credit = forms.DecimalField(required=False,
-                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10}))
+                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                                              'class': 'credit'}))
     debit = forms.DecimalField(required=False,
-                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10}))
+                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                                              'class': 'debit'}))
 
     class Meta:
         model = Transaction
@@ -125,7 +127,8 @@ TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True)
 
 class BaseBankForm(forms.ModelForm):
     account = forms.ModelChoiceField(queryset=Account.banks.all())
-    amount = forms.DecimalField(widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10}),
+    amount = forms.DecimalField(widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                                              'id': 'entry_amount'}),
                                 min_value=Decimal(".01"))
 
 
@@ -159,7 +162,8 @@ class BankReceivingForm(BaseBankForm):
 
 class BankTransactionForm(forms.ModelForm):
     amount = forms.DecimalField(max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
-                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10}))
+                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                                              'class': 'amount'}))
 
     class Meta:
         model = Transaction
