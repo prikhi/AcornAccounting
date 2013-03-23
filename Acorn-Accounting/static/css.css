@@ -107,15 +107,23 @@ ul.errorlist {
     background-color: red;
     color: white;
     display: block;
-    font-size: 1em;
+    font-size: .7em;
     margin: 0 0 2px;
-    padding: 3px 3px;
+    padding: 2px 2px;
     font-weight: bold;
     text-align: center;
 }
+ul.parsley-error-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	color: Red;
+	font-size:.7em;
+	font-weight: bold;
+}
 
 .helptext {
-	color: Red;
+	color: Blue;
 	font-size: .7em;
 	display:inline;
 }

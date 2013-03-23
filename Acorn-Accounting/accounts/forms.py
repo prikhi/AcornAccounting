@@ -3,9 +3,10 @@ from decimal import Decimal
 
 from django import forms
 from django.forms.models import inlineformset_factory
-from .models import Account, JournalEntry, Transaction
 from django.forms.formsets import formset_factory
-from accounts.models import BankSpendingEntry, BankReceivingEntry
+from parsley.decorators import parsleyfy
+
+from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry
 
 
 def first_of_month():
@@ -30,11 +31,13 @@ class QuickBankForm(forms.Form):
                                      label='', empty_label='Jump to a Register')
 
 
+@parsleyfy
 class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
 
 
+@parsleyfy
 class TransactionForm(forms.ModelForm):
     credit = forms.DecimalField(required=False,
                                 widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
@@ -132,6 +135,7 @@ class BaseBankForm(forms.ModelForm):
                                 min_value=Decimal(".01"))
 
 
+@parsleyfy
 class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
@@ -149,6 +153,7 @@ class BankSpendingForm(BaseBankForm):
         return self.cleaned_data
 
 
+@parsleyfy
 class BankReceivingForm(BaseBankForm):
     class Meta:
         model = BankReceivingEntry
@@ -160,6 +165,7 @@ class BankReceivingForm(BaseBankForm):
         return -1 * amount
 
 
+@parsleyfy
 class BankTransactionForm(forms.ModelForm):
     amount = forms.DecimalField(max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
                                 widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
@@ -168,7 +174,8 @@ class BankTransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'amount', 'event',)
-        widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4})}
+        widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4}),
+                   'account': forms.Select(attrs={'class': 'account'})}
 
     def clean(self):
         super(BankTransactionForm, self).clean()
@@ -187,7 +194,9 @@ class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
             return
         balance = abs(self.entry_form.cleaned_data['amount'])
         for form in self.forms:
-                balance += -1 * abs(form.cleaned_data.get('amount', 0))
+            if form.cleaned_data.get('DELETE'):
+                continue
+            balance += -1 * abs(form.cleaned_data.get('amount', 0))
         if balance != 0:
             raise forms.ValidationError("Transactions are out of balance.")
 
