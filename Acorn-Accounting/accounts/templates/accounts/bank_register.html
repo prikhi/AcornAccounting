@@ -38,19 +38,19 @@
         {% endif %}
         <td></td>
     </tr>
-    {% for main_transaction in transaction.get_journal_entry.get_main_transactions %}
+    {% for account_transaction in transaction.get_journal_entry.transaction_set.all %}
         <tr class="{% cycle 'main' 'alt' %} clickable">
             <td></td>
-            <td><a href="{{ main_transaction.account.get_absolute_url }}">{{ main_transaction.account }}</a></td>
-            <td>{{ main_transaction.detail }}</td>
-            {% if main_transaction.balance_delta < 0 %}
-                <td class="right">{{ main_transaction.balance_delta|currency }}</td>
+            <td><a href="{{ account_transaction.account.get_absolute_url }}">{{ account_transaction.account }}</a></td>
+            <td>{{ account_transaction.detail }}</td>
+            {% if account_transaction.balance_delta < 0 %}
+                <td class="right">{{ account_transaction.balance_delta|currency }}</td>
                 <td class="right"></td>
             {% else %}
                 <td class="right"></td>
-                <td class="right">{{ main_transaction.balance_delta|currency }}</td>
+                <td class="right">{{ account_transaction.balance_delta|currency }}</td>
             {% endif %}
-            <td class="right">{{ main_transaction.job }}</td>
+            <td class="right">{{ account_transaction.job }}</td>
         </tr>
     {% endfor %}
     </tbody>

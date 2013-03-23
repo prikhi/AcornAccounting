@@ -535,13 +535,13 @@ class BankEntryViewTests(TestCase):
         self.failUnless(isinstance(response.context['transaction_formset'], BankReceivingTransactionFormSet))
         self.assertEqual(response.context['entry_form'].instance, entry)
         self.assertEqual(response.context['entry_form'].initial['amount'],
-                         -1 * entry.transaction_set.get(account__bank=True).balance_delta)
+                         -1 * entry.main_transaction.balance_delta)
         self.assertEqual(response.context['entry_form'].initial['account'],
-                         entry.transaction_set.get(account__bank=True).account)
+                         entry.main_transaction.account)
         self.assertEqual(response.context['transaction_formset'].forms[0].instance,
-                         entry.transaction_set.get(account__bank=False))
+                         entry.transaction_set.all()[0])
         self.assertEqual(response.context['transaction_formset'].forms[0].initial['amount'],
-                         entry.transaction_set.get(account__bank=False).balance_delta)
+                         entry.transaction_set.all()[0].balance_delta)
 
     def test_bank_receiving_add_view_edit_success(self):
         '''
@@ -606,8 +606,8 @@ class BankEntryViewTests(TestCase):
         self.assertTemplateUsed(response, 'accounts/entry_bankreceive_detail.html')
         self.failUnless(isinstance(response.context['journal_entry'], BankReceivingEntry))
         self.assertEqual(BankReceivingEntry.objects.all()[0], response.context['journal_entry'])
-        self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
-        self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])
+        self.assertItemsEqual(response.context['journal_entry'].transaction_set.all(), response.context['transactions'])
+        self.assertEqual(response.context['journal_entry'].main_transaction, response.context['main_transaction'])
 
     def test_bank_spending_add_view_initial(self):
         '''
@@ -763,13 +763,13 @@ class BankEntryViewTests(TestCase):
         self.failUnless(isinstance(response.context['transaction_formset'], BankSpendingTransactionFormSet))
         self.assertEqual(response.context['entry_form'].instance, entry)
         self.assertEqual(response.context['entry_form'].initial['amount'],
-                         entry.transaction_set.get(account__bank=True).balance_delta)
+                         entry.main_transaction.balance_delta)
         self.assertEqual(response.context['entry_form'].initial['account'],
-                         entry.transaction_set.get(account__bank=True).account)
+                         entry.main_transaction.account)
         self.assertEqual(response.context['transaction_formset'].forms[0].instance,
-                         entry.transaction_set.get(account__bank=False))
+                         entry.transaction_set.all()[0])
         self.assertEqual(response.context['transaction_formset'].forms[0].initial['amount'],
-                         -1 * entry.transaction_set.get(account__bank=False).balance_delta)
+                         -1 * entry.transaction_set.all()[0].balance_delta)
 
     def test_bank_spending_add_view_edit_success(self):
         '''
@@ -834,8 +834,8 @@ class BankEntryViewTests(TestCase):
         self.assertTemplateUsed(response, 'accounts/entry_bankspend_detail.html')
         self.failUnless(isinstance(response.context['journal_entry'], BankSpendingEntry))
         self.assertEqual(BankSpendingEntry.objects.get(id=1), response.context['journal_entry'])
-        self.assertItemsEqual(response.context['journal_entry'].transaction_set.filter(account__bank=False), response.context['transactions'])
-        self.assertEqual(response.context['journal_entry'].transaction_set.get(account__bank=True), response.context['main_transaction'])
+        self.assertItemsEqual(response.context['journal_entry'].transaction_set.all(), response.context['transactions'])
+        self.assertEqual(response.context['journal_entry'].main_transaction, response.context['main_transaction'])
 
 
 class BankRegisterViewTests(TransactionTestCase):
@@ -858,15 +858,15 @@ class BankRegisterViewTests(TransactionTestCase):
         BankSpendingEntries and BankReceivingEntries associated with the bank
         account, from the beginning of this month to today
         '''
-        receive = BankReceivingEntry.objects.create(date=datetime.date.today(),
+        main_receive = Transaction.objects.create(account=self.bank_account, balance_delta=-20, detail='bank rec')
+        receive = BankReceivingEntry.objects.create(main_transaction=main_receive, date=datetime.date.today(),
                                      memo='receive entry',
                                      payor='test payor')
-        Transaction.objects.create(bankreceive_entry=receive, account=self.bank_account, balance_delta=-20, detail='bank rec')
         Transaction.objects.create(bankreceive_entry=receive, account=self.liability_account, balance_delta=20, detail='acc rec')
 
-        spend = BankSpendingEntry.objects.create(date=datetime.date.today(), memo='spend entry',
+        main_spend = Transaction.objects.create(account=self.bank_account, balance_delta=50, detail='bank spend')
+        spend = BankSpendingEntry.objects.create(main_transaction=main_spend, date=datetime.date.today(), memo='spend entry',
                                   ach_payment=True, payee='test payee')
-        Transaction.objects.create(bankspend_entry=spend, account=self.bank_account, balance_delta=50, detail='bank spend')
         Transaction.objects.create(bankspend_entry=spend, account=self.liability_account, balance_delta=-50, detail='acc spend')
         response = self.client.get(reverse('accounts.views.bank_register',
                                    kwargs={'account_slug': self.bank_account.slug}))
@@ -890,26 +890,24 @@ class BankRegisterViewTests(TransactionTestCase):
         out_range_date = datetime.date(2013, 5, 8)
         out_range_date2 = datetime.date(2010, 12, 1)
 
-        receive = BankReceivingEntry.objects.create(date=in_range_date, memo='receive entry',
+        banktran_receive = Transaction.objects.create(account=self.bank_account, balance_delta=-20)
+        receive = BankReceivingEntry.objects.create(main_transaction=banktran_receive, date=in_range_date, memo='receive entry',
                                      payor='test payor')
-
-        banktran_receive = Transaction.objects.create(bankreceive_entry=receive, account=self.bank_account, balance_delta=-20)
         Transaction.objects.create(bankreceive_entry=receive, account=self.liability_account, balance_delta=20)
 
-        spend = BankSpendingEntry.objects.create(date=in_range_date, memo='spend entry',
+        banktran_spend = Transaction.objects.create(account=self.bank_account, balance_delta=50)
+        spend = BankSpendingEntry.objects.create(main_transaction=banktran_spend, date=in_range_date, memo='spend entry',
                                                  ach_payment=True, payee='test payee')
-        banktran_spend = Transaction.objects.create(bankspend_entry=spend, account=self.bank_account, balance_delta=50)
         Transaction.objects.create(bankspend_entry=spend, account=self.liability_account, balance_delta=-50)
 
-        out_receive = BankReceivingEntry.objects.create(date=out_range_date2, memo='newer receive entry',
+        out_tran1 = Transaction.objects.create(account=self.bank_account, balance_delta=-20)
+        out_receive = BankReceivingEntry.objects.create(main_transaction=out_tran1, date=out_range_date2, memo='newer receive entry',
                                          payor='test payor')
-
-        Transaction.objects.create(bankreceive_entry=out_receive, account=self.bank_account, balance_delta=-20)
         Transaction.objects.create(bankreceive_entry=out_receive, account=self.liability_account, balance_delta=20)
 
-        out_spend = BankSpendingEntry.objects.create(date=out_range_date, memo='older spend entry',
+        out_tran2 = Transaction.objects.create(account=self.bank_account, balance_delta=50)
+        out_spend = BankSpendingEntry.objects.create(main_transaction=out_tran2, date=out_range_date, memo='older spend entry',
                                                      ach_payment=True, payee='test payee')
-        Transaction.objects.create(bankspend_entry=out_spend, account=self.bank_account, balance_delta=50)
         Transaction.objects.create(bankspend_entry=out_spend, account=self.liability_account, balance_delta=-50)
 
         response = self.client.get(reverse('accounts.views.bank_register', args=[self.bank_account.slug]),

@@ -185,6 +185,7 @@ class BankSpendingEntry(BaseJournalEntry):
     ach_payment = models.BooleanField(default=False, help_text="Invalidates Check Number")
     payee = models.CharField(max_length=20, blank=True, null=True)
     void = models.BooleanField(default=False, help_text="Refunds Associated Transactions.")
+    main_transaction = models.OneToOneField('Transaction')
 
     class Meta:
         verbose_name_plural = "bank spending entries"
@@ -205,12 +206,6 @@ class BankSpendingEntry(BaseJournalEntry):
             self.check_number = None
         super(BankSpendingEntry, self).save(*args, **kwargs)
 
-    def get_bank_transaction(self):
-        return self.transaction_set.get(account__bank=True)
-
-    def get_main_transactions(self):
-        return self.transaction_set.filter(account__bank=False)
-
     def get_number(self):
         if self.ach_payment:
             return "##ACH##"
@@ -220,6 +215,7 @@ class BankSpendingEntry(BaseJournalEntry):
 
 class BankReceivingEntry(BaseJournalEntry):
     payor = models.CharField(max_length=50)
+    main_transaction = models.OneToOneField('Transaction')
 
     class Meta:
         verbose_name_plural = "bank receiving entries"
@@ -234,12 +230,6 @@ class BankReceivingEntry(BaseJournalEntry):
 
     def get_edit_url(self):
         return reverse('accounts.views.add_bank_entry', args=['CR', str(self.id)])
-
-    def get_bank_transaction(self):
-        return self.transaction_set.get(account__bank=True)
-
-    def get_main_transactions(self):
-        return self.transaction_set.filter(account__bank=False)
 
     def get_number(self):
         return "CR#{0:06d}".format(self.id)
@@ -265,7 +255,7 @@ class Transaction(models.Model):
                                      default="0.00", editable=False)
 
     class Meta:
-        ordering = ['journal_entry__date', 'id']
+        ordering = ['id']
 
     def __unicode__(self):
         return self.detail
@@ -301,7 +291,8 @@ class Transaction(models.Model):
     def clean(self):
         '''Make sure a Journal or Bank Entry is assigned'''
         super(Transaction, self).clean()
-        if not (self.journal_entry or self.bankreceive_entry or self.bankspend_entry):
+        if not (self.journal_entry or self.bankreceive_entry or self.bankspend_entry or
+                self.bankreceivingentry or self.bankspendingentry):
             raise forms.ValidationError("A Journal or Bank Entry must be assigned.")
 
     def get_date(self):
@@ -315,11 +306,14 @@ class Transaction(models.Model):
         date = self.get_date()
         acct_balance = self.account.balance
         query = (models.Q(journal_entry__date__gt=date) | models.Q(bankspend_entry__date__gt=date) |
-                 models.Q(bankreceive_entry__date__gt=date) |
+                 models.Q(bankreceive_entry__date__gt=date) | models.Q(bankreceivingentry__date__gt=date) |
+                 models.Q(bankspendingentry__date__gt=date) |
                 ((models.Q(journal_entry__date=date) | models.Q(bankspend_entry__date=date) |
-                  models.Q(bankreceive_entry__date=date))
+                  models.Q(bankreceive_entry__date=date) | models.Q(bankreceivingentry__date=date) |
+                  models.Q(bankspendingentry__date=date))
                     & models.Q(id__gt=self.id)))
-        newer_transactions = self.account.transaction_set.filter(query)
+        newer_transactions = list(self.account.transaction_set.filter(query))
+        newer_transactions.sort(key=lambda x: x.get_date())
         for transaction in newer_transactions:
             acct_balance += (-1 * (transaction.balance_delta))
         if self.account.flip_balance():
@@ -340,6 +334,10 @@ class Transaction(models.Model):
             return self.bankspend_entry
         elif self.bankreceive_entry:
             return self.bankreceive_entry
+        elif hasattr(self, 'bankreceivingentry'):
+            return self.bankreceivingentry
+        elif hasattr(self, 'bankspendingentry'):
+            return self.bankspendingentry
 
     def get_memo(self):
         return self.get_journal_entry().memo

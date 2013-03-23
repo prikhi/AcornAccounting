@@ -170,10 +170,6 @@ class BankTransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4})}
 
-    def __init__(self, *args, **kwargs):
-        super(BankTransactionForm, self).__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.filter(bank=False)
-
     def clean(self):
         super(BankTransactionForm, self).clean()
         if any(self.errors):
@@ -184,10 +180,6 @@ class BankTransactionForm(forms.ModelForm):
 
 
 class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
-    def __init__(self, *args, **kwargs):
-        super(BaseBankTransactionFormSet, self).__init__(*args, **kwargs)
-        self.queryset = Transaction.objects.filter(**{self.fk.name: self.instance}).filter(account__bank=False)
-
     def clean(self):
         '''Checks that Transaction amounts balance Entry amount'''
         super(BaseBankTransactionFormSet, self).clean()

@@ -49,7 +49,9 @@ def show_account_detail(request, account_slug,
     account = get_object_or_404(Account, slug=account_slug)
     query = ((Q(journal_entry__date__lte=stopdate,) & Q(journal_entry__date__gte=startdate)) |
              (Q(bankspend_entry__date__lte=stopdate,) & Q(bankspend_entry__date__gte=startdate)) |
-             (Q(bankreceive_entry__date__lte=stopdate,) & Q(bankreceive_entry__date__gte=startdate))
+             (Q(bankreceive_entry__date__lte=stopdate,) & Q(bankreceive_entry__date__gte=startdate)) |
+             (Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
+             (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate))
             )
     transactions = list(account.transaction_set.filter(query))
     transactions.sort(key=lambda x: x.get_date())
@@ -77,10 +79,11 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
 def bank_register(request, account_slug, template_name="accounts/bank_register.html"):
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
-    transactions = Transaction.objects.filter(account=account).filter(
-                                             (Q(bankspend_entry__isnull=False) | Q(bankreceive_entry__isnull=False)) &
-                                             ((Q(bankspend_entry__date__lte=stopdate) & Q(bankspend_entry__date__gte=startdate)) |
-                                              (Q(bankreceive_entry__date__lte=stopdate) & Q(bankreceive_entry__date__gte=startdate))))
+    transactions = list(Transaction.objects.filter(account=account).filter(
+                                             (Q(bankspendingentry__isnull=False) | Q(bankreceivingentry__isnull=False)) &
+                                             ((Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
+                                              (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate)))))
+    transactions.sort(key=lambda x: x.get_date())
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
@@ -102,7 +105,7 @@ def show_bank_entry(request, journal_id, journal_type):
     template_name = templates[journal_type]
     journal_entry = get_object_or_404(entry_type, id=journal_id)
     updated = (journal_entry.created_at - journal_entry.updated_at).days == 0
-    main_transaction = journal_entry.transaction_set.get(account__bank=True)
+    main_transaction = journal_entry.main_transaction
     transactions = journal_entry.transaction_set.filter(account__bank=False)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
@@ -189,22 +192,16 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
             if entry_form.is_valid():
                 transaction_formset.entry_form = entry_form     # Used for clean function
                 if transaction_formset.is_valid():
-                    entry.save()
                     try:
-                        main_transaction = entry.transaction_set.get(account__bank=True)
-                        main_transaction.account = entry_form.cleaned_data['account']
-                        main_transaction.balance_delta = entry_form.cleaned_data['amount']
-                        main_transaction.detail = entry_form.cleaned_data['memo']
+                        entry.main_transaction.account = entry_form.cleaned_data['account']
+                        entry.main_transaction.balance_delta = entry_form.cleaned_data['amount']
+                        entry.main_transaction.detail = entry_form.cleaned_data['memo']
+                        entry.main_transaction.save()
                     except Transaction.DoesNotExist:
-                        if EntryTypeForm is BankSpendingForm:
-                            main_transaction = Transaction(account=entry_form.cleaned_data['account'],
-                                                           balance_delta=entry_form.cleaned_data['amount'],
-                                                           detail=entry_form.cleaned_data['memo'], bankspend_entry=entry)
-                        elif EntryTypeForm is BankReceivingForm:
-                            main_transaction = Transaction(account=entry_form.cleaned_data['account'],
-                                                           balance_delta=entry_form.cleaned_data['amount'],
-                                                           detail=entry_form.cleaned_data['memo'], bankreceive_entry=entry)
-                    main_transaction.save()
+                        entry.main_transaction = Transaction.objects.create(account=entry_form.cleaned_data['account'],
+                                                                            balance_delta=entry_form.cleaned_data['amount'],
+                                                                            detail=entry_form.cleaned_data['memo'])
+                    entry.save()
                     transaction_formset.save(commit=False)
                     for form in transaction_formset.forms:
                         if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
@@ -220,7 +217,8 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
                                                                 'journal_type': journal_type}))
         elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
             if entry.pk:
-                bank_account = entry.get_bank_transaction().account
+                bank_account = entry.main_transaction.account
+                entry.main_transaction.delete()
                 entry.delete()
                 return HttpResponseRedirect(reverse('accounts.views.bank_register',
                                                 kwargs={'account_slug': bank_account.slug}))
@@ -232,8 +230,8 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
         transaction_formset = InlineFormSet(prefix='transaction', instance=entry, queryset=Transaction.objects.filter(account__bank=False))
         if entry.pk:
-            entry_form.initial['account'] = entry.transaction_set.get(account__bank=True).account
-            entry_form.initial['amount'] = abs(entry.transaction_set.get(account__bank=True).balance_delta)
+            entry_form.initial['account'] = entry.main_transaction.account
+            entry_form.initial['amount'] = abs(entry.main_transaction.balance_delta)
             for form in transaction_formset.forms:
                 if not form.empty_permitted:
                     form.initial['amount'] = abs(form.instance.balance_delta)
