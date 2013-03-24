@@ -93,6 +93,8 @@ def show_journal_entry(request, journal_id, journal_type="GJ",
     entry_types = {'GJ': JournalEntry, 'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
     entry_type = entry_types[journal_type]
     journal_entry = get_object_or_404(entry_type, pk=journal_id)
+    updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
+    diff = journal_entry.created_at - journal_entry.updated_at
     transactions = journal_entry.transaction_set.all()
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
@@ -104,7 +106,7 @@ def show_bank_entry(request, journal_id, journal_type):
     entry_type = entry_types[journal_type]
     template_name = templates[journal_type]
     journal_entry = get_object_or_404(entry_type, id=journal_id)
-    updated = (journal_entry.created_at - journal_entry.updated_at).days == 0
+    updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
     main_transaction = journal_entry.main_transaction
     transactions = journal_entry.transaction_set.filter(account__bank=False)
     return render_to_response(template_name, locals(),
