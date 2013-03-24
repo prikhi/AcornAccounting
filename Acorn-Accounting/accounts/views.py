@@ -108,7 +108,7 @@ def show_bank_entry(request, journal_id, journal_type):
     journal_entry = get_object_or_404(entry_type, id=journal_id)
     updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
     main_transaction = journal_entry.main_transaction
-    transactions = journal_entry.transaction_set.filter(account__bank=False)
+    transactions = journal_entry.transaction_set.all()
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
@@ -230,7 +230,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
             raise Http404
     else:
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
-        transaction_formset = InlineFormSet(prefix='transaction', instance=entry, queryset=Transaction.objects.filter(account__bank=False))
+        transaction_formset = InlineFormSet(prefix='transaction', instance=entry)
         if entry.pk:
             entry_form.initial['account'] = entry.main_transaction.account
             entry_form.initial['amount'] = abs(entry.main_transaction.balance_delta)
