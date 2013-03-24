@@ -2,6 +2,7 @@
 
 {% load accounting_filters %}
 
+{% block title %}{{ journal_entry.memo|capwords }} - {{ main_transaction.account|capwords }}{% endblock %}
 
 {% block content %}
 <h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ main_transaction.account }}: {{ journal_entry.memo|capwords }}</h1>

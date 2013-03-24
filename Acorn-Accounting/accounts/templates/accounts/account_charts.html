@@ -3,6 +3,10 @@
 {% load mptt_tags %}
 {% load accounting_filters %}
 
+{% block title %}
+{% if header %}{{ header.name|capwords }}
+{% else %}Chart of Accounts{% endif %}
+{% endblock %}
 
 {% block content %}
 <table summary="Chart of Accounts" id="accounts_chart">

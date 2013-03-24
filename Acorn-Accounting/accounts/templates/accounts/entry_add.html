@@ -1,5 +1,11 @@
 {% extends 'site.html' %}
 
+{% block title %}
+{% if journal_type == 'CR' %}Add Bank Receiving Entry
+{% else %}{% if journal_type == 'CD' %}Add Bank Spending Entry
+{% else %}Add Journal Entry
+{% endif %}{% endif %}{% endblock %}
+
 {% block content %}
 <script type="text/javascript" src="/static/jquery.formset.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>

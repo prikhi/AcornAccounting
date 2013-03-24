@@ -2,6 +2,8 @@
 
 {% load accounting_filters %}
 
+{% block title %}{{ account.name|capwords }} Details{% endblock %}
+
 {% block content %}
 <form action="." method="GET">
     <table>

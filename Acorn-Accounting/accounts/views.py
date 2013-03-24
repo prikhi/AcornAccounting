@@ -39,7 +39,7 @@ def show_accounts_chart(request, header_slug=None, template_name="accounts/accou
         nodes = Header.objects.all()
 
     return render_to_response(template_name,
-                              {'nodes': nodes},
+                              locals(),
                               context_instance=RequestContext(request))
 
 
