@@ -22,6 +22,7 @@
         <th scope="col">Detail</th>
         <th scope="col" class="right">Debit</th>
         <th scope="col" class="right">Credit</th>
+        <th scope="col" class="right">Event</th>
         <th scope="col" class="right">Balance</th>
     </tr>
     </thead>
@@ -39,6 +40,7 @@
             <td class="right"></td>
             <td class="right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
+        <td class="right">{{ transaction.event|default_if_none:"" }}</td>
         <td class="right">{{ transaction.final_balance|currency }}</td>
     </tr>
 {% endfor %}

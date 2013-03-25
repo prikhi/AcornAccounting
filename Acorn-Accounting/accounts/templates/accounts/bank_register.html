@@ -52,7 +52,7 @@
                 <td class="right"></td>
                 <td class="right">{{ account_transaction.balance_delta|currency }}</td>
             {% endif %}
-            <td class="right">{{ account_transaction.job }}</td>
+            <td class="right">{{ account_transaction.event|default_if_none:"" }}</td>
         </tr>
     {% endfor %}
     </tbody>

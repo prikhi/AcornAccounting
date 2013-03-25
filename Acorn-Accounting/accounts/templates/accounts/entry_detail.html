@@ -17,7 +17,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{
         <th scope="col">Detail</th>
         <th scope="col" class="right">Debit</th>
         <th scope="col" class="right">Credit</th>
-        <th scope="col" class="right">Job</th>
+        <th scope="col" class="right">Event</th>
     </tr>
     </thead>
     <tbody>
@@ -32,7 +32,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{
             <td class="right"></td>
             <td class="right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
-        <td>{{ transaction.job }}</td>
+        <td class="right">{{ transaction.event|default_if_none:"" }}</td>
     </tr>
 {% endfor %}
     </tbody>
