@@ -33,7 +33,7 @@ def quick_bank_search(request):
 def show_accounts_chart(request, header_slug=None, template_name="accounts/account_charts.html"):
     '''Retrieves self and descendant Headers or all Headers'''
     if header_slug:
-        header = Header.objects.get(slug=header_slug)
+        header = get_object_or_404(Header, slug=header_slug)
         nodes = header.get_descendants(include_self=True)
     else:
         nodes = Header.objects.all()
@@ -91,7 +91,6 @@ def bank_register(request, account_slug, template_name="accounts/bank_register.h
 def show_journal_entry(request, journal_id, template_name="accounts/entry_detail.html"):
     journal_entry = get_object_or_404(JournalEntry, pk=journal_id)
     updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
-    diff = journal_entry.created_at - journal_entry.updated_at
     transactions = journal_entry.transaction_set.all()
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
@@ -263,8 +262,7 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
                         debit.save()
                         credit.save()
                 return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
-                                                    kwargs={'journal_id': entry.id,
-                                                            'journal_type': 'GJ'}))
+                                                    kwargs={'journal_id': entry.id}))
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transfer_formset = TransferFormSet(prefix='transfer')

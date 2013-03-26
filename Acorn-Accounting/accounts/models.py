@@ -1,7 +1,6 @@
-from decimal import Decimal
 import datetime
+from decimal import Decimal
 
-from django import forms
 from django.core.urlresolvers import reverse
 from django.db import models
 from mptt.models import MPTTModel, TreeForeignKey
@@ -202,6 +201,7 @@ class BankSpendingEntry(BaseJournalEntry):
         return reverse('accounts.views.add_bank_entry', args=['CD', str(self.id)])
 
     def save(self, *args, **kwargs):
+        self.full_clean()
         if self.ach_payment:
             self.check_number = None
         super(BankSpendingEntry, self).save(*args, **kwargs)
@@ -265,6 +265,7 @@ class Transaction(models.Model):
 
     def save(self, *args, **kwargs):
         '''Changes Account balances if Account or balance_delta is changed'''
+        self.full_clean()
         if not self.last_account:
             self.last_account = self.account.id
 
@@ -287,13 +288,6 @@ class Transaction(models.Model):
             self.last_delta = self.balance_delta
         self.account.save()
         super(Transaction, self).save(*args, **kwargs)
-
-    def clean(self):
-        '''Make sure a Journal or Bank Entry is assigned'''
-        super(Transaction, self).clean()
-        if not (self.journal_entry or self.bankreceive_entry or self.bankspend_entry or
-                self.bankreceivingentry or self.bankspendingentry):
-            raise forms.ValidationError("A Journal or Bank Entry must be assigned.")
 
     def get_date(self):
         return self.get_journal_entry().date
