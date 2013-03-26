@@ -88,11 +88,8 @@ def bank_register(request, account_slug, template_name="accounts/bank_register.h
                               context_instance=RequestContext(request))
 
 
-def show_journal_entry(request, journal_id, journal_type="GJ",
-                       template_name="accounts/entry_detail.html"):
-    entry_types = {'GJ': JournalEntry, 'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
-    entry_type = entry_types[journal_type]
-    journal_entry = get_object_or_404(entry_type, pk=journal_id)
+def show_journal_entry(request, journal_id, template_name="accounts/entry_detail.html"):
+    journal_entry = get_object_or_404(JournalEntry, pk=journal_id)
     updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
     diff = journal_entry.created_at - journal_entry.updated_at
     transactions = journal_entry.transaction_set.all()
