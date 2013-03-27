@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
+from django.utils import timezone
 
 from .accounting import process_date_range_form
 from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm, \
@@ -112,7 +113,7 @@ def show_bank_entry(request, journal_id, journal_type):
 def add_journal_entry(request, template_name="accounts/entry_add.html", journal_id=None):
     try:
         entry = JournalEntry.objects.get(id=journal_id)
-        entry.updated_at = datetime.datetime.now()
+        entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
             if transaction.balance_delta < 0:
                 transaction.debit = -1 * transaction.balance_delta
@@ -177,7 +178,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
     InlineFormSet = formset_types[journal_type]
     try:
         entry = entry_type.objects.get(id=journal_id)
-        entry.updated_at = datetime.datetime.now()
+        entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
             transaction.amount = abs(transaction.balance_delta)
     except entry_type.DoesNotExist:

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.utils import timezone
 from mptt.models import MPTTModel, TreeForeignKey
 
 
@@ -149,8 +150,8 @@ class BaseJournalEntry(models.Model):
     Groups a series of Transactions together
     """
     date = models.DateField()
-    created_at = models.DateTimeField(auto_now_add=True, default=datetime.datetime.now)
-    updated_at = models.DateTimeField(auto_now=True, default=datetime.datetime.now)
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
     memo = models.CharField(max_length=60)
 
     class Meta:
