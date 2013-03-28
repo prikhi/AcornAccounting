@@ -39,10 +39,10 @@ class JournalEntryForm(forms.ModelForm):
 
 @parsleyfy
 class TransactionForm(forms.ModelForm):
-    credit = forms.DecimalField(required=False,
+    credit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                 widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
                                                               'class': 'credit'}))
-    debit = forms.DecimalField(required=False,
+    debit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                 widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
                                                               'class': 'debit'}))
 
@@ -50,20 +50,6 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
         widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4})}
-
-    def clean_debit(self):
-        '''Makes sure debit is not negative'''
-        debit = self.cleaned_data['debit']
-        if debit and debit < 0:
-            raise forms.ValidationError("Debit cannot be negative.")
-        return debit
-
-    def clean_credit(self):
-        '''Makes sure credit is not negative'''
-        credit = self.cleaned_data.get('credit', None)
-        if credit and credit < 0:
-            raise forms.ValidationError("Credit cannot be negative.")
-        return credit
 
     def clean(self):
         '''Make sure only a credit or debit is entered'''
