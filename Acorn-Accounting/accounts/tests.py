@@ -57,6 +57,17 @@ class BaseAccountModelTests(TestCase):
         create_transaction(entry, expense_acc, -20)
         create_transaction(entry, cost_acc, -20)
         create_transaction(entry, oth_expense_acc, -20)
+
+        asset_header = Header.objects.get(name='asset')
+        expense_header = Header.objects.get(name='expense')
+        cost_header = Header.objects.get(name='cost')
+        oth_expense_header = Header.objects.get(name='oth_expense')
+
+        asset_acc = Account.objects.get(name='asset')
+        expense_acc = Account.objects.get(name='expense')
+        cost_acc = Account.objects.get(name='cost')
+        oth_expense_acc = Account.objects.get(name='oth_expense')
+
         self.assertEqual(asset_acc.get_balance(), 20)
         self.assertEqual(asset_header.get_account_balance(), 20)
         self.assertEqual(expense_acc.get_balance(), 20)
@@ -70,6 +81,17 @@ class BaseAccountModelTests(TestCase):
         create_transaction(entry, expense_acc, 40)
         create_transaction(entry, cost_acc, 40)
         create_transaction(entry, oth_expense_acc, 40)
+
+        asset_header = Header.objects.get(name='asset')
+        expense_header = Header.objects.get(name='expense')
+        cost_header = Header.objects.get(name='cost')
+        oth_expense_header = Header.objects.get(name='oth_expense')
+
+        asset_acc = Account.objects.get(name='asset')
+        expense_acc = Account.objects.get(name='expense')
+        cost_acc = Account.objects.get(name='cost')
+        oth_expense_acc = Account.objects.get(name='oth_expense')
+
         self.assertEqual(asset_acc.get_balance(), -20)
         self.assertEqual(asset_header.get_account_balance(), -20)
         self.assertEqual(expense_acc.get_balance(), -20)
@@ -154,7 +176,8 @@ class TransactionModelTests(TestCase):
         source = create_account('Source', header, 0)
         target = create_account('Target', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
-        trans = create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        trans = Transaction.objects.all()[0]
         trans.account = target
         trans.save()
         source = Account.objects.get(name='Source')
@@ -169,7 +192,8 @@ class TransactionModelTests(TestCase):
         header = create_header('Account Change')
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
-        trans = create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        trans = Transaction.objects.all()[0]
         trans.balance_delta = 20
         trans.save()
         source = Account.objects.get(name='Source')
@@ -202,6 +226,7 @@ class TransactionModelTests(TestCase):
         entry = create_entry(datetime.date.today(), 'Entry')
         trans = create_transaction(entry=entry, account=source, delta=-20)
         trans.delete()
+        source = Account.objects.all()[0]
         self.assertEqual(source.get_balance(), 0)
 
     def test_one_transaction_account_balance(self):
@@ -211,7 +236,8 @@ class TransactionModelTests(TestCase):
         header = create_header('Initial')
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
-        trans = create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        trans = Transaction.objects.all()[0]
         self.assertEqual(trans.get_final_account_balance(), -20)
 
     def test_two_transactions_account_balance(self):
@@ -221,8 +247,10 @@ class TransactionModelTests(TestCase):
         header = create_header('Initial')
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
-        trans_low_id = create_transaction(entry=entry, account=source, delta=-20)
-        trans_high_id = create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        trans_low_id = Transaction.objects.all()[0]
+        trans_high_id = Transaction.objects.all()[1]
         self.assertEqual(trans_low_id.get_final_account_balance(), -20)
         self.assertEqual(trans_high_id.get_final_account_balance(), -40)
 
@@ -235,8 +263,10 @@ class TransactionModelTests(TestCase):
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
         entry2 = create_entry(datetime.date.today(), 'Entry2')
-        trans_low_id = create_transaction(entry=entry, account=source, delta=-20)
-        trans_high_id = create_transaction(entry=entry2, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry2, account=source, delta=-20)
+        trans_low_id = Transaction.objects.all()[0]
+        trans_high_id = Transaction.objects.all()[1]
         self.assertEqual(trans_low_id.get_final_account_balance(), -20)
         self.assertEqual(trans_high_id.get_final_account_balance(), -40)
 
@@ -248,8 +278,10 @@ class TransactionModelTests(TestCase):
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
         entry2 = create_entry(datetime.date.today() - datetime.timedelta(days=2), 'Entry2')
-        trans_newer = create_transaction(entry=entry, account=source, delta=-20)
-        trans_older = create_transaction(entry=entry2, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry2, account=source, delta=-20)
+        trans_newer = Transaction.objects.all()[0]
+        trans_older = Transaction.objects.all()[1]
         self.assertEqual(trans_older.get_final_account_balance(), -20)
         self.assertEqual(trans_newer.get_final_account_balance(), -40)
 
@@ -261,8 +293,10 @@ class TransactionModelTests(TestCase):
         source = create_account('Source', header, 0)
         entry = create_entry(datetime.date.today(), 'Entry')
         entry2 = create_entry(datetime.date.today() - datetime.timedelta(days=2), 'Entry2')
-        trans_older = create_transaction(entry=entry2, account=source, delta=-20)
-        trans_newer = create_transaction(entry=entry, account=source, delta=-20)
+        create_transaction(entry=entry2, account=source, delta=-20)
+        create_transaction(entry=entry, account=source, delta=-20)
+        trans_older = Transaction.objects.all()[0]
+        trans_newer = Transaction.objects.all()[1]
         self.assertEqual(trans_older.get_final_account_balance(), -20)
         self.assertEqual(trans_newer.get_final_account_balance(), -40)
 
@@ -557,12 +591,12 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-MAX_NUM_FORMS': '',
                                           'transaction-0-id': '',
                                           'transaction-0-journal_entry': '',
-                                          'transaction-0-account': 1,
+                                          'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 5,
                                           'transaction-0-event': 12,
                                           'transaction-1-id': '',
                                           'transaction-1-journal_entry': '',
-                                          'transaction-1-account': 2,
+                                          'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
                                           'submit': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
@@ -710,13 +744,13 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-MAX_NUM_FORMS': '',
                                           'transaction-0-id': 1,
                                           'transaction-0-journal_entry': 1,
-                                          'transaction-0-account': 1,
+                                          'transaction-0-account': self.expense_account.id,
                                           'transaction-0-debit': 8,
                                           'transaction-0-detail': 'debit',
                                           'transaction-0-event': 12,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
-                                          'transaction-1-account': 2,
+                                          'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 8,
                                           'transaction-1-detail': 'credit',
                                           'submit': 'Submit'})
@@ -726,8 +760,8 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(entry.date, datetime.date(2011, 5, 1))
         self.assertEqual(entry.memo, 'new memo!')
-        self.assertEqual(Account.objects.all()[0].balance, -8)
-        self.assertEqual(Account.objects.all()[1].balance, 8)
+        self.assertEqual(Account.objects.get(name='asset').balance, 8)
+        self.assertEqual(Account.objects.get(name='expense').balance, -8)
 
     def test_add_journal_entry_view_post_fail(self):
         '''

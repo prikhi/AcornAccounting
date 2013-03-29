@@ -242,11 +242,6 @@ class Transaction(models.Model):
                                         max_digits=19, decimal_places=4)
     event = models.PositiveIntegerField(blank=True, null=True)
     reconciled = models.BooleanField(default=False)
-    last_account = models.IntegerField(editable=False, default=None, blank=True,
-                                       null=True)
-    last_delta = models.DecimalField(help_text="Positive balance is a credit, negative is a debit",
-                                     max_digits=19, decimal_places=4,
-                                     default="0.00", editable=False)
 
     class Meta:
         ordering = ['id']
