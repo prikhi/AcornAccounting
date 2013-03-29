@@ -7,6 +7,7 @@ Replace this with more appropriate tests for your application.
 import datetime
 
 from django.core.urlresolvers import reverse
+from django.db.utils import IntegrityError
 from django.template.defaultfilters import slugify
 from django.test import TestCase
 from django.utils.timezone import utc
@@ -134,6 +135,37 @@ class HeaderModelTests(TestCase):
         self.assertEqual(child_head.get_account_balance(), -60)
         self.assertEqual(gchild_head.get_account_balance(), -20)
         self.assertEqual(gchild_sib_head.get_account_balance(), -20)
+
+    def test_presave_signal_inherit_type(self):
+        '''
+        Tests that child Headers inherit their root Header's type.
+        '''
+        top_head = create_header('Initial')
+        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
+        gchild_head = Header.objects.create(name='gChild', parent=child_head, slug='gchild')
+        self.assertEqual(top_head.type, child_head.type)
+        self.assertEqual(top_head.type, gchild_head.type)
+
+    def test_presave_signal_rootnode_type_fail(self):
+        '''
+        Tests that root Headers require a type.
+        '''
+        head = Header(name='initial', slug='initial', type=None)
+        self.assertRaisesMessage(IntegrityError, 'accounts_header.type may not be NULL', head.save)
+
+
+class AccountModelTests(TestCase):
+    def test_presave_signal_inherit_type(self):
+        '''
+        Tests that Accounts inherit their type from their root Header.
+        '''
+        top_head = create_header('Initial')
+        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
+        gchild_head = Header.objects.create(name='gChild', parent=child_head, slug='gchild')
+        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
+        gchild_acc = Account.objects.create(name='gChild', parent=gchild_head, balance=0, slug='gchild')
+        self.assertEqual(child_acc.type, top_head.type)
+        self.assertEqual(gchild_acc.type, top_head.type)
 
 
 class BankSpendingEntryModelTests(TestCase):

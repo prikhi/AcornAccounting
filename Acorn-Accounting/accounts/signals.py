@@ -2,7 +2,20 @@ from django.db.models import F
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
-from .models import Account, Transaction, BankSpendingEntry
+from .models import Header, Account, Transaction, BankSpendingEntry
+
+
+@receiver(pre_save, sender=Header)
+def header_presave(sender, instance, **kwargs):
+    '''Inherit the root Header's type'''
+    if not instance.is_root_node():
+        instance.type = instance.get_root().type
+
+
+@receiver(pre_save, sender=Account)
+def account_presave(sender, instance, **kwargs):
+    '''Inherit the parent Header's type'''
+    instance.type = instance.parent.type
 
 
 @receiver(pre_save, sender=Transaction)

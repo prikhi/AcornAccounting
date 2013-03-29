@@ -12,6 +12,7 @@ class AccountAdmin(admin.ModelAdmin):
     ordering = ('parent__lft', 'name')
     search_field = ['name', 'description', 'type']
     prepopulated_fields = {'slug': ('name',)}
+    exclude = ('type',)
 
 admin.site.register(Account, AccountAdmin)
 

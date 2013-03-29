@@ -35,7 +35,7 @@ class BaseAccountModel(MPTTModel):
     )
 
     name = models.CharField(max_length=50, unique=True)
-    type = models.PositiveSmallIntegerField(choices=TYPE_CHOICES)
+    type = models.PositiveSmallIntegerField(choices=TYPE_CHOICES, blank=True)
     description = models.TextField(blank=True)
     slug = models.SlugField(help_text="Unique identifier used in URL naming",
                             unique=True)
@@ -74,9 +74,6 @@ class Header(BaseAccountModel):
 
     def get_absolute_url(self):
         return reverse('accounts.views.show_accounts_chart', args=[str(self.slug)])
-
-    def save(self, *args, **kwargs):
-        super(Header, self).save(*args, **kwargs)
 
     def get_full_number(self):
         """Traverses parent Headers to generate a full account number"""
