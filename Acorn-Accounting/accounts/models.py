@@ -1,4 +1,3 @@
-import datetime
 from decimal import Decimal
 
 from django.core.urlresolvers import reverse
@@ -201,12 +200,6 @@ class BankSpendingEntry(BaseJournalEntry):
     def get_edit_url(self):
         return reverse('accounts.views.add_bank_entry', args=['CD', str(self.id)])
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        if self.ach_payment:
-            self.check_number = None
-        super(BankSpendingEntry, self).save(*args, **kwargs)
-
     def get_number(self):
         if self.ach_payment:
             return "##ACH##"
@@ -263,32 +256,6 @@ class Transaction(models.Model):
 
     def get_absolute_url(self):
         return self.get_journal_entry().get_absolute_url()
-
-    def save(self, *args, **kwargs):
-        '''Changes Account balances if Account or balance_delta is changed'''
-        self.full_clean()
-        if not self.last_account:
-            self.last_account = self.account.id
-
-        balance_change = self.last_delta != self.balance_delta
-        last_account = Account.objects.get(id=self.last_account)
-        account_change = last_account != self.account
-        if balance_change and account_change:
-            last_account.balance = last_account.balance - Decimal(self.last_delta)
-            self.account.balance = self.account.balance + self.balance_delta
-            self.last_account = self.account.id
-            self.last_delta = self.balance_delta
-            last_account.save()
-        elif account_change:
-            last_account.balance = last_account.balance - self.balance_delta
-            self.account.balance = self.account.balance + self.balance_delta
-            self.last_account = self.account.id
-            last_account.save()
-        elif balance_change:
-            self.account.balance = self.account.balance - Decimal(self.last_delta) + self.balance_delta
-            self.last_delta = self.balance_delta
-        self.account.save()
-        super(Transaction, self).save(*args, **kwargs)
 
     def get_date(self):
         return self.get_journal_entry().date

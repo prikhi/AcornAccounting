@@ -114,6 +114,22 @@ class HeaderModelTests(TestCase):
         self.assertEqual(gchild_sib_head.get_account_balance(), -20)
 
 
+class BankSpendingEntryModelTests(TestCase):
+    def test_ach_check_number_presave(self):
+        '''
+        Tests that Check Number is set to Null if the Entry is an ACH payment.
+        '''
+        header = create_header('Initial')
+        account = create_account('Account', header, 0)
+        main_transaction = Transaction.objects.create(account=account, balance_delta=25)
+        BankSpendingEntry.objects.create(check_number='12342',
+                                               ach_payment=True,
+                                               memo='test bankspendentry',
+                                               main_transaction=main_transaction,
+                                               date=datetime.date.today())
+        self.assertEqual(BankSpendingEntry.objects.all()[0].check_number, None)
+
+
 class TransactionModelTests(TestCase):
     def test_creation(self):
         '''
