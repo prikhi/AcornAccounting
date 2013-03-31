@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from caching.base import CachingManager, CachingMixin
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -11,7 +12,7 @@ class BankAccountManager(models.Manager):
         return super(BankAccountManager, self).get_query_set().filter(bank=True)
 
 
-class BaseAccountModel(MPTTModel):
+class BaseAccountModel(CachingMixin, MPTTModel):
     """
     Abstract class storing common attributes of Headers and Accounts
     """
@@ -66,6 +67,8 @@ class Header(BaseAccountModel):
     parent = TreeForeignKey('self', blank=True, null=True)
     active = models.BooleanField(default=True)
 
+    objects = CachingManager()
+
     class Meta:
         ordering = ['name']
 
@@ -112,7 +115,7 @@ class Account(BaseAccountModel):
     active = models.BooleanField(default=True)
     bank = models.BooleanField(default=False, help_text="Adds account to Bank Register")
 
-    objects = models.Manager()
+    objects = CachingManager()
     banks = BankAccountManager()
 
     class Meta:
@@ -141,7 +144,7 @@ class Account(BaseAccountModel):
             return self.balance
 
 
-class BaseJournalEntry(models.Model):
+class BaseJournalEntry(CachingMixin, models.Model):
     """
     Groups a series of Transactions together
     """
@@ -149,6 +152,8 @@ class BaseJournalEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
     memo = models.CharField(max_length=60)
+
+    objects = CachingManager()
 
     class Meta:
         abstract = True
@@ -226,7 +231,7 @@ class BankReceivingEntry(BaseJournalEntry):
         return "CR#{0:06d}".format(self.id)
 
 
-class Transaction(models.Model):
+class Transaction(CachingMixin, models.Model):
     """
     Holds information about a single Transaction
     """
@@ -239,6 +244,8 @@ class Transaction(models.Model):
                                         max_digits=19, decimal_places=4)
     event = models.PositiveIntegerField(blank=True, null=True)
     reconciled = models.BooleanField(default=False)
+
+    objects = CachingManager()
 
     class Meta:
         ordering = ['id']
