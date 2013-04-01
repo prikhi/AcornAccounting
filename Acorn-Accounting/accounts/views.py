@@ -124,7 +124,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
         entry.date = datetime.date.today
 
     if request.method == 'POST':
-        if 'submit' in request.POST and request.POST['submit'] == 'Submit':
+        if 'submit' in request.POST and (request.POST['submit'] == 'Submit' or request.POST['submit'] == 'Submit & Add More'):
             entry_form = JournalEntryForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = TransactionFormSet(request.POST, prefix='transaction', instance=entry)
             if entry_form.is_valid():
@@ -143,6 +143,8 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                                 form.instance.bankreceive_entry = entry
                             form.instance.balance_delta = form.cleaned_data['balance_delta']
                             form.instance.save()
+                    if request.POST['submit'] == 'Submit & Add More':
+                        return HttpResponseRedirect(reverse('accounts.views.add_journal_entry'))
                     return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
                                                         kwargs={'journal_id': entry.id}))
         elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
@@ -185,7 +187,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry = entry_type()
         entry.date = datetime.date.today
     if request.method == 'POST':
-        if 'submit' in request.POST and request.POST['submit'] == 'Submit':
+        if 'submit' in request.POST and (request.POST['submit'] == 'Submit' or request.POST['submit'] == 'Submit & Add More'):
             entry_form = EntryTypeForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = InlineFormSet(request.POST, prefix='transaction', instance=entry)
             if entry_form.is_valid():
@@ -211,6 +213,9 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
                                 form.instance.bankreceive_entry = entry
                                 form.instance.balance_delta = form.cleaned_data['balance_delta']
                             form.instance.save()
+                    if request.POST['submit'] == 'Submit & Add More':
+                        return HttpResponseRedirect(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': journal_type})
+                                                    + '?bank_account={0}'.format(entry.main_transaction.account.id))
                     return HttpResponseRedirect(reverse('accounts.views.show_bank_entry',
                                                         kwargs={'journal_id': entry.id,
                                                                 'journal_type': journal_type}))
@@ -234,6 +239,8 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
             for form in transaction_formset.forms:
                 if not form.empty_permitted:
                     form.initial['amount'] = abs(form.instance.balance_delta)
+        elif 'bank_account' in request.GET:
+            entry_form.initial['account'] = request.GET['bank_account']
     return render_to_response(template_name,
                               {'entry_form': entry_form,
                                'journal_type': journal_type,

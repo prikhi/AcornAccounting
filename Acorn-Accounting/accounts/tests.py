@@ -735,6 +735,34 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(Account.objects.get(name='asset').balance, 0)
         self.assertEqual(Account.objects.get(name='expense').balance, 0)
 
+    def test_add_journal_entry_view_add_another(self):
+        '''
+        A `POST` to the `add_journal_entry` view with valid data and a submit
+        value of 'Submit & Add More' will create a JournalEntry and it's
+        respective Transactions, redirecting back to the Add page.
+        '''
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': datetime.date.today(),
+                                          'entry-memo': 'test GJ entry',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-event': 12,
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'submit': 'Submit & Add More'})
+        self.assertRedirects(response, reverse('accounts.views.add_journal_entry'))
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.all()[0].balance, -5)
+        self.assertEqual(Account.objects.all()[1].balance, 5)
+
     def test_add_journal_entry_view_delete(self):
         '''
         A `POST` to the `add_journal_entry` view with a `journal_id` and a submit
@@ -1110,6 +1138,37 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(BankReceivingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
 
+    def test_bank_receiving_add_view_add_another(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CR` and
+        submit value of `Submit & Add Another` should create a new BankReceivingEntry
+        and issue redirect back to the Add page, initializing the entry form with
+        last Entries bank_account.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit & Add More',
+                                          })
+
+        self.assertRedirects(response, reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}) + '?bank_account={0}'.format(self.bank_account.id))
+        response = self.client.get(response._headers['location'][1])
+        self.assertEqual(response.context['entry_form'].initial['account'], str(self.bank_account.id))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, -20)
+        self.assertEqual(Account.objects.get(bank=False).balance, 20)
+
     def test_bank_receiving_add_view_delete(self):
         '''
         A `POST` to the `add_bank_entry` view with a `journal_id` and
@@ -1337,6 +1396,38 @@ class BankEntryViewTests(TestCase):
                          'Transactions are out of balance.')
         self.assertEqual(BankSpendingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_spending_add_view_add_another(self):
+        '''
+        A `POST` to the 'add_bank_entry' view with a `journal_type` of `CD` and
+        submit value of `Submit & Add Another` should create a new BankSpendingEntry
+        and issue redirect back to the Add page, initializing the entry form with
+        last Entries bank_account.
+        '''
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'submit': 'Submit & Add More',
+                                          })
+
+        self.assertRedirects(response, reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}) + '?bank_account={0}'.format(self.bank_account.id))
+        response = self.client.get(response._headers['location'][1])
+        self.assertEqual(response.context['entry_form'].initial['account'], str(self.bank_account.id))
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, 20)
+        self.assertEqual(Account.objects.get(bank=False).balance, -20)
 
     def test_bank_spending_add_view_delete(self):
         '''
