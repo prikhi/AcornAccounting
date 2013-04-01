@@ -14,6 +14,12 @@ def first_of_month():
     return datetime.date(today.year, today.month, 1).strftime('%m/%d/%Y')
 
 
+class RequiredInlineFormSet(forms.models.BaseFormSet):
+    def __init__(self, *args, **kwargs):
+        super(RequiredInlineFormSet, self).__init__(*args, **kwargs)
+        self.forms[0].empty_permitted = False
+
+
 class DateRangeForm(forms.Form):
     startdate = forms.DateField(label="Start Date", initial=first_of_month)
     stopdate = forms.DateField(label="Stop Date", initial=datetime.date.today().strftime('%m/%d/%Y'))
@@ -70,6 +76,10 @@ class TransactionForm(forms.ModelForm):
 
 
 class BaseTransactionFormSet(forms.models.BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super(BaseTransactionFormSet, self).__init__(*args, **kwargs)
+        self.forms[0].empty_permitted = False
+
     def clean(self):
         '''Checks that debits and credits balance out'''
         super(BaseTransactionFormSet, self).clean()
@@ -111,7 +121,8 @@ class TransferForm(forms.Form):
         return cleaned_data
 
 
-TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True)
+TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True,
+                                  formset=RequiredInlineFormSet)
 
 
 class BaseBankForm(forms.ModelForm):
