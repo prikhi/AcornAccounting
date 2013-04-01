@@ -199,8 +199,8 @@ class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
 
 BankSpendingTransactionFormSet = inlineformset_factory(BankSpendingEntry, Transaction,
                                                        form=BankTransactionForm, formset=BaseBankTransactionFormSet,
-                                                       extra=20, can_delete=True)
+                                                       extra=5, can_delete=True)
 
 BankReceivingTransactionFormSet = inlineformset_factory(BankReceivingEntry, Transaction,
                                                        form=BankTransactionForm, formset=BaseBankTransactionFormSet,
-                                                       extra=20, can_delete=True)
+                                                       extra=5, can_delete=True)
