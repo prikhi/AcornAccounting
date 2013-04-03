@@ -11,9 +11,10 @@
         <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
     </table>
 </form>
-
+<h1>#{{ account.get_full_number }} {{ account.name|capwords }} - {{ account.get_balance|currency }}</h1>
+<a href="{% url accounts.views.reconcile_account account_slug=account.slug %}">Reconcile</a>
+<br /><br />
 <table summary="{{ account.name }} Details" id="accounts_chart">
-    <caption>#{{ account.get_full_number }} {{ account.name|capwords }} - {{ account.get_balance|currency }}</caption>
     <thead>
     <tr>
         <th scope="col">Number</th>

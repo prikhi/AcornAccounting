@@ -1,9 +1,4 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
 
-Replace this with more appropriate tests for your application.
-"""
 import datetime
 
 from django.core.urlresolvers import reverse
@@ -15,7 +10,7 @@ from django.utils.timezone import utc
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
 from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm, \
                    BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet, \
-                   DateRangeForm
+                   DateRangeForm, AccountReconcileForm, ReconcileTransactionFormSet
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -467,6 +462,740 @@ class AccountChartViewTests(TestCase):
         response = self.client.get(reverse('accounts.views.show_accounts_chart',
                                            kwargs={'header_slug': 'does-not-exist'}))
         self.assertEqual(response.status_code, 404)
+
+
+class AccountReconcileViewTests(TestCase):
+    '''
+    Test the `reconcile_account` view
+    '''
+    def setUp(self):
+        '''
+        Test Accounts with `flip_balance` of `True`(asset/bank) and `False`(liability).
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.liability_header = create_header('liability', cat_type=2)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.liability_account = create_account('liability', self.liability_header, 0, 2)
+
+    def test_reconcile_account_view_initial(self):
+        '''
+        A `GET` to the `reconcile_account` view with an `account_slug` should
+        return an AccountReconcile Form for that Account.
+        '''
+        response = self.client.get(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.failUnless(isinstance(response.context['account_form'], AccountReconcileForm))
+        self.assertNotIn('transaction_formset', response.context)
+        self.assertTemplateUsed(response, 'accounts/account_reconcile.html')
+        self.assertEqual(response.context['account'], self.bank_account)
+        self.assertEqual(response.context['last_reconciled'], self.bank_account.last_reconciled)
+        self.assertEqual(response.context['reconciled_balance'], 0)
+
+    def test_reconcile_account_view_initial_account_slug_fail(self):
+        '''
+        A `GET` to the `reconcile_account` view with an invalid `account_slug`
+        should return a 404.
+        '''
+        response = self.client.get(reverse('accounts.views.reconcile_account', kwargs={'account_slug': 'I-dont-exist'}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_reconcile_account_view_initial_post_account_slug_fail(self):
+        '''
+        A `POST` to the `reconcile_account` view with an invalid `account_slug`
+        should return a 404.
+        '''
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': 'I-dont-exist'}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_reconcile_account_view_get_transactions(self):
+        '''
+        A `POST` to the `reconcile_account` view with a `statement_date`,
+        `statement_balance` and submit value of `Get Transactions` should return
+        the bound AccountReconcile Form and a ReconcileTransactionFormSet containing
+        the Account's unreconciled Transactions from between the Account's
+        `last_reconciled` date and the `statement_date`.
+        '''
+        past_entry = create_entry(datetime.date.today() - datetime.timedelta(days=60), 'before reconciled date entry')
+        create_transaction(past_entry, self.bank_account, 100)
+        create_transaction(past_entry, self.liability_account, -100)
+
+        entry = create_entry(datetime.date.today(), 'between reconciled date and statement date')
+        Transaction.objects.create(journal_entry=entry, account=self.bank_account, balance_delta=50, reconciled=True)
+        bank_tran = create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -100)
+
+        future_entry = create_entry(datetime.date.today() + datetime.timedelta(days=30), 'past statement date entry')
+        create_transaction(future_entry, self.bank_account, 100)
+        create_transaction(future_entry, self.liability_account, -100)
+
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '50',
+                                          'submit': 'Get Transactions'})
+        self.assertEqual(response.status_code, 200)
+        self.failUnless(isinstance(response.context['account_form'], AccountReconcileForm))
+        self.failUnless(response.context['account_form'].is_bound)
+        self.failUnless(isinstance(response.context['transaction_formset'], ReconcileTransactionFormSet))
+        self.assertEqual(len(response.context['transaction_formset'].forms), 1)
+        self.assertEqual(response.context['transaction_formset'].forms[0].instance, bank_tran)
+
+    def test_reconcile_account_view_get_transactions_fail_old_statement_date(self):
+        '''
+        A `POST` to the `reconcile_account` view with a `statement_date` before
+        the Accounts last_reconciled date will return an Error and no Transactions.
+        '''
+        past_entry = create_entry(datetime.date.today() - datetime.timedelta(days=60), 'before reconciled date entry')
+        create_transaction(past_entry, self.bank_account, 100)
+        create_transaction(past_entry, self.liability_account, -100)
+
+        entry = create_entry(datetime.date.today(), 'between reconciled date and statement date')
+        Transaction.objects.create(journal_entry=entry, account=self.bank_account, balance_delta=50, reconciled=True)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -100)
+
+        future_entry = create_entry(datetime.date.today() + datetime.timedelta(days=30), 'past statement date entry')
+        create_transaction(future_entry, self.bank_account, 100)
+        create_transaction(future_entry, self.liability_account, -100)
+
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() - datetime.timedelta(days=365),
+                                          'account-statement_balance': '50',
+                                          'submit': 'Get Transactions'})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, 'account_form', 'statement_date', 'Must be later than the Last Reconciled Date')
+        self.assertNotIn('transaction_formset', response.context)
+
+    def test_reconcile_account_view_flip_success_neg_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` < 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -50)
+        create_transaction(entry, self.bank_account, -50)
+        create_transaction(entry, self.bank_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '-175',
+                                          'form-TOTAL_FORMS': 3,
+                                          'form-INITIAL_FORMS': 3,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'form-2-id': 3,
+                                          'form-2-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[0].reconciled)
+        self.assertTrue(Transaction.objects.all()[1].reconciled)
+        self.assertTrue(Transaction.objects.all()[2].reconciled)
+
+    def test_reconcile_account_view_flip_success_zero_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` of 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -50)
+        create_transaction(entry, self.bank_account, 50)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[0].reconciled)
+        self.assertTrue(Transaction.objects.all()[1].reconciled)
+
+    def test_reconcile_account_view_flip_success_pos_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` > 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '275',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[0].reconciled)
+        self.assertFalse(Transaction.objects.all()[1].reconciled)
+
+    def test_reconcile_account_view_flip_success_neg_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` < 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 275)
+        create_transaction(entry, self.liability_account, -275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '-450',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[4].reconciled)
+
+    def test_reconcile_account_view_flip_success_pos_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` > 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '100',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[4].reconciled)
+
+    def test_reconcile_account_view_flip_success_zero_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` of 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, -175)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[4].reconciled)
+
+    def test_reconcile_account_view_flip_success_neg_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` < 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 375)
+        create_transaction(entry, self.liability_account, -275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '-100',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 3,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[2].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+
+    def test_reconcile_account_view_flip_success_pos_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` > 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 175)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '100',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 3,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[2].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+
+    def test_reconcile_account_view_flip_success_zero_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of True, `statement_amount` of 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, -175)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.bank_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[4].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` < 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.liability_account, 50)
+        create_transaction(entry, self.liability_account, 50)
+        create_transaction(entry, self.liability_account, -275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '-175',
+                                          'form-TOTAL_FORMS': 3,
+                                          'form-INITIAL_FORMS': 3,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'form-2-id': 3,
+                                          'form-2-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[0].reconciled)
+        self.assertTrue(Transaction.objects.all()[1].reconciled)
+        self.assertTrue(Transaction.objects.all()[2].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_zero_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` of 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.liability_account, -50)
+        create_transaction(entry, self.liability_account, 50)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[0].reconciled)
+        self.assertTrue(Transaction.objects.all()[1].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` > 0  and
+        a `reconciled_amount` of 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '275',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 2,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[1].reconciled)
+        self.assertFalse(Transaction.objects.all()[0].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_neg_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` < 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 275)
+        create_transaction(entry, self.liability_account, -275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '-450',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 5,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[4].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_pos_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` > 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '100',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 5,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[4].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_zero_statement_neg_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` of 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, -175)
+        create_transaction(entry, self.liability_account, 175)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 5,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[4].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_neg_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` < 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 375)
+        create_transaction(entry, self.liability_account, -375)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '-100',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[2].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_pos_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` > 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '550',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[2].reconciled)
+
+    def test_reconcile_account_view_no_flip_success_zero_statement_pos_reconciled(self):
+        '''
+        A `POST` to the `reconcile_account` view with a valid ReconcileTransactionFormSet
+        data for an Account with `flip_balance()` of False, `statement_amount` of 0  and
+        a `reconciled_balance` < 0 will mark the Transactions as Reconciled and
+        redirect to the Account Detail Page.
+        '''
+        self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
+        entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
+        create_transaction(entry, self.bank_account, 275)
+        create_transaction(entry, self.liability_account, -275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
+                                          'account-statement_balance': '0',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 4,
+                                          'form-0-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertTrue(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[2].reconciled)
+
+    def test_reconcile_account_view_fail_no_submit(self):
+        '''
+        A `POST` to the `reconcile_account` view with no value for `submit` should
+        return a 404.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '275',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True})
+        self.assertEqual(response.status_code, 404)
+
+    def test_reconcile_account_view_fail_invalid_submit(self):
+        '''
+        A `POST` to the `reconcile_account` view with an invalid `submit` value
+        should return a 404.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': '275',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'submit': 'this button doesnt exist'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_reconcile_account_view_fail_old_statement_date(self):
+        '''
+        A `POST` to the `reconcile_account` view with valid Transaction data but
+        a `statement_date` before the Accounts last_reconciled date will return
+        an Error and the Transactions.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -50)
+        create_transaction(entry, self.bank_account, -50)
+        create_transaction(entry, self.bank_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() - datetime.timedelta(days=500),
+                                          'account-statement_balance': '-175',
+                                          'form-TOTAL_FORMS': 3,
+                                          'form-INITIAL_FORMS': 3,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'form-2-id': 3,
+                                          'form-2-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, 'account_form', 'statement_date', 'Must be later than the Last Reconciled Date')
+        self.assertIn('transaction_formset', response.context)
+
+    def test_reconcile_account_view_fail_statement_out_of_balance_flip(self):
+        '''
+        A `POST` to the `reconcile_account` view with an out of balance statement
+        will not mark the Transactions as Reconciled and return an out of balance
+        error for Accounts where `flip_balance` is `True`.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -100)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '75',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Transaction.objects.all()[0].reconciled)
+        self.assertFalse(Transaction.objects.all()[1].reconciled)
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Reconciled Transactions and Bank Statement are out of balance.')
+
+    def test_reconcile_account_view_fail_transaction_out_of_balance_flip(self):
+        '''
+        A `POST` to the `reconcile_account` view with out of balance Transactions
+        will not mark the Transactions as Reconciled and return an out of balance
+        error for Accounts where `flip_balance` is `True`.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -100)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '100',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 2,
+                                          'form-1-reconciled': False,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Transaction.objects.all()[0].reconciled)
+        self.assertFalse(Transaction.objects.all()[1].reconciled)
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Reconciled Transactions and Bank Statement are out of balance.')
+
+    def test_reconcile_account_view_fail_statement_out_of_balance_no_flip(self):
+        '''
+        A `POST` to the `reconcile_account` view with an out of balance statement
+        will not mark the Transactions as Reconciled and return an out of balance
+        error.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -50)
+        create_transaction(entry, self.liability_account, -50)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '75',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 3,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 4,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Transaction.objects.all()[2].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Reconciled Transactions and Bank Statement are out of balance.')
+
+    def test_reconcile_account_view_fail_transaction_out_of_balance_no_flip(self):
+        '''
+        A `POST` to the `reconcile_account` view with out of balance Transactions
+        will not mark the Transactions as Reconciled and return an out of balance
+        error.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -50)
+        create_transaction(entry, self.liability_account, -50)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '100',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': 3,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': 4,
+                                          'form-1-reconciled': False,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Transaction.objects.all()[2].reconciled)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         'Reconciled Transactions and Bank Statement are out of balance.')
+
+    def test_reconcile_account_view_last_reconciled_date(self):
+        '''
+        A successful Reconciliation should cause the `last_reconciled` and `reconciled_balance`
+        variables to change
+        '''
+        self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
+        response = self.client.get(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['last_reconciled'], datetime.date.today() + datetime.timedelta(days=5))
+        self.assertEqual(Account.objects.get(bank=True).last_reconciled, datetime.date.today() + datetime.timedelta(days=5))
+        self.assertEqual(response.context['reconciled_balance'], -175)
 
 
 class AccountDetailViewTests(TestCase):

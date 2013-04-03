@@ -6,6 +6,7 @@ urlpatterns = patterns('accounts.views',
     (r'^header/(?P<header_slug>[-\w]+)/$', 'show_accounts_chart'),
     (r'^account/(?P<account_slug>[-\w]+)/$', 'show_account_detail',
         {'template_name': 'accounts/account_detail.html'}, 'show_account_detail'),
+    (r'^account/(?P<account_slug>[-\w]+)/reconcile/$', 'reconcile_account', {}, 'reconcile_account'),
 
     (r'^search/quick/account/$', 'quick_account_search'),
     (r'^search/quick/register/$', 'quick_bank_search'),

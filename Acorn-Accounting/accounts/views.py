@@ -1,6 +1,6 @@
 import datetime
 
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
@@ -8,8 +8,9 @@ from django.template.context import RequestContext
 from django.utils import timezone
 
 from .accounting import process_date_range_form
-from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm, \
-                   BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet
+from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm,             \
+                   BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet,  \
+                   AccountReconcileForm, ReconcileTransactionFormSet
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
 
 
@@ -277,4 +278,52 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
     return render_to_response(template_name,
                               {'entry_form': entry_form,
                                'transaction_formset': transfer_formset},
+                              context_instance=RequestContext(request))
+
+
+def reconcile_account(request, account_slug, template_name="accounts/account_reconcile.html"):
+    account = get_object_or_404(Account, slug=account_slug)
+    last_reconciled = account.last_reconciled
+    reconciled_transactions = account.transaction_set.filter(reconciled=True)
+    if reconciled_transactions.exists():
+        reconciled_balance = reconciled_transactions.aggregate(Sum('balance_delta'))['balance_delta__sum']
+    else:
+        reconciled_balance = 0
+    if request.method == 'POST':
+        if 'submit' in request.POST and request.POST['submit'] == 'Get Transactions':
+            account_form = AccountReconcileForm(request.POST, prefix='account', instance=account)
+            if account_form.is_valid():
+                startdate = last_reconciled
+                stopdate = account_form.cleaned_data['statement_date']
+                queryset = account.transaction_set.filter(reconciled=False).filter(
+                                                         (Q(journal_entry__date__lte=stopdate,) & Q(journal_entry__date__gte=startdate)) |
+                                                         (Q(bankspend_entry__date__lte=stopdate,) & Q(bankspend_entry__date__gte=startdate)) |
+                                                         (Q(bankreceive_entry__date__lte=stopdate,) & Q(bankreceive_entry__date__gte=startdate)) |
+                                                         (Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
+                                                         (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate)))
+                transaction_formset = ReconcileTransactionFormSet(queryset=queryset)
+                return render_to_response(template_name, {'account': account,
+                                                          'reconciled_balance': reconciled_balance * (-1 if account.flip_balance() else 1),
+                                                          'last_reconciled': last_reconciled,
+                                                          'account_form': account_form,
+                                                          'transaction_formset': transaction_formset},
+                                          context_instance=RequestContext(request))
+        elif 'submit' in request.POST and request.POST['submit'] == 'Reconcile Transactions':
+            account_form = AccountReconcileForm(request.POST, prefix='account', instance=account)
+            transaction_formset = ReconcileTransactionFormSet(request.POST)
+            if account_form.is_valid():
+                transaction_formset.reconciled_balance = reconciled_balance
+                transaction_formset.account_form = account_form
+                if transaction_formset.is_valid():
+                    transaction_formset.save()
+                    account.last_reconciled = account_form.cleaned_data['statement_date']
+                    account.save()
+                    return HttpResponseRedirect(reverse('accounts.views.show_account_detail',
+                                                        kwargs={'account_slug': account.slug}))
+        else:
+            raise Http404
+    else:
+        account_form = AccountReconcileForm(prefix='account', instance=account)
+        reconciled_balance = reconciled_balance * (-1 if account.flip_balance() else 1)
+    return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))

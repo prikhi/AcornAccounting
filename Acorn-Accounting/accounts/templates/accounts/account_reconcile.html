@@ -1,0 +1,65 @@
+{% extends 'site.html' %}
+
+{% load accounting_filters %}
+
+{% block title %}Reconcile {{ account }}{% endblock %}
+
+{% block content %}
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
+
+<h1>Reconcile {{ account }}</h1>
+
+<form data-validate="parsley" action="." method="POST" id="reconcile_form">
+{% csrf_token %}
+<table id="account">
+    {{ account_form }}
+    <tr><th>Last Reconciled:</th><th>{{ last_reconciled|date:"m/d/Y" }}</th></tr>
+    <tr><th>Reconciled Balance:</th><th>{{ reconciled_balance|currency }}</th></tr>
+    <tr><th><input type="submit" name="submit" value="Get Transactions" /></th><th></th></tr>
+</table>
+
+{% if transaction_formset %}
+{{ transaction_formset.management_form }}
+{% for error in transaction_formset.non_form_errors %}
+    <li>{{ error }}</li>
+{% endfor %}
+<table id="accounts_chart">
+    <thead>
+        <tr>
+            <th>R</th>
+            <th>Date</th>
+            <th>Number</th>
+            <th>Memo</th>
+            <th class="right">Debit</th>
+            <th class="right">Credit</th>
+            <th class="right">Event</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for form in transaction_formset %}
+        <tr>
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            <td>{{ field.errors.as_ul }}{{ form.visible_fields.0 }}</td>
+            <td>{{ form.instance.get_date|date:"m/d/y" }}</td>
+            <td>{{ form.instance.get_entry_number }}</td>
+            <td>{{ form.instance.get_memo }}</td>
+            {% if form.instance.balance_delta < 0 %}
+            <td class="right">{{ form.instance.balance_delta|currency }}</td>
+            <td class="right"></td>
+            {% else %}
+            <td class="right"></td>
+            <td class="right">{{ form.instance.balance_delta|currency }}</td>
+            {% endif %}
+            <td class="right">{{ form.instance.event|default_if_none:"" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<br />
+<input type="submit" name="submit" value="Reconcile Transactions" />
+{% endif %}
+</form>
+
+{% endblock %}

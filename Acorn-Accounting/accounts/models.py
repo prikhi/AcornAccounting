@@ -114,6 +114,7 @@ class Account(BaseAccountModel):
     parent = models.ForeignKey(Header)
     active = models.BooleanField(default=True)
     bank = models.BooleanField(default=False, help_text="Adds account to Bank Register")
+    last_reconciled = models.DateField(auto_now_add=True)
 
     objects = CachingManager()
     banks = BankAccountManager()

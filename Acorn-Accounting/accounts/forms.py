@@ -2,8 +2,9 @@ import datetime
 from decimal import Decimal
 
 from django import forms
-from django.forms.models import inlineformset_factory
 from django.forms.formsets import formset_factory
+from django.forms.models import inlineformset_factory, modelformset_factory,\
+    BaseModelFormSet
 from parsley.decorators import parsleyfy
 
 from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry
@@ -204,3 +205,45 @@ BankSpendingTransactionFormSet = inlineformset_factory(BankSpendingEntry, Transa
 BankReceivingTransactionFormSet = inlineformset_factory(BankReceivingEntry, Transaction,
                                                        form=BankTransactionForm, formset=BaseBankTransactionFormSet,
                                                        extra=5, can_delete=True)
+
+
+@parsleyfy
+class AccountReconcileForm(forms.ModelForm):
+    statement_date = forms.DateField()
+    statement_balance = forms.DecimalField()
+
+    class Meta:
+        model = Account
+        fields = ('statement_date', 'statement_balance')
+
+    def clean_statement_balance(self):
+        balance = self.cleaned_data['statement_balance']
+        if self.instance.flip_balance():
+            balance = -1 * balance
+        return balance
+
+    def clean_statement_date(self):
+        date = self.cleaned_data['statement_date']
+        if date < self.instance.last_reconciled:
+            raise forms.ValidationError('Must be later than the Last Reconciled Date')
+        return date
+
+
+class BaseReconcileTransactionFormSet(BaseModelFormSet):
+    class Meta:
+        model = Transaction
+
+    def clean(self):
+        '''Checks that Reconciled Transaction credits/debits balance Statement amount'''
+        super(BaseReconcileTransactionFormSet, self).clean()
+        if any(self.errors):
+            return
+        balance = self.account_form.cleaned_data['statement_balance'] - self.reconciled_balance
+        for form in self.forms:
+            if form.cleaned_data['reconciled']:
+                balance += -1 * form.instance.balance_delta
+        if balance != 0:
+            raise forms.ValidationError("Reconciled Transactions and Bank Statement are out of balance.")
+
+ReconcileTransactionFormSet = modelformset_factory(Transaction, extra=0, can_delete=False, fields=('reconciled',),
+                                                   formset=BaseReconcileTransactionFormSet)
