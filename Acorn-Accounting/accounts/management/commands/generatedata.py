@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 amt2 = random.randint(100, 80000)
 
                 main_transaction = Transaction.objects.create(account=get_random_bank(), balance_delta=amt1 + amt2)
-                entry = BankSpendingEntry.objects.create(date=date, memo='test bank spend', main_transaction=main_transaction)
+                entry = BankSpendingEntry.objects.create(date=date, memo='test bank spend', main_transaction=main_transaction, ach_payment=True)
                 Transaction.objects.create(bankspend_entry=entry, account=get_random_account(), balance_delta=amt1 * -1)
                 Transaction.objects.create(bankspend_entry=entry, account=get_random_account(), balance_delta=amt2 * -1)
             for CR in range(0, 3):

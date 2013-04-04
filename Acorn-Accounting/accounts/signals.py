@@ -36,10 +36,3 @@ def transaction_postsave(sender, instance, **kwargs):
 def transaction_delete(sender, instance, **kwargs):
     '''Refunds Transaction before deleting from database.'''
     Account.objects.filter(id=instance.account.id).update(balance=F('balance') - instance.balance_delta)
-
-
-@receiver(pre_save, sender=BankSpendingEntry)
-def bankspending_presave(sender, instance, **kwargs):
-    '''Set Check Number to Null if Entry is an ACH Payment.'''
-    if instance.ach_payment:
-        instance.check_number = None

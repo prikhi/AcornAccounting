@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from caching.base import CachingManager, CachingMixin
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -199,6 +200,16 @@ class BankSpendingEntry(BaseJournalEntry):
     def get_absolute_url(self):
         return reverse('accounts.views.show_bank_entry', kwargs={'journal_id': str(self.id),
                                                                  'journal_type': 'CD'})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(BankSpendingEntry, self).save(*args, **kwargs)
+
+    def clean(self):
+        '''Require either a Check Number XOR an ACH payment'''
+        if not (bool(self.ach_payment) ^ bool(self.check_number)):
+            raise ValidationError('Either A Check Number or ACH status is required.')
+        super(BankSpendingEntry, self).clean()
 
     def get_edit_url(self):
         return reverse('accounts.views.add_bank_entry', args=['CD', str(self.id)])

@@ -11,6 +11,7 @@ from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpend
 from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm, \
                    BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet, \
                    DateRangeForm, AccountReconcileForm, ReconcileTransactionFormSet
+from django.core.exceptions import ValidationError
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -164,19 +165,31 @@ class AccountModelTests(TestCase):
 
 
 class BankSpendingEntryModelTests(TestCase):
-    def test_ach_check_number_presave(self):
+    def setUp(self):
+        self.header = create_header('Initial')
+        self.account = create_account('Account', self.header, 0)
+
+    def test_ach_or_check_number_required(self):
         '''
-        Tests that Check Number is set to Null if the Entry is an ACH payment.
+        Tests that BankSpendingEntry Models requires either an ACH payment or
+        check_number
+        refs #97
         '''
-        header = create_header('Initial')
-        account = create_account('Account', header, 0)
-        main_transaction = Transaction.objects.create(account=account, balance_delta=25)
-        BankSpendingEntry.objects.create(check_number='12342',
-                                               ach_payment=True,
-                                               memo='test bankspendentry',
-                                               main_transaction=main_transaction,
-                                               date=datetime.date.today())
-        self.assertEqual(BankSpendingEntry.objects.all()[0].check_number, None)
+        main_transaction = Transaction.objects.create(account=self.account, balance_delta=25)
+        entry = BankSpendingEntry(check_number=None, ach_payment=None, memo='no check or ach',
+                                  main_transaction=main_transaction, date=datetime.date.today())
+        self.assertRaises(ValidationError, entry.save)
+
+    def test_ach_xor_check_number(self):
+        '''
+        Tests that BankSpendingEntry Models requires either an ACH payment OR
+        check_number exclusively
+        refs #97
+        '''
+        main_transaction = Transaction.objects.create(account=self.account, balance_delta=25)
+        entry = BankSpendingEntry(check_number="23", ach_payment=True, memo='check AND ach',
+                                  main_transaction=main_transaction, date=datetime.date.today())
+        self.assertRaises(ValidationError, entry.save)
 
 
 class TransactionModelTests(TestCase):
@@ -341,7 +354,7 @@ class TransactionModelTests(TestCase):
 
         bankspend_main = Transaction.objects.create(account=bank_account, balance_delta=50)
         bankspend = BankSpendingEntry.objects.create(date=datetime.date.today(), memo='test bankspend',
-                                                     main_transaction=bankspend_main)
+                                                     main_transaction=bankspend_main, ach_payment=True)
         bankspend_tran = Transaction.objects.create(bankspend_entry=bankspend, account=account, balance_delta=-50)
         self.assertEqual(bankspend_main.get_journal_entry(), bankspend)
         self.assertEqual(bankspend_tran.get_journal_entry(), bankspend)
@@ -2077,7 +2090,6 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
                                     data={'entry-account': self.bank_account.id,
                                           'entry-date': '2013-03-12',
-                                          'entry-ach_payment': False,
                                           'entry-amount': 20,
                                           'entry-memo': 'test memo',
                                           'transaction-TOTAL_FORMS': 20,
@@ -2092,7 +2104,7 @@ class BankEntryViewTests(TestCase):
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
-        self.assertFormError(response, 'entry_form', None, 'A check number is required if this is not an ACH payment.')
+        self.assertFormError(response, 'entry_form', None, 'Either A Check Number or ACH status is required.')
         self.assertEqual(BankSpendingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
 

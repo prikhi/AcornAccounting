@@ -3,8 +3,7 @@ from decimal import Decimal
 
 from django import forms
 from django.forms.formsets import formset_factory
-from django.forms.models import inlineformset_factory, modelformset_factory,\
-    BaseModelFormSet
+from django.forms.models import inlineformset_factory, modelformset_factory, BaseModelFormSet
 from parsley.decorators import parsleyfy
 
 from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry
@@ -138,17 +137,6 @@ class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
         fields = ('account', 'date', 'check_number', 'ach_payment', 'payee', 'amount', 'memo',)
-
-    def clean(self):
-        '''If ACH is not checked check_number is required'''
-        super(BankSpendingForm, self).clean()
-        if any(self.errors):
-            return self.cleaned_data
-        check_number = self.cleaned_data.get('check_number')
-        ach_payment = self.cleaned_data.get('ach_payment', False)
-        if not check_number and not ach_payment:
-            raise forms.ValidationError("A check number is required if this is not an ACH payment.")
-        return self.cleaned_data
 
 
 @parsleyfy
