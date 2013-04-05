@@ -1609,7 +1609,77 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(response.context['transaction_formset'].forms[0].initial['debit'], 5)
         self.assertEqual(response.context['transaction_formset'].forms[1].initial['credit'], 5)
 
-    def test_add_journal_entry_view_edit_success(self):
+    def test_add_journal_entry_view_edit_account_success(self):
+        '''
+        A `POST` to the `add_journal_entry` view with a `journal_id` should modify
+        the JournalEntry and it's Transactions with the POSTed data and redirect
+        to the Entry's detail page.
+        '''
+        self.test_add_journal_entry_view_success()
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
+                                    data={'entry-date': '5/1/11',
+                                          'entry-memo': 'new memo!',
+                                          'transaction-TOTAL_FORMS': 22,
+                                          'transaction-INITIAL_FORMS': 2,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 1,
+                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-detail': 'debit',
+                                          'transaction-0-event': 12,
+                                          'transaction-1-id': 2,
+                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-account': self.asset_account.id,
+                                          'transaction-1-credit': 5,
+                                          'transaction-1-detail': 'credit',
+                                          'submit': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        entry = JournalEntry.objects.all()[0]
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(entry.date, datetime.date(2011, 5, 1))
+        self.assertEqual(entry.memo, 'new memo!')
+        self.assertEqual(Account.objects.get(name='asset').balance, 5)
+        self.assertEqual(Account.objects.get(name='expense').balance, -5)
+
+    def test_add_journal_entry_view_edit_delta_success(self):
+        '''
+        A `POST` to the `add_journal_entry` view with a `journal_id` should modify
+        the JournalEntry and it's Transactions with the POSTed data and redirect
+        to the Entry's detail page.
+        '''
+        self.test_add_journal_entry_view_success()
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
+                                    data={'entry-date': '5/1/11',
+                                          'entry-memo': 'new memo!',
+                                          'transaction-TOTAL_FORMS': 22,
+                                          'transaction-INITIAL_FORMS': 2,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 1,
+                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-credit': 8,
+                                          'transaction-0-detail': 'debit',
+                                          'transaction-0-event': 12,
+                                          'transaction-1-id': 2,
+                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-debit': 8,
+                                          'transaction-1-detail': 'credit',
+                                          'submit': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        entry = JournalEntry.objects.all()[0]
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(entry.date, datetime.date(2011, 5, 1))
+        self.assertEqual(entry.memo, 'new memo!')
+        self.assertEqual(Account.objects.get(name='asset').balance, 8)
+        self.assertEqual(Account.objects.get(name='expense').balance, -8)
+
+    def test_add_journal_entry_view_edit_account_and_delta_success(self):
         '''
         A `POST` to the `add_journal_entry` view with a `journal_id` should modify
         the JournalEntry and it's Transactions with the POSTed data and redirect
@@ -1643,6 +1713,84 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(entry.memo, 'new memo!')
         self.assertEqual(Account.objects.get(name='asset').balance, 8)
         self.assertEqual(Account.objects.get(name='expense').balance, -8)
+
+    def test_add_journal_entry_view_edit_new_transactions_success(self):
+        '''
+        A `POST` to the `add_journal_entry` view with a `journal_id` should modify
+        the JournalEntry and it's Transactions with the POSTed data and redirect
+        to the Entry's detail page.
+        '''
+        self.test_add_journal_entry_view_success()
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
+                                    data={'entry-date': '5/1/11',
+                                          'entry-memo': 'new memo!',
+                                          'transaction-TOTAL_FORMS': 22,
+                                          'transaction-INITIAL_FORMS': 2,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 1,
+                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 8,
+                                          'transaction-0-detail': 'debit',
+                                          'transaction-0-event': 12,
+                                          'transaction-1-id': 2,
+                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'transaction-1-detail': 'credit',
+                                          'transaction-2-id': '',
+                                          'transaction-2-journal_entry': 1,
+                                          'transaction-2-account': self.asset_account.id,
+                                          'transaction-2-credit': 3,
+                                          'submit': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        entry = JournalEntry.objects.all()[0]
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 3)
+        self.assertEqual(entry.date, datetime.date(2011, 5, 1))
+        self.assertEqual(entry.memo, 'new memo!')
+        self.assertEqual(Account.objects.get(name='asset').balance, -5)
+        self.assertEqual(Account.objects.get(name='expense').balance, 5)
+
+    def test_add_journal_entry_view_edit_account_and_balance_change_new_transactions_success(self):
+        '''
+        A `POST` to the `add_journal_entry` view with a `journal_id` should modify
+        the JournalEntry and it's Transactions with the POSTed data and redirect
+        to the Entry's detail page.
+        '''
+        self.test_add_journal_entry_view_success()
+        response = self.client.post(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
+                                    data={'entry-date': '5/1/11',
+                                          'entry-memo': 'new memo!',
+                                          'transaction-TOTAL_FORMS': 22,
+                                          'transaction-INITIAL_FORMS': 2,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': 1,
+                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'transaction-0-credit': 8,
+                                          'transaction-0-detail': 'debit',
+                                          'transaction-0-event': 12,
+                                          'transaction-1-id': 2,
+                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-account': self.asset_account.id,
+                                          'transaction-1-credit': 10,
+                                          'transaction-1-detail': 'credit',
+                                          'transaction-2-id': '',
+                                          'transaction-2-journal_entry': 1,
+                                          'transaction-2-account': self.expense_account.id,
+                                          'transaction-2-debit': 18,
+                                          'submit': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        entry = JournalEntry.objects.all()[0]
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 3)
+        self.assertEqual(entry.date, datetime.date(2011, 5, 1))
+        self.assertEqual(entry.memo, 'new memo!')
+        self.assertEqual(Account.objects.get(name='asset').balance, 10)
+        self.assertEqual(Account.objects.get(name='expense').balance, -10)
 
     def test_add_journal_entry_view_post_fail(self):
         '''
@@ -2031,10 +2179,10 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR',
                                                                                      'journal_id': 1}),
                                     data={'entry-account': new_bank_account.id,
-                                          'entry-date': '2013-03-12',
-                                          'entry-payor': 'test payor',
-                                          'entry-amount': 15,
-                                          'entry-memo': 'test memo',
+                                          'entry-date': '4/20/1999',
+                                          'entry-payor': 'new payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'new memo',
                                           'transaction-TOTAL_FORMS': 20,
                                           'transaction-INITIAL_FORMS': 1,
                                           'transaction-MAX_NUM_FORMS': '',
@@ -2043,18 +2191,29 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
                                           'transaction-0-account': new_expense_account.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-bankreceive_entry': 1,
+                                          'transaction-1-detail': 'test detail 2',
+                                          'transaction-1-amount': 5,
+                                          'transaction-1-account': self.expense_account.id,
                                           'submit': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CR', 'journal_id': 1}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 3)
+        entry = BankReceivingEntry.objects.all()[0]
+        self.assertEqual(entry.date, datetime.date(1999, 4, 20))
+        self.assertEqual(entry.memo, 'new memo')
+        self.assertEqual(entry.payor, 'new payor')
+        self.assertEqual(entry.main_transaction.balance_delta, -20)
         bank_account = Account.objects.get(name='bank')
         expense_account = Account.objects.get(name='expense')
         new_bank_account = Account.objects.get(name='2nd bank')
         new_expense_account = Account.objects.get(name='2nd expense')
         self.assertEqual(bank_account.balance, 0)
-        self.assertEqual(expense_account.balance, 0)
-        self.assertEqual(new_bank_account.balance, -15)
+        self.assertEqual(expense_account.balance, 5)
+        self.assertEqual(new_bank_account.balance, -20)
         self.assertEqual(new_expense_account.balance, 15)
         self.assertEqual(new_bank_account, Transaction.objects.all()[0].account)
         self.assertEqual(new_expense_account, Transaction.objects.all()[1].account)
@@ -2290,31 +2449,42 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD',
                                                                                      'journal_id': 1}),
                                     data={'entry-account': new_bank_account.id,
-                                          'entry-date': '2013-03-12',
-                                          'entry-ach_payment': True,
-                                          'entry-payee': 'test payee',
-                                          'entry-amount': 15,
-                                          'entry-memo': 'test memo',
+                                          'entry-date': '12/12/12',
+                                          'entry-check_number': 2177,
+                                          'entry-payee': 'new payee',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'new memo',
                                           'transaction-TOTAL_FORMS': 20,
                                           'transaction-INITIAL_FORMS': 1,
                                           'transaction-MAX_NUM_FORMS': '',
                                           'transaction-0-id': 2,
-                                          'transaction-0-bankreceive_entry': 1,
+                                          'transaction-0-bankspend_entry': 1,
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
                                           'transaction-0-account': new_expense_account.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-bankspend_entry': 1,
+                                          'transaction-1-detail': 'test detail 2',
+                                          'transaction-1-amount': 5,
+                                          'transaction-1-account': self.expense_account.id,
                                           'submit': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CD', 'journal_id': 1}))
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 3)
+        entry = BankSpendingEntry.objects.all()[0]
+        self.assertEqual(entry.date, datetime.date(2012, 12, 12))
+        self.assertEqual(entry.memo, 'new memo')
+        self.assertEqual(entry.payee, 'new payee')
+        self.assertEqual(entry.main_transaction.balance_delta, 20)
         bank_account = Account.objects.get(name='bank')
         expense_account = Account.objects.get(name='expense')
         new_bank_account = Account.objects.get(name='2nd bank')
         new_expense_account = Account.objects.get(name='2nd expense')
         self.assertEqual(bank_account.balance, 0)
-        self.assertEqual(expense_account.balance, 0)
-        self.assertEqual(new_bank_account.balance, 15)
+        self.assertEqual(expense_account.balance, -5)
+        self.assertEqual(new_bank_account.balance, 20)
         self.assertEqual(new_expense_account.balance, -15)
         self.assertEqual(new_bank_account, Transaction.objects.all()[0].account)
         self.assertEqual(new_expense_account, Transaction.objects.all()[1].account)
