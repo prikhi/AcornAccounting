@@ -48,11 +48,6 @@ class BaseAccountModel(CachingMixin, MPTTModel):
     class MPTTMeta:
         order_insertion_by = ['name']
 
-    def account_number(self):
-        siblings = self.get_siblings(include_self=True).order_by('name')
-        number = list(siblings).index(self) + 1
-        return number
-
     def flip_balance(self):
         if self.type in (self.ASSET, self.EXPENSE, self.COST_OF_SALES, self.OTHER_EXPENSE):
             return True
@@ -79,14 +74,18 @@ class Header(BaseAccountModel):
     def get_absolute_url(self):
         return reverse('accounts.views.show_accounts_chart', args=[str(self.slug)])
 
+    def account_number(self):
+        tree = self.get_root().get_descendants()
+        number = list(tree).index(self) + 1
+        return number
+
     def get_full_number(self):
-        """Traverses parent Headers to generate a full account number"""
+        """Use type and tree position to generate full account number"""
         full_number = ""
         if self.parent:
-            ancestors = self.parent.get_ancestors(include_self=True)
-            for ancestor in ancestors:
-                full_number += "{0:02d}".format(ancestor.account_number())
-        full_number += "{0:02d}".format(self.account_number())
+            full_number = "{0}-{1:02d}00".format(self.type, self.account_number())
+        else:
+            full_number = "{0}-0000".format(self.type)
         return full_number
     get_full_number.short_description = "Number"
 
@@ -129,13 +128,14 @@ class Account(BaseAccountModel):
     def get_absolute_url(self):
         return reverse('accounts.views.show_account_detail', args=[str(self.slug)])
 
+    def account_number(self):
+        siblings = self.get_siblings(include_self=True).order_by('name')
+        number = list(siblings).index(self) + 1
+        return number
+
     def get_full_number(self):
-        """Traverses parent Headers to generate a full account number"""
-        full_number = ""
-        ancestors = self.parent.get_ancestors(include_self=True)
-        for ancestor in ancestors:
-            full_number += "{0:02d}".format(ancestor.account_number())
-        full_number += "-{0:02d}".format(self.account_number())
+        """Use parent Header and sibling position to generate full account number"""
+        full_number = self.parent.get_full_number()[:-2] + "{0:02d}".format(self.account_number())
         return full_number
     get_full_number.short_description = "Number"
 

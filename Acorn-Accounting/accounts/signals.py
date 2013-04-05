@@ -2,7 +2,7 @@ from django.db.models import F
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
-from .models import Header, Account, Transaction, BankSpendingEntry
+from .models import Header, Account, Transaction
 
 
 @receiver(pre_save, sender=Header)

@@ -149,6 +149,36 @@ class HeaderModelTests(TestCase):
         head = Header(name='initial', slug='initial', type=None)
         self.assertRaisesMessage(IntegrityError, 'accounts_header.type may not be NULL', head.save)
 
+    def test_root_node_get_number(self):
+        '''
+        Tests that a root Header number is it's type
+        '''
+        asset = Header.objects.create(name='asset', slug='asset', type=1)
+        liability = Header.objects.create(name='liability', slug='liability', type=2)
+        self.assertEqual(Header.objects.all()[0].get_full_number(), '{0}-0000'.format(asset.type))
+        self.assertEqual(Header.objects.all()[1].get_full_number(), '{0}-0000'.format(liability.type))
+
+    def test_child_node_get_number(self):
+        '''
+        Tests that child Headers are numbered by type and alphabetical tree position
+        '''
+        asset = Header.objects.create(name='asset', slug='asset', type=1)
+        asset_child = Header.objects.create(name='I will be second alphabetically', slug='asset-child', parent=asset)
+        self.assertEqual(Header.objects.get(id=asset.id).get_full_number(), '{0}-0000'.format(asset.type))
+        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0100'.format(asset_child.type))
+        asset_child2 = Header.objects.create(name='And I will be first alphabetically', slug='asset-child-2', parent=asset)
+        self.assertEqual(Header.objects.get(id=asset_child2.id).get_full_number(), '{0}-0100'.format(asset_child2.type))
+        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0200'.format(asset_child.type))
+        asset_child2_child = Header.objects.create(name='I will steal spot 2 since I am a child of spot 1', slug='asset-child-2-child', parent=asset_child2)
+        self.assertEqual(Header.objects.get(id=asset_child2.id).get_full_number(), '{0}-0100'.format(asset_child2.type))
+        self.assertEqual(Header.objects.get(id=asset_child2_child.id).get_full_number(), '{0}-0200'.format(asset_child2.type))
+        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0300'.format(asset_child.type))
+
+        liability = create_header('I am not in the asset tree!', None)
+        liability_child = create_header('me too', liability)
+        self.assertEqual(Header.objects.get(id=liability.id).get_full_number(), '{0}-0000'.format(liability.type))
+        self.assertEqual(Header.objects.get(id=liability_child.id).get_full_number(), '{0}-0100'.format(liability_child.type))
+
 
 class AccountModelTests(TestCase):
     def test_presave_signal_inherit_type(self):
@@ -162,6 +192,21 @@ class AccountModelTests(TestCase):
         gchild_acc = Account.objects.create(name='gChild', parent=gchild_head, balance=0, slug='gchild')
         self.assertEqual(child_acc.type, top_head.type)
         self.assertEqual(gchild_acc.type, top_head.type)
+
+    def test_account_get_number(self):
+        '''
+        Tests that Accounts are numbered according to parent number and alphabetical
+        position in siblings list.
+        '''
+        top_head = create_header('Initial')
+        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
+        gchild_head = Header.objects.create(name='gChild', parent=child_head, slug='gchild')
+        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
+        gchild_acc = Account.objects.create(name='gChild', parent=gchild_head, balance=0, slug='gchild')
+        self.assertEqual(child_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(child_acc.type, child_acc.parent.account_number(),
+                                                                                  child_acc.account_number()))
+        self.assertEqual(gchild_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(gchild_acc.type, gchild_acc.parent.account_number(),
+                                                                                  gchild_acc.account_number()))
 
 
 class BankSpendingEntryModelTests(TestCase):
