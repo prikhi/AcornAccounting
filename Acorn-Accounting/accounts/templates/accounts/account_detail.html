@@ -5,7 +5,10 @@
 {% block title %}{{ account.name|capwords }} Details{% endblock %}
 
 {% block content %}
-<form action="." method="GET">
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
+
+<form data-validate="parsley" action="." method="GET">
     <table>
         {{ form.as_table }}
         <tr><th></th><td><input type="submit" value="Submit" ></td></tr>

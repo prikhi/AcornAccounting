@@ -7,7 +7,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
 from django.utils import timezone
 
-from .accounting import process_date_range_form
+from .accounting import american_today, process_date_range_form
 from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm,             \
                    BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet,  \
                    AccountReconcileForm, ReconcileTransactionFormSet
@@ -125,7 +125,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
         entry.date = datetime.date.today
 
     if request.method == 'POST':
-        if 'submit' in request.POST and (request.POST['submit'] == 'Submit' or request.POST['submit'] == 'Submit & Add More'):
+        if 'subbtn' in request.POST and (request.POST['subbtn'] == 'Submit' or request.POST['subbtn'] == 'Submit & Add More'):
             entry_form = JournalEntryForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = TransactionFormSet(request.POST, prefix='transaction', instance=entry)
             if entry_form.is_valid():
@@ -144,11 +144,11 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                                 form.instance.bankreceive_entry = entry
                             form.instance.balance_delta = form.cleaned_data['balance_delta']
                             form.instance.save()
-                    if request.POST['submit'] == 'Submit & Add More':
+                    if request.POST['subbtn'] == 'Submit & Add More':
                         return HttpResponseRedirect(reverse('accounts.views.add_journal_entry'))
                     return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
                                                         kwargs={'journal_id': entry.id}))
-        elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
+        elif 'delete' in request.POST and request.POST['delete'] == 'Delete':
             if entry.pk:
                 entry.delete()
                 return HttpResponseRedirect(reverse('accounts.views.journal_ledger'))
@@ -159,6 +159,10 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transaction_formset = TransactionFormSet(prefix='transaction', instance=entry)
+        if entry_form.instance.pk:
+            entry_form.initial['date'] = entry_form.instance.date.strftime('%m/%d/%Y')
+        else:
+            entry_form.initial['date'] = american_today()
         for form in transaction_formset.forms:
             if form.instance.pk:
                 if form.instance.balance_delta > 0:
@@ -188,7 +192,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry = entry_type()
         entry.date = datetime.date.today
     if request.method == 'POST':
-        if 'submit' in request.POST and (request.POST['submit'] == 'Submit' or request.POST['submit'] == 'Submit & Add More'):
+        if 'subbtn' in request.POST and (request.POST['subbtn'] == 'Submit' or request.POST['subbtn'] == 'Submit & Add More'):
             entry_form = EntryTypeForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = InlineFormSet(request.POST, prefix='transaction', instance=entry)
             if entry_form.is_valid():
@@ -214,13 +218,13 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
                                 form.instance.bankreceive_entry = entry
                                 form.instance.balance_delta = form.cleaned_data['balance_delta']
                             form.instance.save()
-                    if request.POST['submit'] == 'Submit & Add More':
+                    if request.POST['subbtn'] == 'Submit & Add More':
                         return HttpResponseRedirect(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': journal_type})
                                                     + '?bank_account={0}'.format(entry.main_transaction.account.id))
                     return HttpResponseRedirect(reverse('accounts.views.show_bank_entry',
                                                         kwargs={'journal_id': entry.id,
                                                                 'journal_type': journal_type}))
-        elif 'submit' in request.POST and request.POST['submit'] == 'Delete':
+        elif 'delete' in request.POST and request.POST['delete'] == 'Delete':
             if entry.pk:
                 bank_account = entry.main_transaction.account
                 entry.main_transaction.delete()
@@ -235,13 +239,16 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
         transaction_formset = InlineFormSet(prefix='transaction', instance=entry)
         if entry.pk:
+            entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
             entry_form.initial['account'] = entry.main_transaction.account
             entry_form.initial['amount'] = abs(entry.main_transaction.balance_delta)
             for form in transaction_formset.forms:
                 if not form.empty_permitted:
                     form.initial['amount'] = abs(form.instance.balance_delta)
-        elif 'bank_account' in request.GET:
-            entry_form.initial['account'] = request.GET['bank_account']
+        else:
+            entry_form.initial['date'] = american_today()
+            if 'bank_account' in request.GET:
+                entry_form.initial['account'] = request.GET['bank_account']
     return render_to_response(template_name,
                               {'entry_form': entry_form,
                                'journal_type': journal_type,
@@ -275,6 +282,10 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transfer_formset = TransferFormSet(prefix='transfer')
+        if entry.pk:
+            entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
+        else:
+            entry_form.initial['date'] = american_today()
     return render_to_response(template_name,
                               {'entry_form': entry_form,
                                'transaction_formset': transfer_formset},
@@ -323,7 +334,7 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
         else:
             raise Http404
     else:
-        account_form = AccountReconcileForm(prefix='account', instance=account)
+        account_form = AccountReconcileForm(prefix='account', instance=account, initial={'statement_date': american_today()})
         reconciled_balance = reconciled_balance * (-1 if account.flip_balance() else 1)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))

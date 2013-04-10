@@ -1,4 +1,3 @@
-import datetime
 from decimal import Decimal
 
 from django import forms
@@ -9,20 +8,16 @@ from parsley.decorators import parsleyfy
 from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry
 
 
-def first_of_month():
-    today = datetime.date.today()
-    return datetime.date(today.year, today.month, 1).strftime('%m/%d/%Y')
-
-
 class RequiredInlineFormSet(forms.models.BaseFormSet):
     def __init__(self, *args, **kwargs):
         super(RequiredInlineFormSet, self).__init__(*args, **kwargs)
         self.forms[0].empty_permitted = False
 
 
+@parsleyfy
 class DateRangeForm(forms.Form):
-    startdate = forms.DateField(label="Start Date", initial=first_of_month)
-    stopdate = forms.DateField(label="Stop Date", initial=datetime.date.today().strftime('%m/%d/%Y'))
+    startdate = forms.DateField(label="Start Date")
+    stopdate = forms.DateField(label="Stop Date")
 
 
 class QuickAccountForm(forms.Form):
@@ -41,6 +36,7 @@ class QuickBankForm(forms.Form):
 class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
 
 
 @parsleyfy
@@ -137,6 +133,7 @@ class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
         fields = ('account', 'date', 'check_number', 'ach_payment', 'payee', 'amount', 'memo',)
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
 
 
 @parsleyfy
@@ -144,6 +141,7 @@ class BankReceivingForm(BaseBankForm):
     class Meta:
         model = BankReceivingEntry
         fields = ('account', 'date', 'payor', 'amount', 'memo',)
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
 
     def clean_amount(self):
         '''Should be negative(debit) for receiving money'''
@@ -197,7 +195,7 @@ BankReceivingTransactionFormSet = inlineformset_factory(BankReceivingEntry, Tran
 
 @parsleyfy
 class AccountReconcileForm(forms.ModelForm):
-    statement_date = forms.DateField()
+    statement_date = forms.DateField(widget=forms.DateInput(attrs={'data-americandate': True}))
     statement_balance = forms.DecimalField()
 
     class Meta:

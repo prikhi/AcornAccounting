@@ -9,6 +9,7 @@
 {% block content %}
 <script type="text/javascript" src="/static/jquery.formset.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 <script type="text/javascript">
     /* Add extra Transaction rows using jQuery-Formsets */ 
     $(function() {
@@ -105,15 +106,18 @@
     </tfoot>
 </table>
 <br />
-<input type="submit" name="submit" value="Submit" />
-<input type="submit" name="submit" value="Submit & Add More" />
-{% if entry_form.instance.pk %}
+<input type="submit" name="subbtn" value="Submit" />
+<input type="submit" name="subbtn" value="Submit & Add More" />
 
-<input class="delete" type="submit" name="submit" value="Delete" /">
+{% if entry_form.instance.pk %}
+<input type="hidden" name="delete" id="delete" />
+<input class="delete" type="submit" name="delbtn" value="Delete" id="delbtn" />
 {% endif %}
+
 <br />
 </div>
 </form>
+
 {% if journal_type == 'GJ' %}
     <script type="text/javascript">
     /* Update Total and Out of Balance amounts on input change or delete */
@@ -273,29 +277,29 @@
 <script type="text/javascript">
 /* Delete button confirmation using jquery-ui */
     var currentForm;
-    $(function() {
-        $("#dialog-confirm").dialog({
-            resizable: false,
-            width: 350,
-            modal: true,
-            autoOpen: false,
-            closeOnEscape: true,
-            buttons: {
-                'Delete': function() {
-                    $(this).dialog('close');
-                    currentForm.submit();
-                },
-                'Cancel': function() {
-                    $(this).dialog('close');
-                }
+    $("#dialog-confirm").dialog({
+        resizable: false,
+        width: 350,
+        modal: true,
+        autoOpen: false,
+        closeOnEscape: true,
+        buttons: {
+            'Delete': function() {
+                document.getElementById('delete').value = 'Delete';
+                currentForm.submit();
+            },
+            'Cancel': function() {
+                $(this).dialog('close');
+                return false;
             }
-        });
-        $(".delete").click(function() {
-          currentForm = $(this).closest('form');
-          $("#dialog-confirm").dialog('open');
-          return false;
-        });
+        }
     });
+    $(".delete").click(function() {
+      currentForm = $('#entry_form');
+      $("#dialog-confirm").dialog('open');
+      return false;
+    });
+
 </script>
  {% endif %}
 {% endblock %}

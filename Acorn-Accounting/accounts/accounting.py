@@ -1,9 +1,18 @@
 '''
-    General Functions for Accounting App
+General Functions for Accounting App
 '''
 import datetime
 
 from .forms import DateRangeForm, QuickAccountForm, QuickBankForm
+
+
+def american_today():
+    return datetime.date.today().strftime('%m/%d/%Y')
+
+
+def first_of_month():
+    today = datetime.date.today()
+    return datetime.date(today.year, today.month, 1).strftime('%m/%d/%Y')
 
 
 def process_quick_account_form(GET):
@@ -37,7 +46,8 @@ def process_date_range_form(request):
     Returns a date range form, startdate and stopdate based on the request GET.
     Defaults to using beginning of this month to today.
     '''
-    form = DateRangeForm()
+    form = DateRangeForm(initial={'startdate': first_of_month(),
+                                  'stopdate': american_today()})
     stopdate = datetime.date.today()
     startdate = datetime.date(stopdate.year, stopdate.month, 1)
     if 'startdate' in request.GET and 'stopdate' in request.GET:

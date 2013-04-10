@@ -1417,7 +1417,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
                                                kwargs={'journal_id': 1}))
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1445,7 +1445,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
         self.assertFormError(response, 'entry_form', 'date', 'This field is required.')
@@ -1477,7 +1477,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-detail': 'test detail',
                                           'transaction-1-debit': 15,
                                           'transaction-1-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
@@ -1511,7 +1511,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-detail': '',
                                           'transaction-1-debit': '',
                                           'transaction-1-account': '',
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
@@ -1543,7 +1543,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
-                                          'submit': 'Submit & Add More'})
+                                          'subbtn': 'Submit & Add More'})
         self.assertRedirects(response, reverse('accounts.views.add_journal_entry'))
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
@@ -1567,7 +1567,7 @@ class JournalEntryViewTests(TestCase):
 
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                             kwargs={'journal_id': entry.id}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
 
         self.assertRedirects(response, reverse('accounts.views.journal_ledger'))
         self.assertEqual(JournalEntry.objects.count(), 0)
@@ -1583,7 +1583,7 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(JournalEntry.objects.count(), 0)
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                             kwargs={'journal_id': 9001}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
         self.assertEqual(response.status_code, 404)
 
     def test_add_journal_entry_view_edit(self):
@@ -1634,7 +1634,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 5,
                                           'transaction-1-detail': 'credit',
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1669,7 +1669,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-debit': 8,
                                           'transaction-1-detail': 'credit',
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1704,7 +1704,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 8,
                                           'transaction-1-detail': 'credit',
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1743,7 +1743,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-2-journal_entry': 1,
                                           'transaction-2-account': self.asset_account.id,
                                           'transaction-2-credit': 3,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1782,7 +1782,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-2-journal_entry': 1,
                                           'transaction-2-account': self.expense_account.id,
                                           'transaction-2-debit': 18,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1873,7 +1873,7 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-0-source': 1,
                                           'transfer-0-destination': 2,
                                           'transfer-0-amount': 15,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': 1}))
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(JournalEntry.objects.count(), 1)
@@ -1896,7 +1896,7 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-0-source': 1,
                                           'transfer-0-destination': 2,
                                           'transfer-0-amount': 15,
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'entry_form', 'date', 'This field is required.')
         self.assertFormError(response, 'entry_form', 'memo', 'This field is required.')
@@ -1922,7 +1922,7 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-0-source': '1',
                                           'transfer-0-destination': '',
                                           'transfer-0-amount': '',
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['transaction_formset'].forms[0].errors['amount'], ['This field is required.'])
         self.assertEqual(response.context['transaction_formset'].forms[0].errors['destination'], ['This field is required.'])
@@ -1949,7 +1949,7 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-0-source': '',
                                           'transfer-0-destination': '',
                                           'transfer-0-amount': '',
-                                          'submit': 'Submit'})
+                                          'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['transaction_formset'].forms[0].errors['amount'],
                          ['This field is required.'])
@@ -2007,7 +2007,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
@@ -2036,7 +2036,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
@@ -2064,7 +2064,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 18,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
@@ -2094,7 +2094,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit & Add More',
+                                          'subbtn': 'Submit & Add More',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}) + '?bank_account={0}'.format(self.bank_account.id))
@@ -2121,7 +2121,7 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry',
                                             kwargs={'journal_id': entry.id,
                                                     'journal_type': 'CR'}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
 
         self.assertRedirects(response, reverse('accounts.views.bank_register',
                                                kwargs={'account_slug': self.bank_account.slug}))
@@ -2139,7 +2139,7 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry',
                                             kwargs={'journal_id': 9001,
                                                     'journal_type': 'CR'}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
         self.assertEqual(response.status_code, 404)
 
     def test_bank_receiving_add_view_edit(self):
@@ -2196,7 +2196,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-1-detail': 'test detail 2',
                                           'transaction-1-amount': 5,
                                           'transaction-1-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CR', 'journal_id': 1}))
@@ -2276,7 +2276,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
@@ -2304,7 +2304,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['entry_form'].is_valid())
@@ -2333,7 +2333,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 18,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertEqual(response.status_code, 200)
         self.failIf(response.context['transaction_formset'].is_valid())
@@ -2364,7 +2364,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 20,
                                           'transaction-0-account': self.expense_account.id,
-                                          'submit': 'Submit & Add More',
+                                          'subbtn': 'Submit & Add More',
                                           })
 
         self.assertRedirects(response, reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}) + '?bank_account={0}'.format(self.bank_account.id))
@@ -2391,7 +2391,7 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry',
                                             kwargs={'journal_id': entry.id,
                                                     'journal_type': 'CD'}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
 
         self.assertRedirects(response, reverse('accounts.views.bank_register',
                                                kwargs={'account_slug': self.bank_account.slug}))
@@ -2409,7 +2409,7 @@ class BankEntryViewTests(TestCase):
         response = self.client.post(reverse('accounts.views.add_bank_entry',
                                             kwargs={'journal_id': 9001,
                                                     'journal_type': 'CD'}),
-                                    data={'submit': 'Delete'})
+                                    data={'delete': 'Delete'})
         self.assertEqual(response.status_code, 404)
 
     def test_bank_spending_add_view_edit(self):
@@ -2467,7 +2467,7 @@ class BankEntryViewTests(TestCase):
                                           'transaction-1-detail': 'test detail 2',
                                           'transaction-1-amount': 5,
                                           'transaction-1-account': self.expense_account.id,
-                                          'submit': 'Submit',
+                                          'subbtn': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
                                                kwargs={'journal_type': 'CD', 'journal_id': 1}))

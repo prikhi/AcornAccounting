@@ -5,9 +5,12 @@
 {% block title %}{{ account.name|capwords }} Register{% endblock %}
 
 {% block content %}
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
+
 <h2>{{ account.name|capwords }} - Register</h2>
 <h3>{{ startdate }} - {{ stopdate }}</h3>
-<form action="." method="GET">
+<form data-validate="parsley" action="." method="GET">
     <table>
         {{ form.as_table }}
         <tr><th></th><td><input type="submit" value="Submit" ></td></tr>

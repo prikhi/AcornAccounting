@@ -6,23 +6,27 @@
 
 {% block content %}
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
-
+<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 <h1>Reconcile {{ account }}</h1>
 
 <form data-validate="parsley" action="." method="POST" id="reconcile_form">
 {% csrf_token %}
 <table id="account">
     {{ account_form }}
-    <tr><th>Last Reconciled:</th><th>{{ last_reconciled|date:"m/d/Y" }}</th></tr>
-    <tr><th>Reconciled Balance:</th><th>{{ reconciled_balance|currency }}</th></tr>
-    <tr><th><input type="submit" name="submit" value="Get Transactions" /></th><th></th></tr>
+    <tr><th>Last Reconciled:</th><td>{{ last_reconciled|date:"m/d/Y" }}</td></tr>
+    <tr><th>Reconciled Balance:</th><td>{{ reconciled_balance|currency }}</td></tr>
+    <tr><th><input type="submit" name="submit" value="Get Transactions" /></th><td></td></tr>
 </table>
 
 {% if transaction_formset %}
 {{ transaction_formset.management_form }}
+
+<ul class="errorlist">
 {% for error in transaction_formset.non_form_errors %}
     <li>{{ error }}</li>
 {% endfor %}
+</ul>
+
 <table id="accounts_chart">
     <thead>
         <tr>
@@ -37,7 +41,7 @@
     </thead>
     <tbody>
         {% for form in transaction_formset %}
-        <tr>
+        <tr class="{% cycle 'main' 'alt' %}">
             {% for hidden in form.hidden_fields %}
                 {{ hidden }}
             {% endfor %}
@@ -46,20 +50,109 @@
             <td>{{ form.instance.get_entry_number }}</td>
             <td>{{ form.instance.get_memo }}</td>
             {% if form.instance.balance_delta < 0 %}
-            <td class="right">{{ form.instance.balance_delta|currency }}</td>
-            <td class="right"></td>
+            <td class="right debit">{{ form.instance.balance_delta|currency }}</td>
+            <td class="right credit"></td>
             {% else %}
-            <td class="right"></td>
-            <td class="right">{{ form.instance.balance_delta|currency }}</td>
+            <td class="right debit"></td>
+            <td class="right credit">{{ form.instance.balance_delta|currency }}</td>
             {% endif %}
             <td class="right">{{ form.instance.event|default_if_none:"" }}</td>
         </tr>
         {% endfor %}
     </tbody>
+    <tfoot>
+        <tr><td>&nbsp;</td></tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="right">Total:</td>
+            <td id="debit_total" class="right"></td>
+            <td id="credit_total" class="right"></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="right">Net Change:</td>
+            <td id="net_change" class="right">$0.00</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="right">Out of Balance:</td>
+            <td id="out_of_balance" class="right">$0.00</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tfoot>
 </table>
 <br />
 <input type="submit" name="submit" value="Reconcile Transactions" />
 {% endif %}
 </form>
 
+{% if transaction_formset %}
+<script type="text/javascript">
+    /* Recalculate credit/debit totals and net change on checkbox change */
+    $(document).ready( function() {
+            $('#reconcile_form input:checkbox').change(function() {recalcCounters()});
+            $('#id_account-statement_balance').keyup(function() {recalcCounters()});
+            recalcCounters();
+        }
+    );
+    var recalcCounters = function () {
+        var credit_sum = 0;
+        $(".credit").each( function(){
+            if($(this).closest('tr').find('input:checkbox').is(':checked') == true) {
+                var trimmed = $(this).html().replace('$', '').replace(',', '');
+                if(!isNaN(trimmed) && trimmed.length != 0) {
+                    credit_sum += parseFloat(trimmed);
+                }
+            }
+        });
+        if (isNaN(credit_sum)) {credit_sum = 0}
+        $('#credit_total').text('$' + credit_sum.toFixed(2));
+
+        var debit_sum = 0;
+        $(".debit").each( function(){
+            if( $(this).closest('tr').find('input:checkbox').is(':checked') == true) {
+                var trimmed = $(this).html().replace('($', '').replace(')', '').replace(',', '');
+                if(!isNaN(trimmed) && trimmed.length != 0) {
+                    debit_sum += parseFloat(trimmed);
+                }
+            }
+        });
+        $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
+
+        var net_change = credit_sum - debit_sum;
+        if(net_change < 0) {
+            $('#net_change').text('($' + (debit_sum - credit_sum).toFixed(2) + ')');
+        } else if (net_change > 0) {
+            $('#net_change').text('$' + (credit_sum - debit_sum).toFixed(2));
+        } else {
+            $('#net_change').text('$0.00');
+        }
+
+        var statement_balance = $('#id_account-statement_balance').val();
+
+        if(!isNaN(statement_balance) && statement_balance.length != 0) {
+            if ( {{ account.flip_balance|lower }} ) {
+                statement_balance = -1 * parseFloat(statement_balance);
+            }
+            if(net_change > statement_balance) {
+                $('#out_of_balance').text('($' + (net_change - statement_balance).toFixed(2) + ')');
+            } else if (statement_balance > net_change) {
+                $('#out_of_balance').text('$' + (statement_balance - net_change).toFixed(2));
+            } else {
+                $('#out_of_balance').text('$0.00');
+            }
+        }
+    }
+</script>
+{% endif %}
 {% endblock %}
