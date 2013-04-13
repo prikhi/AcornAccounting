@@ -5,7 +5,7 @@ from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory, modelformset_factory, BaseModelFormSet
 from parsley.decorators import parsleyfy
 
-from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry
+from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry, Event
 
 
 class RequiredInlineFormSet(forms.models.BaseFormSet):
@@ -32,6 +32,12 @@ class QuickBankForm(forms.Form):
                                      label='', empty_label='Jump to a Register')
 
 
+class QuickEventForm(forms.Form):
+    event = forms.ModelChoiceField(queryset=Event.objects.all(),
+                                     widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
+                                     label='', empty_label='Jump to an Event')
+
+
 @parsleyfy
 class JournalEntryForm(forms.ModelForm):
     class Meta:
@@ -51,7 +57,6 @@ class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
-        widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4})}
 
     def clean(self):
         '''Make sure only a credit or debit is entered'''
@@ -158,8 +163,7 @@ class BankTransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'amount', 'event',)
-        widgets = {'event': forms.TextInput(attrs={'size': 4, 'maxlength': 4}),
-                   'account': forms.Select(attrs={'class': 'account'})}
+        widgets = {'account': forms.Select(attrs={'class': 'account'})}
 
     def clean(self):
         super(BankTransactionForm, self).clean()

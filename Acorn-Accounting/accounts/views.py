@@ -11,7 +11,8 @@ from .accounting import american_today, process_date_range_form
 from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm,             \
                    BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet,  \
                    AccountReconcileForm, ReconcileTransactionFormSet
-from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
+from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction,  \
+                    Event
 
 
 def quick_account_search(request):
@@ -28,6 +29,15 @@ def quick_bank_search(request):
     if 'bank' in request.GET:
         account = get_object_or_404(Account, pk=request.GET['bank'], bank=True)
         return HttpResponseRedirect(reverse('bank_register', kwargs={'account_slug': account.slug}))
+    else:
+        raise Http404
+
+
+def quick_event_search(request):
+    '''Processes search for events'''
+    if 'event' in request.GET:
+        event = get_object_or_404(Event, pk=request.GET['event'])
+        return HttpResponseRedirect(reverse('show_event_detail', kwargs={'event_id': event.id}))
     else:
         raise Http404
 
@@ -66,6 +76,12 @@ def show_account_detail(request, account_slug,
             else:
                 endbalance += transaction.balance_delta
             transaction.final_balance = endbalance
+    return render_to_response(template_name, locals(),
+                              context_instance=RequestContext(request))
+
+
+def show_event_detail(request, event_id, template_name="accounts/event_detail.html"):
+    event = get_object_or_404(Event, id=event_id)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 

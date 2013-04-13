@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from caching.base import CachingManager, CachingMixin
+from django.contrib.localflavor.us.models import USStateField
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -254,7 +255,7 @@ class Transaction(CachingMixin, models.Model):
     detail = models.CharField(max_length=50, help_text="Short description", blank=True)
     balance_delta = models.DecimalField(help_text="Positive balance is a credit, negative is a debit",
                                         max_digits=19, decimal_places=4)
-    event = models.PositiveIntegerField(blank=True, null=True)
+    event = models.ForeignKey('Event', blank=True, null=True)
     reconciled = models.BooleanField(default=False)
 
     objects = CachingManager()
@@ -314,3 +315,24 @@ class Transaction(CachingMixin, models.Model):
 
     def get_memo(self):
         return self.get_journal_entry().memo
+
+
+class Event(models.Model):
+    '''
+    Hold information about Events
+    '''
+    name = models.CharField(max_length=150)
+    number = models.PositiveIntegerField()
+    date = models.DateField()
+    city = models.CharField(max_length=50)
+    state = USStateField()
+
+    class Meta:
+        ordering = ['date']
+
+    def __unicode__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse('accounts.views.show_event_detail',
+                       kwargs={'event_id': self.id})

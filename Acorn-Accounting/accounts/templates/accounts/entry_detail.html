@@ -32,7 +32,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{
             <td class="right"></td>
             <td class="right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
-        <td class="right">{{ transaction.event|default_if_none:"" }}</td>
+        <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
     </tr>
 {% endfor %}
     </tbody>

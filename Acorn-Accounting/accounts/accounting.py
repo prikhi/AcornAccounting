@@ -3,7 +3,7 @@ General Functions for Accounting App
 '''
 import datetime
 
-from .forms import DateRangeForm, QuickAccountForm, QuickBankForm
+from .forms import DateRangeForm, QuickAccountForm, QuickBankForm, QuickEventForm
 
 
 def american_today():
@@ -39,6 +39,19 @@ def process_quick_bank_form(GET):
         if form.is_valid():
             account_id = form.cleaned_data['bank']
     return form, account_id
+
+
+def process_quick_event_form(GET):
+    '''
+    Returns a quick event dropdown select form and an Event id
+    '''
+    form = QuickEventForm()
+    event_id = None
+    if 'event' in GET:
+        form = QuickBankForm(GET)
+        if form.is_valid():
+            event_id = form.cleaned_data['event']
+    return form, event_id
 
 
 def process_date_range_form(request):

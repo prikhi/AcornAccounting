@@ -55,7 +55,7 @@
                 <td class="right"></td>
                 <td class="right">{{ account_transaction.balance_delta|currency }}</td>
             {% endif %}
-            <td class="right">{{ account_transaction.event|default_if_none:"" }}</td>
+            <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
         </tr>
     {% endfor %}
     </tbody>

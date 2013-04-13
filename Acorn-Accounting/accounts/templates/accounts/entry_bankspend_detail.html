@@ -25,7 +25,7 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{
         <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
         <td>{{ transaction.detail|capwords }}</td>
         <td class="right">{{ transaction.balance_delta|currency }}</td>
-        <td class="right">{{ transaction.event|default_if_none:"" }}</td>
+        <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
     </tr>
 {% endfor %}
     </tbody>

@@ -1,17 +1,17 @@
-
 import datetime
 
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.utils import IntegrityError
 from django.template.defaultfilters import slugify
 from django.test import TestCase
 from django.utils.timezone import utc
 
-from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction
-from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm, \
-                   BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet, \
+from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction,  \
+                    Event
+from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm,            \
+                   BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet,   \
                    DateRangeForm, AccountReconcileForm, ReconcileTransactionFormSet
-from django.core.exceptions import ValidationError
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -425,31 +425,41 @@ class QuickSearchViewTests(TestCase):
         self.liability_header = create_header('liability', cat_type=2)
         self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
         self.liability_account = create_account('liability', self.liability_header, 0, 2)
+        self.event = Event.objects.create(name='test event', number='1', date=datetime.date.today(),
+                                          city='mineral', state='VA')
 
     def test_quick_account_success(self):
         '''
-        A `GET` to the `quick_account_search` view with an `account_id` should
-        redirect to the Account's detail page
+        A `GET` to the `quick_account_search` view with an `account` should
+        redirect to the Account's detail page.
         '''
         response = self.client.get(reverse('accounts.views.quick_account_search'),
                                    data={'account': self.liability_account.id})
 
         self.assertRedirects(response, reverse('accounts.views.show_account_detail', args=[self.liability_account.slug]))
 
-    def test_quick_account_fail(self):
+    def test_quick_account_fail_not_account(self):
         '''
-        A `GET` to the `quick_account_search` view with an `account_id` should
-        return a 404 if the Account does not exist
+        A `GET` to the `quick_account_search` view with an `account` should
+        return a 404 if the Account does not exist.
         '''
         response = self.client.get(reverse('accounts.views.quick_account_search'),
                                    data={'account': 9001})
 
         self.assertEqual(response.status_code, 404)
 
+    def test_quick_account_fail_no_account(self):
+        '''
+        A `GET` to the `quick_account_search` view with no `account` should
+        return a 404.
+        '''
+        response = self.client.get(reverse('accounts.views.quick_account_search'))
+        self.assertEqual(response.status_code, 404)
+
     def test_quick_bank_success(self):
         '''
-        A `GET` to the `quick_bank_search` view with an `account_id` should
-        redirect to the Account's register page
+        A `GET` to the `quick_bank_search` view with a `bank` should
+        redirect to the Account's register page.
         '''
         response = self.client.get(reverse('accounts.views.quick_bank_search'),
                                    data={'bank': self.bank_account.id})
@@ -458,8 +468,8 @@ class QuickSearchViewTests(TestCase):
 
     def test_quick_bank_fail_not_bank(self):
         '''
-        A `GET` to the `quick_bank_search` view with an `account_id` should
-        return a 404 if the Account is not a bank
+        A `GET` to the `quick_bank_search` view with a `bank` should
+        return a 404 if the Account is not a bank.
         '''
         response = self.client.get(reverse('accounts.views.quick_bank_search'),
                                    data={'bank': self.liability_account.id})
@@ -468,12 +478,46 @@ class QuickSearchViewTests(TestCase):
 
     def test_quick_bank_fail_not_account(self):
         '''
-        A `GET` to the `quick_bank_search` view with an `account_id` should
-        return a 404 if the Account does not exist
+        A `GET` to the `quick_bank_search` view with a `bank` should
+        return a 404 if the Account does not exist.
         '''
         response = self.client.get(reverse('accounts.views.quick_bank_search'),
                                    data={'bank': 9001})
 
+        self.assertEqual(response.status_code, 404)
+
+    def test_quick_bank_fail_no_bank(self):
+        '''
+        A `GET` to the `quick_bank_search` view with no `bank` should return
+        a 404.
+        '''
+        response = self.client.get(reverse('accounts.views.quick_bank_search'))
+        self.assertEqual(response.status_code, 404)
+
+    def test_quick_event_success(self):
+        '''
+        A `GET` to the `quick_event_search` view with an `event_id` should
+        redirect to the Event's Detail page.
+        '''
+        response = self.client.get(reverse('accounts.views.quick_event_search'),
+                                   data={'event': self.event.id})
+        self.assertRedirects(response, reverse('accounts.views.show_event_detail', args=[self.event.id]))
+
+    def test_quick_event_fail_not_event(self):
+        '''
+        A `GET` to the `quick_event_search` view with an `event_id` should
+        return a 404 if the Event does not exist.
+        '''
+        response = self.client.get(reverse('accounts.views.quick_event_search'),
+                                   data={'event': 9001})
+        self.assertEqual(response.status_code, 404)
+
+    def test_quick_event_fail_no_event(self):
+        '''
+        A `GET` to the `quick_event_search` view with no `event_id` should return
+        a 404.
+        '''
+        response = self.client.get(reverse('accounts.views.quick_event_search'))
         self.assertEqual(response.status_code, 404)
 
 
@@ -1372,6 +1416,44 @@ class AccountDetailViewTests(TestCase):
         self.assertFormError(response, 'form', 'stopdate', 'Enter a valid date.')
 
 
+class EventDetailViewTests(TestCase):
+    '''
+    Test Event detail view
+    '''
+    def setUp(self):
+        '''
+        Events are tied to Transactions which require an Account.
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.event = Event.objects.create(name='test event', city='mineral', state='VA',
+                                          date=datetime.date.today(), number=420)
+
+    def test_show_event_detail_view_initial(self):
+        '''
+        A `GET` to the `show_event_detail` view with a valid `event_id` will
+        return the respective `Event`.
+        '''
+        general = create_entry(datetime.date.today(), 'general entry')
+        Transaction.objects.create(journal_entry=general, balance_delta=20, account=self.bank_account, event=self.event)
+        Transaction.objects.create(journal_entry=general, balance_delta=20, account=self.bank_account, event=self.event)
+
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': self.event.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/event_detail.html')
+        self.assertEqual(response.context['event'], self.event)
+
+    def test_show_event_detail_view_fail(self):
+        '''
+        A `GET` to the `show_event_detail` view with an invalid `event_id` will
+        return a 404.
+        '''
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': 90000001}))
+        self.assertEqual(response.status_code, 404)
+
+
 class JournalEntryViewTests(TestCase):
     '''
     Test JournalEntry add and detail views
@@ -1384,6 +1466,8 @@ class JournalEntryViewTests(TestCase):
         self.expense_header = create_header('expense', cat_type=6)
         self.asset_account = create_account('asset', self.asset_header, 0, 1)
         self.expense_account = create_account('expense', self.expense_header, 0, 6)
+        self.event = Event.objects.create(name='test event 1', date=datetime.date.today(),
+                                          number='1', city='min', state='VA')
 
     def test_journal_add_view_initial(self):
         '''
@@ -1412,7 +1496,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-journal_entry': '',
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 5,
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': '',
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
@@ -1440,7 +1524,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-journal_entry': '',
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 5,
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': '',
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
@@ -1538,7 +1622,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-journal_entry': '',
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 5,
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': '',
                                           'transaction-1-journal_entry': '',
                                           'transaction-1-account': self.expense_account.id,
@@ -1628,7 +1712,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-debit': 5,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
                                           'transaction-1-account': self.asset_account.id,
@@ -1663,7 +1747,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-credit': 8,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
                                           'transaction-1-account': self.expense_account.id,
@@ -1698,12 +1782,12 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-debit': 8,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-0-event': 12,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 8,
                                           'transaction-1-detail': 'credit',
+                                          'transaction-1-event': self.event.id,
                                           'subbtn': 'Submit'})
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
         entry = JournalEntry.objects.all()[0]
@@ -1713,6 +1797,8 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(entry.memo, 'new memo!')
         self.assertEqual(Account.objects.get(name='asset').balance, 8)
         self.assertEqual(Account.objects.get(name='expense').balance, -8)
+        self.assertEqual(Transaction.objects.get(account=self.expense_account).event, None)
+        self.assertEqual(Transaction.objects.get(account=self.asset_account).event, self.event)
 
     def test_add_journal_entry_view_edit_new_transactions_success(self):
         '''
@@ -1733,7 +1819,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 8,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
                                           'transaction-1-account': self.expense_account.id,
@@ -1772,7 +1858,7 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-credit': 8,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-0-event': 12,
+                                          'transaction-0-event': self.event.id,
                                           'transaction-1-id': 2,
                                           'transaction-1-journal_entry': 1,
                                           'transaction-1-account': self.asset_account.id,
