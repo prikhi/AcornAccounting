@@ -65,6 +65,7 @@ def show_account_detail(request, account_slug,
              (Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
              (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate))
             )
+    debit_total, credit_total, net_change = account.transaction_set.get_totals(query=query, net_change=True)
     transactions = list(account.transaction_set.filter(query))
     transactions.sort(key=lambda x: x.get_date())
     if transactions:        # Calculate final balances with math instead of many db queries
@@ -76,12 +77,15 @@ def show_account_detail(request, account_slug,
             else:
                 endbalance += transaction.balance_delta
             transaction.final_balance = endbalance
+    else:
+        startbalance = endbalance = 0
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
 
 def show_event_detail(request, event_id, template_name="accounts/event_detail.html"):
     event = get_object_or_404(Event, id=event_id)
+    debit_total, credit_total, net_change = event.transaction_set.get_totals(net_change=True)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
@@ -110,6 +114,7 @@ def show_journal_entry(request, journal_id, template_name="accounts/entry_detail
     journal_entry = get_object_or_404(JournalEntry, pk=journal_id)
     updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
     transactions = journal_entry.transaction_set.all()
+    debit_total, credit_total = journal_entry.transaction_set.get_totals()
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 

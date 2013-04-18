@@ -49,6 +49,34 @@
     </tr>
 {% endfor %}
     </tbody>
+    <tfoot>
+    <tr><td colspan="8">&nbsp;</td></tr>
+    <tr>
+        <td class="right" colspan="2">Start Balance:</td>
+        <td>{{ startbalance|currency }}</td>
+        <td class="right">Totals:</td>
+        <td class="right">{{ debit_total|currency }}</td>
+        <td class="right">{{ credit_total|currency }}</td>
+        <td colspan="2"></td>
+    </tr>
+    <tr>
+        <td class="right" colspan="2">End Balance:</td><td>{{ endbalance|currency }}</td><td class="right">Net Change:</td>
+            {% if net_change < 0 %}
+                <td class="right">{{ net_change|currency }}</td>
+                <td class="right"></td>
+            {% else %}
+                {% if net_change > 0 %}
+                    <td class="right"></td>
+                    <td class="right">{{ net_change|currency }}</td>
+                {% else %}
+                    <td class="right">$0.00</td>
+                    <td class="right">$0.00</td>
+                {% endif %}
+            {% endif %}
+        <td></td>
+        <td></td>
+    </tr>
+    </tfoot>
 </table>
 <br /><br />
 

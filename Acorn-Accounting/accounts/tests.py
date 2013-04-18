@@ -1315,6 +1315,9 @@ class AccountDetailViewTests(TestCase):
         A `GET` to the `show_account_detail` view with an `account_slug` should
         return a DateRangeForm, start and stopdate from the 1st of Month to
         Today, an Account and all Transactions within the initial range.
+        The balance counters `startbalance`, `endbalance`, `net_change`,
+        `debit_total` and `credit_total` should also be returned and flipped if
+        neccessary.
         '''
         in_range_date = datetime.date.today()
         out_range_date = datetime.date(in_range_date.year + 20, 1, 1)
@@ -1335,10 +1338,10 @@ class AccountDetailViewTests(TestCase):
         out_general = create_entry(out_range_date, 'oor general entry')
         create_transaction(out_general, self.bank_account, -70)
         out_tran1 = Transaction.objects.create(account=self.bank_account, balance_delta=-20)
-        BankReceivingEntry.objects.create(main_transaction=out_tran1, date=out_range_date2, memo='newer receive entry',
+        BankReceivingEntry.objects.create(main_transaction=out_tran1, date=out_range_date2, memo='older receive entry',
                                          payor='test payor')
         out_tran2 = Transaction.objects.create(account=self.bank_account, balance_delta=50)
-        BankSpendingEntry.objects.create(main_transaction=out_tran2, date=out_range_date, memo='older spend entry',
+        BankSpendingEntry.objects.create(main_transaction=out_tran2, date=out_range_date, memo='newer spend entry',
                                                      ach_payment=True, payee='test payee')
 
         response = self.client.get(reverse('accounts.views.show_account_detail',
@@ -1350,6 +1353,60 @@ class AccountDetailViewTests(TestCase):
         self.assertEqual(response.context['stopdate'], date_range[1])
         self.assertEqual(response.context['account'], self.bank_account)
         self.assertSequenceEqual(response.context['transactions'], [tran_general, banktran_receive, banktran_spend])
+        self.assertEqual(response.context['debit_total'], -120)
+        self.assertEqual(response.context['credit_total'], 50)
+        self.assertEqual(response.context['net_change'], -70)
+        # These value are flipped from expected because account.bank = True
+        self.assertEqual(response.context['startbalance'], 20)
+        self.assertEqual(response.context['endbalance'], 90)
+
+    def test_show_account_detail_view_initial_no_transactions(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug` for an
+        Account with no Transactions should return the correct balance counters
+        `startbalance`, `endbalance`, `net_change`, `debit_total` and
+        `credit_total`.
+        '''
+
+    def test_show_account_detail_view_initial_only_debits(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug` for an
+        Account with only debits should return the correct balance counters
+        `startbalance`, `endbalance`, `net_change`, `debit_total` and
+        `credit_total`.
+        '''
+
+        general = create_entry(datetime.date.today(), 'general entry')
+        create_transaction(general, self.liability_account, -100)
+
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.liability_account.slug}))
+        self.assertEqual(response.context['debit_total'], -100)
+        self.assertEqual(response.context['credit_total'], 0)
+        self.assertEqual(response.context['net_change'], -100)
+        # These value are flipped from expected because account.bank = True
+        self.assertEqual(response.context['startbalance'], 0)
+        self.assertEqual(response.context['endbalance'], -100)
+
+    def test_show_account_detail_view_initial_only_credits(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug` for an
+        Account with only credits should return the correct balance counters
+        `startbalance`, `endbalance`, `net_change`, `debit_total` and
+        `credit_total`.
+        '''
+
+        general = create_entry(datetime.date.today(), 'general entry')
+        create_transaction(general, self.liability_account, 100)
+
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.liability_account.slug}))
+        self.assertEqual(response.context['debit_total'], 0)
+        self.assertEqual(response.context['credit_total'], 100)
+        self.assertEqual(response.context['net_change'], 100)
+        # These value are flipped from expected because account.bank = True
+        self.assertEqual(response.context['startbalance'], 0)
+        self.assertEqual(response.context['endbalance'], 100)
 
     def test_show_account_detail_view_fail(self):
         '''
@@ -1362,9 +1419,9 @@ class AccountDetailViewTests(TestCase):
 
     def test_show_account_detail_view_date_success(self):
         '''
-        A `GET` to the `show_account_detail` view with an `account_slug`, startdate,
-        and stopdate, should retrieve the Account's Transactions from that date
-        period.
+        A `GET` to the `show_account_detail` view with an `account_slug`,
+        startdate, and stopdate, should retrieve the Account's Transactions from
+        that date period along with the respective total/change counters.
         '''
         in_range_date = datetime.date.today()
         out_range_date = datetime.date(in_range_date.year + 20, 1, 1)
@@ -1402,11 +1459,17 @@ class AccountDetailViewTests(TestCase):
         self.assertEqual(response.context['stopdate'], date_range[1])
         self.assertEqual(response.context['account'], self.bank_account)
         self.assertSequenceEqual(response.context['transactions'], [tran_general, banktran_receive, banktran_spend])
+        self.assertEqual(response.context['debit_total'], -120)
+        self.assertEqual(response.context['credit_total'], 50)
+        self.assertEqual(response.context['net_change'], -70)
+        # These value are flipped from expected because account.bank = True
+        self.assertEqual(response.context['startbalance'], 20)
+        self.assertEqual(response.context['endbalance'], 90)
 
     def test_show_account_detail_view_date_fail(self):
         '''
-        A `GET` to the `show_account_detail` view with an `account_slug` and invalid
-        startdate or stopdate should return a DateRangeForm with errors.
+        A `GET` to the `show_account_detail` view with an `account_slug` and
+        invalid startdate or stopdate should return a DateRangeForm with errors.
         '''
         response = self.client.get(reverse('accounts.views.show_account_detail',
                                             kwargs={'account_slug': self.bank_account.slug}),
@@ -1443,6 +1506,69 @@ class EventDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/event_detail.html')
         self.assertEqual(response.context['event'], self.event)
+
+    def test_show_event_detail_view_initial_no_transactions(self):
+        '''
+        A `GET` to the `show_event_detail` view with a valid `event_id` will
+        return the respective `Event`. If no Transactions exist for this Event,
+        all counters should return appropriately.
+        '''
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': self.event.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/event_detail.html')
+        self.assertEqual(response.context['event'], self.event)
+        self.assertEqual(response.context['debit_total'], 0)
+        self.assertEqual(response.context['credit_total'], 0)
+        self.assertEqual(response.context['net_change'], 0)
+
+    def test_show_event_detail_view_initial_only_credits(self):
+        '''
+        A `GET` to the `show_event_detail` view with a valid `event_id` will
+        also return the correct counters for `net_change`, `debit_total` and
+        `credit_total` when only credits are present.
+        '''
+        general = create_entry(datetime.date.today(), 'general entry')
+        Transaction.objects.create(journal_entry=general, balance_delta=20, account=self.bank_account, event=self.event)
+        Transaction.objects.create(journal_entry=general, balance_delta=20, account=self.bank_account, event=self.event)
+
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': self.event.id}))
+        self.assertEqual(response.context['debit_total'], 0)
+        self.assertEqual(response.context['credit_total'], 40)
+        self.assertEqual(response.context['net_change'], 40)
+
+    def test_show_event_detail_view_initial_only_debits(self):
+        '''
+        A `GET` to the `show_event_detail` view with a valid `event_id` will
+        also return the correct counters for `net_change`,`debit_total` and
+        `credit_total` when only debits are present.
+        '''
+        general = create_entry(datetime.date.today(), 'general entry')
+        Transaction.objects.create(journal_entry=general, balance_delta=-20, account=self.bank_account, event=self.event)
+        Transaction.objects.create(journal_entry=general, balance_delta=-20, account=self.bank_account, event=self.event)
+
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': self.event.id}))
+        self.assertEqual(response.context['debit_total'], -40)
+        self.assertEqual(response.context['credit_total'], 0)
+        self.assertEqual(response.context['net_change'], -40)
+
+    def test_show_event_detail_view_initial_debit_and_credit(self):
+        '''
+        A `GET` to the `show_event_detail` view with a valid `event_id` will
+        also return the correct counters for `net_change`, `debit_total` and
+        `credit_total` when credits and debits are present.
+        '''
+        general = create_entry(datetime.date.today(), 'general entry')
+        Transaction.objects.create(journal_entry=general, balance_delta=20, account=self.bank_account, event=self.event)
+        Transaction.objects.create(journal_entry=general, balance_delta=-20, account=self.bank_account, event=self.event)
+
+        response = self.client.get(reverse('accounts.views.show_event_detail',
+                                           kwargs={'event_id': self.event.id}))
+        self.assertEqual(response.context['debit_total'], -20)
+        self.assertEqual(response.context['credit_total'], 20)
+        self.assertEqual(response.context['net_change'], 0)
 
     def test_show_event_detail_view_fail(self):
         '''
@@ -1890,7 +2016,8 @@ class JournalEntryViewTests(TestCase):
     def test_show_journal_entry_view(self):
         '''
         A `GET` to the `show_journal_entry` view with a journal_id will retrieve
-        the JournalEntry, it's Transactions and whether is has been updated.
+        the JournalEntry, it's Transactions, debit and credit totals and whether
+        it has been updated.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
         create_transaction(entry, self.asset_account, 50)
@@ -1904,6 +2031,8 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(response.context['journal_entry'], JournalEntry.objects.all()[0])
         self.assertItemsEqual(response.context['transactions'], Transaction.objects.all())
         self.assertEqual(response.context['updated'], False)
+        self.assertEqual(response.context['credit_total'], 50)
+        self.assertEqual(response.context['debit_total'], -50)
 
         entry.created_at = datetime.datetime(datetime.date.today().year - 20, 1, 1, 1, 1, 1, tzinfo=utc)
         entry.save()

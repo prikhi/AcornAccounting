@@ -14,6 +14,50 @@ class BankAccountManager(models.Manager):
         return super(BankAccountManager, self).get_query_set().filter(bank=True)
 
 
+class TransactionManager(CachingManager):
+    '''
+    A Custom Manager for the :class:`Transaction` Model
+
+    Subclass of :class:`caching.base.CachingManager`.
+
+    .. note::
+
+        Using this Manager as a Model's default Manager will cause this Manager
+        to be used when the Model is accessed through Related Fields.
+
+    '''
+    use_for_related_fields = True
+
+    def get_totals(self, query=None, net_change=False):
+        '''
+        Calculate debit and credit totals for the respective Queryset.
+
+        Groups and Sums the default Queryset by positive/negative :attr:~`Transaction.balance_delta`.
+        Totals default to ``0`` if no corresponding :class:`Transaction` is found.
+
+        Optionally:
+            * Filters the Manager's Queryset by ``query`` parameter.
+            * Returns the Net Change(credits + debits) with the totals.
+
+        :param query: Optional Q query used to filter Manager's Queryset.
+        :type query: :class:`~django.db.models.Q` Object.
+        :param net_change: Calculate the difference between debits and credits.
+        :type net_change: bool.
+        :returns: debit and credit sums and optionally net_change.
+        :rtype: tuple
+        '''
+        base_qs = self.get_query_set()
+        if query:
+            base_qs = base_qs.filter(query)
+        debit_total = base_qs.filter(models.Q(balance_delta__lt=0)).        \
+            aggregate(models.Sum('balance_delta'))['balance_delta__sum'] or 0
+        credit_total = base_qs.filter(models.Q(balance_delta__gt=0)).       \
+            aggregate(models.Sum('balance_delta'))['balance_delta__sum'] or 0
+        if net_change:
+            return debit_total, credit_total, credit_total + debit_total
+        return debit_total, credit_total
+
+
 class BaseAccountModel(CachingMixin, MPTTModel):
     """
     Abstract class storing common attributes of Headers and Accounts
@@ -258,7 +302,7 @@ class Transaction(CachingMixin, models.Model):
     event = models.ForeignKey('Event', blank=True, null=True)
     reconciled = models.BooleanField(default=False)
 
-    objects = CachingManager()
+    objects = TransactionManager()
 
     class Meta:
         ordering = ['id']

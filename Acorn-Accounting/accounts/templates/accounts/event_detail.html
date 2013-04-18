@@ -38,6 +38,29 @@
     </tr>
 {% endfor %}
     </tbody>
+    <tfoot>
+    <tr><td colspan="7">&nbsp;</td></tr>
+    <tr>
+        <td colspan="5" class="right">Totals:</td>
+        <td class="right">{{ debit_total|currency }}</td>
+        <td class="right">{{ credit_total|currency }}</td>
+    </tr>
+    <tr>
+        <td colspan="5" class="right">Net Change:</td>
+            {% if net_change < 0 %}
+                <td class="right">{{ net_change|currency }}</td>
+                <td class="right"></td>
+            {% else %}
+                {% if net_change > 0 %}
+                    <td class="right"></td>
+                    <td class="right">{{ net_change|currency }}</td>
+                {% else %}
+                    <td class="right">$0.00</td>
+                    <td class="right">$0.00</td>
+                {% endif %}
+            {% endif %}
+    </tr>
+    </tfoot>
 </table>
 <br /><br />
 {% endblock %}

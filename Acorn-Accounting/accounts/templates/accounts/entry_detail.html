@@ -36,6 +36,15 @@ Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{
     </tr>
 {% endfor %}
     </tbody>
+    <tfoot>
+    <tr><td colspan="5">&nbsp;</td></tr>
+    <tr>
+        <td colspan="2" class="right">Totals:</td>
+        <td class="right">{{ debit_total|currency }}</td>
+        <td class="right">{{ credit_total|currency }}</td>
+        <td></td>
+    </tr>
+    </tfoot>
 </table>
 <br /><br />
 {% endblock %}
