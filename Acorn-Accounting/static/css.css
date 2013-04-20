@@ -49,7 +49,7 @@ div.cart_box{
     position:absolute;
     top:10px;
     right:10px;
-    font-size:medium;
+    font-size: small;
 }
 div.cart_box a{
     color:white;

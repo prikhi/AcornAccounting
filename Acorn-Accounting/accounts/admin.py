@@ -1,7 +1,7 @@
 from django.contrib import admin
 from mptt.admin import MPTTModelAdmin
 
-from .models import Header, Account, JournalEntry, Transaction, Event
+from .models import Header, Account, Event
 
 
 class AccountAdmin(admin.ModelAdmin):
@@ -25,19 +25,6 @@ class HeaderAdmin(MPTTModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
 admin.site.register(Header, HeaderAdmin)
-
-
-class TransactionInline(admin.TabularInline):
-    model = Transaction
-    extra = 10
-
-
-class JournalEntryAdmin(admin.ModelAdmin):
-    list_display = ('date', 'memo', 'updated_at')
-    search_field = ['date', 'memo']
-    inlines = [TransactionInline]
-
-admin.site.register(JournalEntry, JournalEntryAdmin)
 
 
 class EventAdmin(admin.ModelAdmin):
