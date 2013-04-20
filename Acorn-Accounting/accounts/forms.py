@@ -57,6 +57,7 @@ class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
+        widgets = {'account': forms.Select(attrs={'class': 'account'})}
 
     def clean(self):
         '''Make sure only a credit or debit is entered'''

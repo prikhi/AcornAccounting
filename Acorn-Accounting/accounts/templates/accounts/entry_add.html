@@ -11,7 +11,9 @@
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 <script type="text/javascript">
-    /* Add extra Transaction rows using jQuery-Formsets */ 
+    /*
+    Add extra Transaction rows using jQuery-Formsets
+    */
     $(function() {
         $('#accounts_chart tbody tr').formset({
             prefix: '{{ transaction_formset.prefix }}',
@@ -21,6 +23,21 @@
             added: addActions,
             removed: removeRow});
     })
+    /*
+    Pressing `Enter` on a Select or Text input in the `accounts_chart` table
+    should move the cursor to the next row.
+    */
+    $(document).ready(function() {
+        $('input, select', $('#accounts_chart')).each(function() {
+            var that = this;
+            $(this).keypress(function(e) {
+			    if (e.which == 13) {
+			        $(that).closest('tr').next().find('.account').focus();
+			        e.preventDefault();
+                }
+            });
+        });
+    });
 </script>
 <h1>Add a Journal Entry</h1>
 
@@ -106,8 +123,8 @@
     </tfoot>
 </table>
 <br />
-<input type="submit" name="subbtn" value="Submit" />
-<input type="submit" name="subbtn" value="Submit & Add More" />
+<input type="submit" name="subbtn" value="Submit" accesskey="s"/>
+<input type="submit" name="subbtn" value="Submit & Add More" accesskey="a" />
 
 {% if entry_form.instance.pk %}
 <input type="hidden" name="delete" id="delete" />
@@ -130,8 +147,12 @@
         });
     });
     function addActions(){
+    /*
+    Add keyup and blur actions that recalculate totals and enablevalidation
+    to credit/debit fields
+    */
         $(".credit").each(function() {
-            var that = this; // fix a reference to the <input> element selected
+            var that = this;
             $(this).keyup(function(){
                 newSum.call(that);
             });
@@ -151,7 +172,7 @@
     }
     function assignRequired() {
         /* Add validation for Account widget if debit or credit is entered */
-        $acct = $(this).closest('tr').find('select');
+        $acct = $(this).closest('tr').find('.account');
         $credit = $(this).closest('tr').find('.credit').val();
         $debit = $(this).closest('tr').find('.debit').val();
         if ((($debit.length != 0) || ($credit.length != 0)) && $acct.is(':visible')) {
@@ -189,7 +210,7 @@
     }
     function removeRow(row) {
         /* Remove validation from deleted rows and recalculate counters */
-        $acct = $(row).find('select');
+        $acct = $(row).find('.account');
         $('#entry_form').parsley('removeItem', $acct);
         newSum();
     }
