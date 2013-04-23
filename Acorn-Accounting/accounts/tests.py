@@ -619,7 +619,7 @@ class AccountReconcileViewTests(TestCase):
         `last_reconciled` date and the `statement_date`.
         '''
         past_entry = create_entry(datetime.date.today() - datetime.timedelta(days=60), 'before reconciled date entry')
-        create_transaction(past_entry, self.bank_account, 100)
+        past_bank_tran = create_transaction(past_entry, self.bank_account, 100)
         create_transaction(past_entry, self.liability_account, -100)
 
         entry = create_entry(datetime.date.today(), 'between reconciled date and statement date')
@@ -639,8 +639,9 @@ class AccountReconcileViewTests(TestCase):
         self.failUnless(isinstance(response.context['account_form'], AccountReconcileForm))
         self.failUnless(response.context['account_form'].is_bound)
         self.failUnless(isinstance(response.context['transaction_formset'], ReconcileTransactionFormSet))
-        self.assertEqual(len(response.context['transaction_formset'].forms), 1)
-        self.assertEqual(response.context['transaction_formset'].forms[0].instance, bank_tran)
+        self.assertEqual(len(response.context['transaction_formset'].forms), 2)
+        self.assertEqual(response.context['transaction_formset'].forms[0].instance, past_bank_tran)
+        self.assertEqual(response.context['transaction_formset'].forms[1].instance, bank_tran)
 
     def test_reconcile_account_view_get_transactions_fail_old_statement_date(self):
         '''
@@ -1286,7 +1287,7 @@ class AccountReconcileViewTests(TestCase):
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'Reconciled Transactions and Bank Statement are out of balance.')
 
-    def test_reconcile_account_view_last_reconciled_date(self):
+    def test_reconcile_account_view_change_last_reconciled_date(self):
         '''
         A successful Reconciliation should cause the `last_reconciled` and `reconciled_balance`
         variables to change

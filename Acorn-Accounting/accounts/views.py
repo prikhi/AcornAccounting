@@ -328,11 +328,11 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
                 startdate = last_reconciled
                 stopdate = account_form.cleaned_data['statement_date']
                 queryset = account.transaction_set.filter(reconciled=False).filter(
-                                                         (Q(journal_entry__date__lte=stopdate,) & Q(journal_entry__date__gte=startdate)) |
-                                                         (Q(bankspend_entry__date__lte=stopdate,) & Q(bankspend_entry__date__gte=startdate)) |
-                                                         (Q(bankreceive_entry__date__lte=stopdate,) & Q(bankreceive_entry__date__gte=startdate)) |
-                                                         (Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
-                                                         (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate)))
+                    Q(journal_entry__date__lte=stopdate) |
+                    Q(bankspend_entry__date__lte=stopdate) |
+                    Q(bankreceive_entry__date__lte=stopdate) |
+                    Q(bankspendingentry__date__lte=stopdate) |
+                    Q(bankreceivingentry__date__lte=stopdate))
                 transaction_formset = ReconcileTransactionFormSet(queryset=queryset)
                 return render_to_response(template_name, {'account': account,
                                                           'reconciled_balance': reconciled_balance * (-1 if account.flip_balance() else 1),
