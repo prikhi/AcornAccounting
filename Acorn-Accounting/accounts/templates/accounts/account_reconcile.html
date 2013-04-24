@@ -30,7 +30,7 @@
 <table id="accounts_chart">
     <thead>
         <tr>
-            <th>R</th>
+            <th><input type="checkbox" class="checkall"  name="checkall"/></th>
             <th>Date</th>
             <th>Number</th>
             <th>Memo</th>
@@ -61,7 +61,7 @@
         {% endfor %}
     </tbody>
     <tfoot>
-        <tr><td>&nbsp;</td></tr>
+        <tr><td colspan="7">&nbsp;</td></tr>
         <tr>
             <td></td>
             <td></td>
@@ -103,6 +103,10 @@
             $('#reconcile_form input:checkbox').change(function() {recalcCounters()});
             $('#id_account-statement_balance').keyup(function() {recalcCounters()});
             recalcCounters();
+            $('.checkall').change(function () {
+                $(this).closest('table').find(':checkbox').prop('checked', this.checked);
+                recalcCounters();
+            });
         }
     );
     var recalcCounters = function () {
