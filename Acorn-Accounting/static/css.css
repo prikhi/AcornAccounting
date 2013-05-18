@@ -10,7 +10,10 @@ html,body{
 	background-color: #D8ECC3;
 }
 .fl {
-	float: left;
+    float: left;
+}
+.fr {
+    float: right;
 }
 .cb {
 	clear: both;

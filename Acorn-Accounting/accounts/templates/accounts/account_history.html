@@ -1,0 +1,38 @@
+{% extends "site.html" %}
+
+{% load accounting_filters %}
+
+{% block title %}Account History - {{ date|date:"m/Y" }}{% endblock %}
+
+{% block content %}
+<h1>Account History - {{ date|date:"m/Y" }}</h1>
+<br />
+<h2></h2>
+<a href=".?previous=" class="fl">Previous</a><a href=".?next=" class="fr">Next</a>
+<div class="cb"></div>
+{% if accounts %}
+<table id="accounts_chart">
+    <thead>
+    <tr>
+        <th scope="col">Number</th>
+        <th scope="col">Name</th>
+        <th scope="col" class="right">Amount</th>
+    </tr>
+    </thead>
+    <tbody>
+{% for account in accounts %}
+    <tr class="{% cycle 'main' 'alt' %}">
+        <td>{{ account.number }}</a></td>
+        <td>{{ account.name }}</td>
+        <td class="right">{{ account.amount|currency }}</td>
+    </tr>
+{% endfor %}
+    </tbody>
+</table>
+{% else %}
+<br />
+No Account History found for this Month.
+Account History is available after completing a Financial Year.
+{% endif %}
+<br /><br />
+{% endblock %}

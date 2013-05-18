@@ -7,11 +7,12 @@ from django.template.defaultfilters import slugify
 from django.test import TestCase
 from django.utils.timezone import utc
 
-from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction,  \
-                    Event
-from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, BankReceivingForm,            \
-                   BankReceivingTransactionFormSet, BankSpendingForm, BankSpendingTransactionFormSet,   \
-                   DateRangeForm, AccountReconcileForm, ReconcileTransactionFormSet
+from .models import Header, Account, JournalEntry, BankReceivingEntry, \
+        BankSpendingEntry, Transaction, Event, HistoricalAccount
+from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, \
+        BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, \
+        BankSpendingTransactionFormSet, DateRangeForm, AccountReconcileForm, \
+        ReconcileTransactionFormSet
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -1478,6 +1479,290 @@ class AccountDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', 'startdate', 'Enter a valid date.')
         self.assertFormError(response, 'form', 'stopdate', 'Enter a valid date.')
+
+
+class HistoricalAccountViewTests(TestCase):
+    '''
+    Test the `show_account_history` view.
+    '''
+    def test_show_account_history_view_initial_month(self):
+        '''
+        A `GET` to the `show_account_history` view will first try to retrieve the
+        Historical Accounts for the current month in the last year.
+        '''
+        today = datetime.date.today()
+        expense_historical = HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=datetime.date(day=1, month=today.month, year=(today.year - 1)))
+        asset_historical = HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=datetime.date(day=1, month=today.month, year=(today.year - 1)))
+
+        response = self.client.get(reverse('accounts.views.show_account_history'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/account_history.html')
+        self.assertSequenceEqual(response.context['accounts'],
+                                 [asset_historical, expense_historical])
+
+    def test_show_account_history_view_initial_recent(self):
+        '''
+        A `GET` to the `show_account_history` view will retrieve the Historical
+        Accounts for the most recent month.
+        '''
+        today = datetime.date.today()
+        # Most recent is ~2 1/4 years ago
+        most_recent = datetime.date(day=1, month=today.month, year=today.year - 2) + datetime.timedelta(days=-93)
+        expense_historical = HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=datetime.date(day=1, month=most_recent.month,
+                                year=most_recent.year))
+        asset_historical = HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=datetime.date(day=1, month=most_recent.month,
+                                year=most_recent.year))
+        response = self.client.get(reverse('accounts.views.show_account_history'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/account_history.html')
+        self.assertSequenceEqual(response.context['accounts'],
+                                 [asset_historical, expense_historical])
+
+    def test_show_account_history_view_initial_none(self):
+        '''
+        A `GET` to the `show_account_history` view with No Historical Accounts
+        will return an appropriate message.
+        '''
+        response = self.client.get(reverse('accounts.views.show_account_history'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/account_history.html')
+        self.assertEqual(response.context['accounts'], '')
+        self.assertIn('No Account History', response.content)
+
+    def test_show_account_history_view_by_month(self):
+        '''
+        A `GET` to the `show_account_history` view with a `month` and `year`
+        argument will retrieve the Historical Accounts for that Month and Year
+        '''
+        today = datetime.date.today()
+        older = today + datetime.timedelta(days=-120)
+        # This would be displayed if we reversed the url with no arguments
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=datetime.date(day=1, month=today.month,
+                                year=today.year))
+        # But since we use the older date we should see only this instance.
+        asset_historical = HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=datetime.date(day=1, month=older.month,
+                                year=older.year))
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': older.month,
+                                                   'year': older.year}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/account_history.html')
+        self.assertSequenceEqual(response.context['accounts'],
+                                 [asset_historical])
+
+    def test_show_account_history_view_by_month_none(self):
+        '''
+        A `GET` to the `show_account_history` view with a `month` and `year`
+        argument will display an error message if no Historical Accounts
+        exist for the specified `month` and `year`.
+        '''
+        today = datetime.date.today()
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': today.month,
+                                                   'year': today.year}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['accounts'], '')
+        self.assertIn('No Account History', response.content)
+
+    def test_show_account_history_view_by_month_fail(self):
+        '''
+        A `GET` to the `show_account_history` view with an invalid `month`
+        argument will return a 404 Error.
+        '''
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': 90,
+                                                   'year': 2012}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_show_account_history_view_next(self):
+        '''
+        A `GET` to the `show_account_history` view with `next` as a `GET`
+        parameter will redirect to the next month's URL.
+        '''
+        today = datetime.date.today()
+        next_month = today + datetime.timedelta(days=31)
+        # Accessing this month with the ?next parameter...
+        this_month = datetime.date(year=today.year - 1, month=today.month, day=1)
+        # Will redirect to this month
+        future_month = datetime.date(year=next_month.year - 1, month=next_month.month,
+                                   day=1)
+
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=this_month)
+        HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=future_month)
+
+        response = self.client.get(reverse('accounts.views.show_account_history'),
+                                   data={'next': ''})
+        self.assertRedirects(response, reverse('accounts.views.show_account_history',
+                                               kwargs={'month': future_month.month,
+                                                       'year': future_month.year}))
+
+    def test_show_account_history_by_month_next(self):
+        '''
+        A `GET` to the `show_account_history` view with `month` and `year`
+        arguments and `next` as a `GET` parameter will redirect to the next
+        month's URL
+        '''
+        specific_date = datetime.date(day=1, month=11, year=2012)
+        newer_date = datetime.date(day=1, month=12, year=2012)
+
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=newer_date)
+        HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=specific_date)
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': specific_date.month,
+                                                   'year': specific_date.year}),
+                                   data={'next': ''})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_history',
+                                               kwargs={'month': newer_date.month,
+                                                       'year': newer_date.year}))
+
+    def test_show_account_history_view_next_none(self):
+        '''
+        A `GET` to the `show_account_history` view with `next` as a `GET`
+        parameter will redirect to the same listing if there are no Historical
+        Accounts for the next month.
+        '''
+        today = datetime.date.today()
+        this_month = datetime.date(year=today.year - 1, month=today.month, day=1)
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=this_month)
+        response = self.client.get(reverse('accounts.views.show_account_history'),
+                                   data={'next': ''})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_account_history',
+                                     kwargs={'month': this_month.month,
+                                             'year': this_month.year}))
+
+    def test_show_account_history_view_by_month_next_none(self):
+        '''
+        A `GET` to the `show_account_history` view with a `month` and `year`
+        parameter with `next` as a `GET` parameter will redirect to the passed
+        `month` and `year` if no Historical Accounts for the next `month` and
+        `year` exist.
+        '''
+        specific_date = datetime.date(day=1, month=11, year=2012)
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=specific_date)
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': specific_date.month,
+                                                   'year': specific_date.year}),
+                                   data={'next': ''})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_account_history',
+                                      kwargs={'month': specific_date.month,
+                                              'year': specific_date.year}))
+
+    def test_show_account_history_view_previous(self):
+        '''
+        A `GET` to the `show_account_history` view with `previous` as a `GET`
+        parameter will retrieve the Historical Accounts for the last month.
+        '''
+        today = datetime.date.today()
+        last_month = today + datetime.timedelta(days=-31)
+        # Accessing this month with the ?next parameter...
+        this_month = datetime.date(year=today.year - 1, month=today.month, day=1)
+        # Will redirect to this month
+        past_month = datetime.date(year=last_month.year - 1,
+                                   month=last_month.month, day=1)
+
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=this_month)
+        HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=past_month)
+
+        response = self.client.get(reverse('accounts.views.show_account_history'),
+                                   data={'previous': ''})
+        self.assertRedirects(response, reverse('accounts.views.show_account_history',
+                                               kwargs={'month': past_month.month,
+                                                       'year': past_month.year}))
+
+    def test_show_account_history_view_by_month_previous(self):
+        '''
+        A `GET` to the `show_account_history` view with `month` and `year`
+        arguments and a `previous` `GET` parameter will redirect to the
+        previous month's URL
+        '''
+        specific_date = datetime.date(day=1, month=11, year=2012)
+        older_date = datetime.date(day=1, month=10, year=2012)
+
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=older_date)
+        HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount='-9000.01',
+             date=specific_date)
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': specific_date.month,
+                                                   'year': specific_date.year}),
+                                   data={'previous': ''})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_history',
+                                               kwargs={'month': older_date.month,
+                                                       'year': older_date.year}))
+
+    def test_show_account_history_view_previous_none(self):
+        '''
+        A `GET` to the `show_account_history` view with a `month` and `year`
+        parameter with `previous` as a `GET` parameter will redirect to the
+        same listing if there are no Historical Accounts for the last month.
+        '''
+        today = datetime.date.today()
+        this_month = datetime.date(year=today.year - 1, month=today.month, day=1)
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=this_month)
+        response = self.client.get(reverse('accounts.views.show_account_history'),
+                                   data={'previous': ''})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_account_history',
+                                     kwargs={'month': this_month.month,
+                                             'year': this_month.year}))
+
+    def test_show_account_history_view_by_month_previous_none(self):
+        '''
+        A `GET` to the `show_account_history` view with `month` and `year`
+        arguments and a `previous` `GET` parameter will display and error if
+        no Historical Accounts for the last `month` and `year` exist.
+        '''
+        specific_date = datetime.date(day=1, month=11, year=2012)
+        HistoricalAccount.objects.create(
+             number='6-1001', name='Test Expense', type=6, amount='-900.25',
+             date=specific_date)
+        response = self.client.get(reverse('accounts.views.show_account_history',
+                                           kwargs={'month': specific_date.month,
+                                                   'year': specific_date.year}),
+                                   data={'previous': ''})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_account_history',
+                                      kwargs={'month': specific_date.month,
+                                              'year': specific_date.year}))
 
 
 class EventDetailViewTests(TestCase):

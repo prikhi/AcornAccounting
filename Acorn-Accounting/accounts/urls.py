@@ -8,6 +8,9 @@ urlpatterns = patterns('accounts.views',
         {'template_name': 'accounts/account_detail.html'}, 'show_account_detail'),
     (r'^account/(?P<account_slug>[-\w]+)/reconcile/$', 'reconcile_account', {}, 'reconcile_account'),
 
+    (r'^history/$', 'show_account_history'),
+    (r'^history/(?P<year>\d{2}(?:\d{2})?)/(?P<month>\d(?:\d)?)/', 'show_account_history'),
+
     (r'^search/quick/account/$', 'quick_account_search'),
     (r'^search/quick/register/$', 'quick_bank_search'),
     (r'^search/quick/event/$', 'quick_event_search'),

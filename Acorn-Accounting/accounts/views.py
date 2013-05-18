@@ -1,6 +1,6 @@
 import datetime
 
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Max
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
@@ -12,7 +12,7 @@ from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSp
                    BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet,  \
                    AccountReconcileForm, ReconcileTransactionFormSet
 from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction,  \
-                    Event
+                    Event, HistoricalAccount
 
 
 def quick_account_search(request):
@@ -81,6 +81,83 @@ def show_account_detail(request, account_slug,
         startbalance = endbalance = 0
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
+
+
+def show_account_history(request, month=None, year=None, template_name="accounts/account_history.html"):
+    '''
+    Displays a list of :class:`accounts.models.HistoricalAccount` instances,
+    grouped by the optional ``month`` and ``year``.
+
+    By default a list of the instances from this month of last year will be
+    returned. If those instances do not exist, the most recent month/year list
+    will be displayed.
+
+    If no instances of :class:`accounts.models.HistoricalAccount` exist, an
+    empty string will be returned.
+
+    The following ``GET`` parameters are accessible:
+        * ``next`` - Use the next month relative to the passed ``month`` and
+          ``year`` values. Redirects back to passed ``month`` and ``year`` if
+          no Historical Accounts exist.
+        * ``previous`` - Use the previous month relative to the passed
+          ``month`` and ``year`` values. Redirects back to passed ``month``
+          and ``year`` if no Historical Accounts exist.
+
+    :param month: The Month to select, usage requires a specified year.
+    :type month: integer
+    :param year: The Year to select, usage requires a specified month.
+    :type year: integer
+    :param template_name: The template to use.
+    :type template_name: string
+    :returns: HTTP context with a list of instances or empty string as \
+              ``accounts`` and a :class:`~datetime.date` as ``date``
+    :rtype: HttpResponse
+    :raises Http404: if an invalid ``month`` or ``year`` is specified.
+    '''
+    if 'next' in request.GET:
+        datemod = datetime.timedelta(days=31)
+    elif 'previous' in request.GET:
+        datemod = datetime.timedelta(days=-1)
+    else:
+        datemod = datetime.timedelta(0)
+
+    if month is None and year is None:
+        today = datetime.date.today() - datetime.timedelta(datetime.date.today().day - 1)
+        accounts = HistoricalAccount.objects.filter(date__month=today.month, date__year=today.year - 1)
+        max_date = HistoricalAccount.objects.all().aggregate(Max('date'))['date__max']
+        if accounts.exists():
+            month = today.month
+            year = today.year - 1
+        elif max_date is not None:
+            month = max_date.month
+            year = max_date.year
+        else:
+            return render_to_response(template_name, {'accounts': ''},
+                                      context_instance=RequestContext(request))
+
+    try:
+        date = datetime.date(day=1, month=int(month), year=int(year)) + datemod
+    except ValueError:
+        raise Http404
+    accounts = HistoricalAccount.objects.filter(date__month=date.month, date__year=date.year)
+    date_change = bool('next' in request.GET or 'previous' in request.GET)
+    exists = accounts.exists()
+    if date_change and exists:
+        return HttpResponseRedirect(reverse('accounts.views.show_account_history',
+                                            kwargs={'month': date.month,
+                                                    'year': date.year}))
+    elif exists:
+        return render_to_response(template_name, {'accounts': accounts,
+                                                  'date': date},
+                                  context_instance=RequestContext(request))
+    elif date_change:
+        return HttpResponseRedirect(reverse('accounts.views.show_account_history',
+                                            kwargs={'month': month,
+                                                    'year': year}))
+    else:
+        return render_to_response(template_name, {'accounts': '',
+                                                  'date': date},
+                                  context_instance=RequestContext(request))
 
 
 def show_event_detail(request, event_id, template_name="accounts/event_detail.html"):
