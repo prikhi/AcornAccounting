@@ -32,7 +32,7 @@
     <tbody>
     <tr class="header clickable">
         <td><a href="{{ transaction.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
-        <td>{{ transaction.get_date|date:"m/d/Y" }}</td>
+        <td>{{ transaction.date|date:"m/d/Y" }}</td>
         <td>{{ transaction.get_memo|capwords }}</td>
         {% if transaction.balance_delta < 0 %}
             <td class="right">{{ transaction.balance_delta|currency }}</td>

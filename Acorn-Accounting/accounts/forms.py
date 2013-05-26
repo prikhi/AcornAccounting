@@ -1,11 +1,15 @@
+import datetime
+from dateutil import relativedelta
 from decimal import Decimal
 
 from django import forms
+from django.db.models import Max
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory, modelformset_factory, BaseModelFormSet
 from parsley.decorators import parsleyfy
 
-from .models import Account, JournalEntry, Transaction, BankSpendingEntry, BankReceivingEntry, Event
+from .models import Account, JournalEntry, Transaction, BankSpendingEntry, \
+                    BankReceivingEntry, Event, FiscalYear
 
 
 class RequiredInlineFormSet(forms.models.BaseFormSet):
@@ -43,6 +47,15 @@ class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
         widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
+
+    def clean_date(self):
+        '''The date must be in the Current :class:`FiscalYear`.'''
+        date = self.cleaned_data.get('date')
+        start = FiscalYear.objects.current_start()
+        if start is not None and date < start:
+            raise forms.ValidationError("The date must be in the current "
+                    "Fiscal Year.")
+        return date
 
 
 @parsleyfy
@@ -136,9 +149,20 @@ TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True,
 
 class BaseBankForm(forms.ModelForm):
     account = forms.ModelChoiceField(queryset=Account.banks.all())
-    amount = forms.DecimalField(widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
-                                                              'id': 'entry_amount'}),
-                                min_value=Decimal(".01"))
+    amount = forms.DecimalField(min_value=Decimal(".01"),
+            widget=forms.TextInput(
+                attrs={'size': 10, 'maxlength': 10, 'id': 'entry_amount'}
+                )
+            )
+
+    def clean_date(self):
+        '''The date must be in the Current :class:`FiscalYear`.'''
+        date = self.cleaned_data.get('date')
+        start = FiscalYear.objects.current_start()
+        if start is not None and date < start:
+            raise forms.ValidationError("The date must be in the current "
+                    "Fiscal Year.")
+        return date
 
     def clean(self):
         '''
@@ -147,6 +171,8 @@ class BaseBankForm(forms.ModelForm):
         :attr:`BankReceivingEntry.main_transaction`.
         '''
         super(BaseBankForm, self).clean()
+        if any(self.errors):
+            return self.cleaned_data
         cleaned_data = self.cleaned_data
         try:
             self.instance.main_transaction.account = cleaned_data['account']
@@ -256,8 +282,10 @@ class AccountReconcileForm(forms.ModelForm):
 
     def clean_statement_date(self):
         date = self.cleaned_data['statement_date']
-        if date < self.instance.last_reconciled:
-            raise forms.ValidationError('Must be later than the Last Reconciled Date')
+        if (self.instance.last_reconciled is not None and
+                date < self.instance.last_reconciled):
+            raise forms.ValidationError("Must be later than the Last "
+                                        "Reconciled Date")
         return date
 
 
@@ -277,5 +305,123 @@ class BaseReconcileTransactionFormSet(BaseModelFormSet):
         if balance != 0:
             raise forms.ValidationError("Reconciled Transactions and Bank Statement are out of balance.")
 
-ReconcileTransactionFormSet = modelformset_factory(Transaction, extra=0, can_delete=False, fields=('reconciled',),
-                                                   formset=BaseReconcileTransactionFormSet)
+ReconcileTransactionFormSet = modelformset_factory(Transaction, extra=0,
+        can_delete=False, fields=('reconciled',), formset=BaseReconcileTransactionFormSet)
+
+
+@parsleyfy
+class FiscalYearForm(forms.ModelForm):
+    '''
+    This form is used to create new :class:`Fiscal Years<FiscalYear>`.
+
+    The form validates the period length against the new Fiscal Year's End
+    Month and Year. To pass validation, the new Year must be greater than any
+    previous years and the end Month must create a period less than or equal to
+    the selected Period.
+
+    .. seealso::
+
+        View :func:`add_fiscal_year`
+            The :func:`add_fiscal_year` view processes all actions required for
+            starting a New Fiscal Year.
+
+        Form :class:`BaseFiscalYearAccountsFormSet`
+            This form processes the accounts to exclude in the New Fiscal Year
+            Transaction purging.
+    '''
+    class Meta:
+        model = FiscalYear
+        widgets = {'year': forms.TextInput(attrs={'maxlength': 4, 'size': 4})}
+
+    def clean_year(self):
+        '''
+        Validates that the entered ``Year`` value is greater than or equal to
+        any previously entered ``Year``.
+        '''
+        year = self.cleaned_data['year']
+        max_year = FiscalYear.objects.aggregate(Max('year'))['year__max'] or 0
+        if year < max_year:
+            raise forms.ValidationError("The Year cannot be before the "
+                    "current Year.")
+        return year
+
+    def clean(self):
+        '''
+        Validates that any previous year's ending month is within the entered
+        ``Period`` with respect to the entered ``end_month``.
+
+        If the form causes a period change from 13 to 12 months, the method
+        will ensure that there are no :class:`Transactions<Transaction>` in the
+        13th month of the last :class:`FiscalYear`.
+
+        If there are previous :class:`FiscalYears<FiscalYear>` the method will
+        make sure there are both a ``Current Year Earnings`` and
+        ``Retained Earnings`` Equity :class:`Accounts<Account>` with an
+        :attr:`Account.type` of ``3``.
+        '''
+        super(FiscalYearForm, self).clean()
+        if any(self.errors):
+            return self.cleaned_data
+        cleaned_data = self.cleaned_data
+        if FiscalYear.objects.count() > 0:
+            try:
+                Account.objects.get(name="Retained Earnings", type=3)
+                Account.objects.get(name="Current Year Earnings", type=3)
+            except Account.DoesNotExist:
+                raise forms.ValidationError("'Current Year Earnings' and "
+                        "'Retained Earnings' Equity Accounts are required to "
+                        "start a new Fiscal Year.")
+            latest = FiscalYear.objects.latest()
+            new_date = datetime.date(cleaned_data['year'],
+                    cleaned_data['end_month'], 1)
+            max_date = latest.date + relativedelta.relativedelta(
+                    months=cleaned_data['period'])
+            if new_date <= latest.date:
+                raise forms.ValidationError("The new ending Date must be "
+                        "after the current ending Date.")
+            elif new_date > max_date:
+                raise forms.ValidationError("The new ending Date cannot be "
+                        "greater than the current ending Date plus the new "
+                        "Period.")
+            if latest.period == 13 and cleaned_data['period'] == 12:
+                trans_in_end_month = Transaction.objects.filter(
+                        date__year=latest.year,
+                        date__month=latest.end_month).exists()
+                if trans_in_end_month:
+                    raise forms.ValidationError("When switching from a 13 "
+                            "month to 12 month period, no Transactions can be "
+                            "in  the last Year's 13th month.")
+        return cleaned_data
+
+
+class FiscalYearAccountsForm(forms.ModelForm):
+    '''
+    This form is used to select whether to exclude an account from the
+    :class:`Transaction` purging caused by the :func:`new_fiscal_year` view.
+    Selected :class:`Accounts<Account>` will retain their unreconciled
+    :class:`Transactions<Transaction>`.
+
+    This form is used by the :func:`~django.forms.models.modelformset_factory`
+    to create the :data:`FiscalYearAccountsFormSet`.
+
+    .. seealso::
+
+        View :func:`add_fiscal_year`
+            This view processes all actions required for starting a New Fiscal
+            Year.
+
+    '''
+    exclude = forms.BooleanField(required=False)
+
+    class Meta:
+        model = Account
+
+    def __init__(self, *args, **kwargs):
+        '''
+        Mark an :class:`Account` for exclusion if it has been reconciled.
+        '''
+        super(FiscalYearAccountsForm, self).__init__(*args, **kwargs)
+        self.fields['exclude'].initial = bool(self.instance.last_reconciled)
+
+FiscalYearAccountsFormSet = modelformset_factory(Account, extra=0,
+        can_delete=False, fields=('exclude',), form=FiscalYearAccountsForm)

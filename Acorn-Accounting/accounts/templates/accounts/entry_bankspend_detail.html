@@ -8,7 +8,9 @@
 <h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ main_transaction.account }}: {{ journal_entry.memo|capwords }}</h1>
 <h2>{{ journal_entry.get_number }} - Payee: {{ journal_entry.payee }} - Amount: {{ main_transaction.balance_delta|currency }}</h2><br/>
 Created: {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}Updated: {{ journal_entry.updated_at|date:"m/d/Y" }}{% endif %}<br />
+{% if journal_entry.in_fiscal_year %}
 <a href="{{ journal_entry.get_edit_url }}">Edit</a>
+{% endif %}
 <br /><br />
 <table summary="{{ account.name }} Details" id="accounts_chart">
     <thead>

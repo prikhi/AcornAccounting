@@ -48,7 +48,7 @@
     {{entry_form}}
 </table>
 <ul class="errorlist">
-{% for error in transaction_formset.non_field_errors %}
+{% for error in transaction_formset.non_form_errors %}
     <li>{{ error }}</li>
 {% endfor %}
 </ul><!-- 

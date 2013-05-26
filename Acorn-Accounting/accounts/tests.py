@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -9,11 +10,12 @@ from django.test import TestCase
 from django.utils.timezone import utc
 
 from .models import Header, Account, JournalEntry, BankReceivingEntry, \
-        BankSpendingEntry, Transaction, Event, HistoricalAccount
+        BankSpendingEntry, Transaction, Event, HistoricalAccount, FiscalYear
 from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, \
         BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingForm, \
         BankSpendingTransactionFormSet, DateRangeForm, AccountReconcileForm, \
-        ReconcileTransactionFormSet
+        ReconcileTransactionFormSet, FiscalYearForm, \
+        FiscalYearAccountsFormSet
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -183,57 +185,451 @@ class HeaderModelTests(TestCase):
 
 
 class AccountModelTests(TestCase):
+    def setUp(self):
+        self.top_head = create_header('Initial')
+        self.child_head = Header.objects.create(name='Child', parent=self.top_head, slug='child')
+        self.gchild_head = Header.objects.create(name='gChild', parent=self.child_head, slug='gchild')
+        self.child_acc = Account.objects.create(name='child', parent=self.child_head, balance=0, slug='child')
+        self.gchild_acc = Account.objects.create(name='gChild', parent=self.gchild_head, balance=0, slug='gchild')
+
     def test_presave_signal_inherit_type(self):
         '''
         Tests that Accounts inherit their type from their root Header.
         '''
-        top_head = create_header('Initial')
-        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
-        gchild_head = Header.objects.create(name='gChild', parent=child_head, slug='gchild')
-        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
-        gchild_acc = Account.objects.create(name='gChild', parent=gchild_head, balance=0, slug='gchild')
-        self.assertEqual(child_acc.type, top_head.type)
-        self.assertEqual(gchild_acc.type, top_head.type)
+        self.assertEqual(self.child_acc.type, self.top_head.type)
+        self.assertEqual(self.gchild_acc.type, self.top_head.type)
 
     def test_account_get_number(self):
         '''
         Tests that Accounts are numbered according to parent number and alphabetical
         position in siblings list.
         '''
-        top_head = create_header('Initial')
-        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
-        gchild_head = Header.objects.create(name='gChild', parent=child_head, slug='gchild')
-        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
-        gchild_acc = Account.objects.create(name='gChild', parent=gchild_head, balance=0, slug='gchild')
-        self.assertEqual(child_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(child_acc.type, child_acc.parent.account_number(),
-                                                                                  child_acc.account_number()))
-        self.assertEqual(gchild_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(gchild_acc.type, gchild_acc.parent.account_number(),
-                                                                                  gchild_acc.account_number()))
+        self.assertEqual(self.child_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(self.child_acc.type, self.child_acc.parent.account_number(),
+                                                                                  self.child_acc.account_number()))
+        self.assertEqual(self.gchild_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(self.gchild_acc.type, self.gchild_acc.parent.account_number(),
+                                                                                  self.gchild_acc.account_number()))
+
+    def test_get_balance_by_date(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there is a ``Transaction`` on the
+        ``date``.
+        '''
+        date = datetime.date.today()
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(date), 20)
+
+    def test_get_balance_by_date_flipped(self):
+        '''
+        The ``get_balance_by_date`` function should flip the sign of the
+        returned ``balance`` if the ``Account`` is an Asset, Expense, Cost of
+        Sale, or Other Expense (indicated by ``type`` 1, 6, 5 and 8,
+        respectively.
+        '''
+        asset_header = create_header('asset', cat_type=1)
+        expense_header = create_header('expense', cat_type=6)
+        cost_header = create_header('cost', cat_type=5)
+        oth_expense_header = create_header('oth_expense', cat_type=8)
+        asset_acc = create_account('asset', asset_header, 0, 1)
+        expense_acc = create_account('expense', expense_header, 0, 6)
+        cost_acc = create_account('cost', cost_header, 0, 5)
+        oth_expense_acc = create_account('oth_expense', oth_expense_header, 0, 8)
+
+        today = datetime.date.today()
+        entry = create_entry(today, 'Entry')
+        create_transaction(entry, asset_acc, -20)
+        create_transaction(entry, expense_acc, -20)
+        create_transaction(entry, cost_acc, -20)
+        create_transaction(entry, oth_expense_acc, -20)
+
+        self.assertEqual(asset_acc.get_balance_by_date(today), 20)
+        self.assertEqual(expense_acc.get_balance_by_date(today), 20)
+        self.assertEqual(cost_acc.get_balance_by_date(today), 20)
+        self.assertEqual(oth_expense_acc.get_balance_by_date(today), 20)
+
+    def test_get_balance_by_date_previous_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are ``Transactions`` on
+        previous days but not on the input ``date``.
+        '''
+        date = datetime.date.today() - datetime.timedelta(days=1)
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(datetime.date.today()), 40)
+
+    def test_get_balance_by_date_future_transactions(self):
+        '''
+        The ``get_balance_by_date`` method should return a Decimal value of 0
+        if the ``Account`` has ``Transactions`` only after the ``date``.
+        '''
+        date = datetime.date.today() + datetime.timedelta(days=1)
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(datetime.date.today()), 0)
+
+    def test_get_balance_by_date_no_transactions(self):
+        '''
+        The ``get_balance_by_date`` method should return a Decimal value of 0
+        if the ``Account`` has no ``Transactions``.
+        '''
+        date = datetime.date.today()
+        balance = self.child_acc.get_balance_by_date(date=date)
+        self.assertTrue(isinstance(balance, Decimal))
+        self.assertEqual(balance, 0)
+
+    def test_get_balance_by_date_multiple_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are multiple
+        ``Transactions`` on the ``date``.
+        '''
+        date = datetime.date.today()
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(date), 40)
+
+    def test_get_balance_by_date_previous_and_current_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are ``Transactions`` on
+        previous days and on the input ``date``.
+        '''
+        past_date = datetime.date.today() - datetime.timedelta(days=1)
+        entry = create_entry(past_date, 'older entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        today = datetime.date.today()
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(today), 80)
+
+    def test_get_balance_by_date_future_and_current_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are ``Transactions`` on
+        future days and on the input ``date``.
+        '''
+        future_date = datetime.date.today() + datetime.timedelta(days=1)
+        entry = create_entry(future_date, 'newer entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        today = datetime.date.today()
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(today), 40)
+
+    def test_get_balance_by_date_previous_and_future_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are ``Transactions`` on
+        previous days and after the input ``date``, but not on it.
+        '''
+        past_date = datetime.date.today() - datetime.timedelta(days=1)
+        entry = create_entry(past_date, 'older entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        future = datetime.date.today() + datetime.timedelta(days=1)
+        entry = create_entry(future, 'future entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(datetime.date.today()), 40)
+
+    def test_get_balance_by_date_prev_curr_and_future_transactions(self):
+        '''
+        The ``get_balance_by_date`` function should return the ``Accounts``
+        balance at the end of the ``date`` if there are ``Transactions`` on
+        previous and future days and on the input ``date``.
+        '''
+        past_date = datetime.date.today() - datetime.timedelta(days=1)
+        entry = create_entry(past_date, 'older entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        today = datetime.date.today()
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        future_date = datetime.date.today() + datetime.timedelta(days=1)
+        entry = create_entry(future_date, 'newer entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_by_date(today), 80)
+
+    def test_get_balance_change_by_month(self):
+        '''
+        The ``get_balance_change_by_month`` method should return the
+        ``Accounts`` net change for the designated ``month`` if there is a
+        ``Transaction`` in the ``month``.
+        '''
+        today = datetime.date.today()
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 20)
+
+    def test_get_balance_change_by_month_flipped(self):
+        '''
+        The ``get_balance_change_by_month`` method should a flipped
+        net_change for ``Accounts`` that are Assets, Expenses, Cost of Sales
+        or Other Expenses (``type`` 1, 6, 5, 8 respectively).
+        '''
+        asset_header = create_header('asset', cat_type=1)
+        expense_header = create_header('expense', cat_type=6)
+        cost_header = create_header('cost', cat_type=5)
+        oth_expense_header = create_header('oth_expense', cat_type=8)
+        asset_acc = create_account('asset', asset_header, 0, 1)
+        expense_acc = create_account('expense', expense_header, 0, 6)
+        cost_acc = create_account('cost', cost_header, 0, 5)
+        oth_expense_acc = create_account('oth_expense', oth_expense_header, 0, 8)
+
+        today = datetime.date.today()
+        entry = create_entry(today, 'Entry')
+        create_transaction(entry, asset_acc, -20)
+        create_transaction(entry, expense_acc, -20)
+        create_transaction(entry, cost_acc, -20)
+        create_transaction(entry, oth_expense_acc, -20)
+
+        self.assertEqual(asset_acc.get_balance_change_by_month(today), 20)
+        self.assertEqual(expense_acc.get_balance_change_by_month(today), 20)
+        self.assertEqual(cost_acc.get_balance_change_by_month(today), 20)
+        self.assertEqual(oth_expense_acc.get_balance_change_by_month(today), 20)
+
+    def test_get_balance_change_by_month_multiple_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return the
+        ``Accounts`` net balance change for the desingated ``month`` if there
+        are multiple ``Transactions`` in the ``month``.
+        '''
+        today = datetime.date.today()
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 40)
+
+    def test_get_balance_change_by_month_previous_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return a ``Decimal``
+        with a value of ``0`` if there are ``Transactions`` in previous months
+        but not in the ``date`` input.
+        '''
+        today = datetime.date.today()
+        months_ago = today - datetime.timedelta(days=60)
+        entry = create_entry(months_ago, 'past entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 0)
+
+    def test_get_balance_change_by_month_prev_and_curr_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return the
+        ``Accounts`` correct net balance change for the desingated ``month``
+        if there are multiple ``Transactions`` in the ``month`` and in months
+        before.
+        '''
+        today = datetime.date.today()
+        months_ago = today - datetime.timedelta(days=60)
+        entry = create_entry(months_ago, 'past entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 40)
+
+    def test_get_balance_change_by_month_future_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return a ``Decimal``
+        with a value of ``0`` if there are ``Transactions`` in future months
+        but not in the ``date`` input.
+        '''
+        today = datetime.date.today()
+        future_month = today + datetime.timedelta(days=60)
+        entry = create_entry(future_month, 'future entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 0)
+
+    def test_get_balance_change_by_month_future_and_curr_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return the
+        ``Accounts`` correct net balance change for the desingated ``month``
+        if there are multiple ``Transactions`` in the ``month`` and in future
+        months.
+        '''
+        today = datetime.date.today()
+        future_month = today + datetime.timedelta(days=60)
+        entry = create_entry(future_month, 'future entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 40)
+
+    def test_get_balance_change_by_month_prev_futu_and_curr_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return the
+        ``Accounts`` correct net balance change for the desingated ``month``
+        if there are multiple ``Transactions`` in the ``month`` and in future
+        and past months.
+        '''
+        today = datetime.date.today()
+        future_month = today + datetime.timedelta(days=60)
+        entry = create_entry(future_month, 'future entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        months_ago = today - datetime.timedelta(days=60)
+        entry = create_entry(months_ago, 'past entry')
+        create_transaction(entry, self.child_acc, 20)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(self.child_acc.get_balance_change_by_month(today), 40)
+
+    def test_get_balance_change_by_month_no_transactions(self):
+        '''
+        The ``get_balance_change_by_month`` method should return a ``Decimal``
+        with a value of ``0`` if the account has no ``Transactions``.
+        '''
+        date = datetime.date.today()
+        net_change = self.child_acc.get_balance_change_by_month(date=date)
+        self.assertTrue(isinstance(net_change, Decimal))
+        self.assertEqual(net_change, 0)
 
     def test_account_delete_no_transactions(self):
         '''
         Accounts can be deleted if they have no Transactions.
         '''
-        top_head = create_header('Initial')
-        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
-        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
-
+        self.assertEqual(Account.objects.count(), 2)
+        self.child_acc.delete()
         self.assertEqual(Account.objects.count(), 1)
-        child_acc.delete()
-        self.assertEqual(Account.objects.count(), 0)
 
     def test_account_delete_with_transactions(self):
         '''
         Accounts can not be deleted if they have Transactions.
         '''
-        top_head = create_header('Initial')
-        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
-        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
-
         entry = create_entry(datetime.date.today(), 'blocking entry')
-        create_transaction(entry, child_acc, 20)
-        self.assertEqual(Account.objects.count(), 1)
-        self.assertRaises(ProtectedError, child_acc.delete)
+        create_transaction(entry, self.child_acc, 20)
+        self.assertEqual(Account.objects.count(), 2)
+        self.assertRaises(ProtectedError, self.child_acc.delete)
+
+
+class HistoricalAccountModelTests(TestCase):
+    '''Tests the custom methods on the ``HistoricalAccount`` model.'''
+    def setUp(self):
+        today = datetime.date.today()
+        self.liability_historical = HistoricalAccount.objects.create(
+             number='2-1001', name='Test Liability', type=2, amount=Decimal('-900.25'),
+             date=datetime.date(day=1, month=today.month, year=(today.year - 1)))
+        self.asset_historical = HistoricalAccount.objects.create(
+             number='1-1001', name='Test Asset', type=1, amount=Decimal('-9000.01'),
+             date=datetime.date(day=1, month=today.month, year=(today.year - 1)))
+
+    def test_get_amount(self):
+        '''
+        The ``get_amount`` function will return a flipped balance for
+        ``HistoricalAccounts`` that are Assets, Cost of Sales, Expenses or
+        Other Expenses (types 1, 5, 6, 8).
+
+        A ``HistoricalAccounts`` ``amount`` is negative if it holds a debit
+        balance and positive if it holds a credit balance. For types 1, 5, 6
+        and 8, a debit balance is considered a positive value, and a credit
+        balance has a negative value.  This function will flip the credit/debit
+        balance into the value balance for these Account types.
+
+        ``HistoricalAccounts`` will other types will return the same value as
+        their ``amount``.
+        '''
+        self.assertEqual(self.liability_historical.get_amount(),
+                Decimal('-900.25'))
+        self.assertEqual(self.asset_historical.get_amount(),
+                Decimal('9000.01'))
+
+    def test_flip_balance(self):
+        '''
+        HistoricalAccounts that are Assets, Expenses, Cost of Sales or Other
+        Expense types store their credit/debit balance in the `amount` field
+        while their value balance is actually the opposite of the credit/debit
+        balance, i.e. debits(a negative `amounts`) have positive values and
+        credits(a positive `amount`) have negative values.
+
+        The `flip_balance` method of the HistoricalAccount class will return
+        True if the HistoricalAccount has an above type, indicating it's amount
+        needs to be flipped to represent the value, and False otherwise,
+        indicating the amount does not need to be flipped to represent the
+        value.
+        '''
+        today = datetime.date.today()
+        equity_historical = HistoricalAccount.objects.create(
+                number='3-1001', name='Test Equity', type=3,
+                amount=Decimal('4'), date=today)
+        income_historical = HistoricalAccount.objects.create(
+                number='4-1001', name='Test Income', type=4,
+                amount=Decimal('2'), date=today)
+        cost_sale_historical = HistoricalAccount.objects.create(
+                number='5-1001', name='Test CoS', type=5,
+                amount=Decimal('0'), date=today)
+        expense_historical = HistoricalAccount.objects.create(
+                number='6-1001', name='Test Expense', type=6,
+                amount=Decimal('4'), date=today)
+        other_income_historical = HistoricalAccount.objects.create(
+                number='7-1001', name='Test Oth Income', type=7,
+                amount=Decimal('2'), date=today)
+        other_expense_historical = HistoricalAccount.objects.create(
+                number='8-1001', name='Test Oth Expense', type=8,
+                amount=Decimal('0'), date=today)
+        self.assertTrue(self.asset_historical.flip_balance())
+        self.assertTrue(cost_sale_historical.flip_balance())
+        self.assertTrue(expense_historical.flip_balance())
+        self.assertTrue(other_expense_historical.flip_balance())
+        self.assertFalse(self.liability_historical.flip_balance())
+        self.assertFalse(income_historical.flip_balance())
+        self.assertFalse(equity_historical.flip_balance())
+        self.assertFalse(other_income_historical.flip_balance())
+
+
+class JournalEntryModelTests(TestCase):
+    '''Tests custom methods on the BaseJournalEntry model.'''
+    def test_in_fiscal_year_no_fiscal_year(self):
+        '''
+        If there is no current Fiscal Year, the `in_fiscal_year` method will
+        return `True`.
+        '''
+        entry = JournalEntry.objects.create(date=datetime.date.today(),
+                memo='no fiscal year')
+        self.assertTrue(entry.in_fiscal_year())
+
+    def test_in_fiscal_year_before_start(self):
+        '''
+        If there is a Fiscal Year, the `in_fiscal_year` method will return
+        `False` if the Entry's date is before the FiscalYear's start.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        entry_date = datetime.date(2011, 2, 5)
+        entry = JournalEntry.objects.create(date=entry_date,
+                memo='before fiscal year')
+        self.assertEqual(FiscalYear.objects.current_start(),
+                datetime.date(2012, 1, 1))
+        self.assertFalse(entry.in_fiscal_year())
+
+    def test_in_fiscal_year_after_start(self):
+        '''
+        If there is a Fiscal Year, the `in_fiscal_year` method will return
+        `False` if the Entry's date is before the FiscalYear's start.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        entry_date = datetime.date(2012, 2, 5)
+        entry = JournalEntry.objects.create(date=entry_date,
+                memo='in fiscal year')
+        self.assertEqual(FiscalYear.objects.current_start(),
+                datetime.date(2012, 1, 1))
+        self.assertTrue(entry.in_fiscal_year())
 
 
 class BankSpendingEntryModelTests(TestCase):
@@ -324,6 +720,7 @@ class BankSpendingEntryModelTests(TestCase):
                 date=datetime.date.today())
 
         self.assertRaises(ValidationError, second_entry.save)
+
 
 class BankReceivingEntryModelTests(TestCase):
     '''Test the custom BankSpendingEntry model methods'''
@@ -559,6 +956,308 @@ class TransactionModelTests(TestCase):
         self.assertEqual(trans.date, datetime.date.today())
         trans.save(pull_date=True)
         self.assertEqual(trans.date, date)
+
+
+class FiscalYearManagerTests(TestCase):
+    '''Test the manager class for FiscalYears'''
+    def test_current_start_no_years(self):
+        '''
+        The ``current_start`` method should return ``None`` if there are no
+        ``FiscalYears``.
+        '''
+        self.assertEqual(FiscalYear.objects.current_start(), None)
+
+    def test_current_start_one_year(self):
+        '''
+        If there is only one ``FiscalYear`` the ``current_start`` method should
+        return a date that is ``period`` amount of months before the
+        ``end_month`` and ``year`` of the ``FiscalYear``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        start = datetime.date(2011, 3, 1)
+        self.assertEqual(FiscalYear.objects.current_start(), start)
+
+    def test_current_start_two_years(self):
+        '''
+        If there are multiple  ``FiscalYears`` the ``current_start`` method
+        should return a date that is one day after the ``end_month`` and
+        ``year`` of the Second to Latest ``FiscalYear``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        FiscalYear.objects.create(year=2012, end_month=6, period=12)
+        start = datetime.date(2012, 3, 1)
+        self.assertEqual(FiscalYear.objects.current_start(), start)
+
+
+class FiscalYearFormTests(TestCase):
+    '''
+    Test the Fiscal Year creation form validation.
+    '''
+    def setUp(self):
+        '''
+        The FiscalYearForm requires a Current Year Earnings and Retained
+        Earnings Equity Account if there are previous FiscalYears.
+        '''
+        self.equity_header = create_header('Equity', cat_type=3)
+        self.retained_account = create_account('Retained Earnings', self.equity_header, 0, 3)
+        self.current_earnings = create_account('Current Year Earnings', self.equity_header, 0, 3)
+
+    def test_first_fiscal_year_creation(self):
+        '''
+        The first Fiscal Year created can be any month, year and period and
+        does not require ``Current Year Earnings`` and ``Retained Earnings``
+        Equity ``Accounts``.
+        '''
+        Account.objects.all().delete()
+        form_data = {
+                'year': 1,
+                'end_month': 4,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_next_year_same_month(self):
+        '''
+        A valid Fiscal Year has a ``year`` greater than or equal to the current
+        FiscalYear's and a ``month`` equal to the ``period``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2013,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_next_year_same_month_13(self):
+        '''
+        A valid Fiscal Year has a ``year`` greater than or equal to the current
+        FiscalYear's and a ``month`` equal to the ``period``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=13)
+        form_data = {
+                'year': 2013,
+                'end_month': 3,
+                'period': 13
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_next_year_prev_month(self):
+        '''
+        A valid Fiscal Year has a ``year`` greater than or equal to the current
+        FiscalYear's and a ``month`` less than the ``period``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2013,
+                'end_month': 1,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_next_year_next_month_fail(self):
+        '''
+        A Fiscal Year is invalid if the new ``end_month`` is more than
+        ``period`` months from the last ``end_month``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2013,
+                'end_month': 3,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+        (form_data['end_month'], form_data['period']) = (4, 13)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_many_years_same_month_fail(self):
+        '''
+        A Fiscal Year is invalid if the new ``year`` and ``end_month`` is more
+        than ``period`` months from the last ``end_month``.
+
+        Tests for bug where end_months close to previous end_month would be
+        valid even if the year caused the new end date to be beyond the new
+        period.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2014,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+        (form_data['end_month'], form_data['period']) = (4, 13)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_same_year(self):
+        '''
+        A valid Fiscal Year can have the same ``year`` as the current
+        FiscalYear if the ``month`` is greater.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2012,
+                'end_month': 3,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_same_year_and_month_fail(self):
+        '''
+        A form is invalid if the ``year`` and ``month`` of the new FiscalYear
+        are the same as the last's.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2012,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_same_year_prev_month_fail(self):
+        '''
+        A form is invalid if the ``year`` of the new FiscalYear
+        is the same as the last's and the ``month`` is before the last's.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2012,
+                'end_month': 1,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_prev_year_fail(self):
+        '''
+        Any ```FiscalYear`` with a ``year`` less than the last Year's is
+        invalid.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=12)
+        form_data = {
+                'year': 2011,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        (form_data['end_month'], form_data['period']) = (1, 12)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        (form_data['end_month'], form_data['period']) = (3, 12)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+        (form_data['end_month'], form_data['period']) = (3, 13)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        (form_data['end_month'], form_data['period']) = (1, 13)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        (form_data['end_month'], form_data['period']) = (4, 13)
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_period_change_13_to_12(self):
+        '''
+        A ``FiscalYear`` can switch from a previous ``period`` of ``13`` to
+        a new ``period`` of ``12`` only if there are no ``Transactions`` in
+        the previous Year's ``end_month``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=13)
+        form_data = {
+                'year': 2013,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_period_change_13_to_12_fail(self):
+        '''
+        A ``FiscalYear`` cannot switch from a previous ``period`` of ``13`` to
+        a new ``period`` of ``12`` only if there are ``Transactions`` in the
+        previous Year's ``end_month``.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=2, period=13)
+        asset_header = create_header('asset', cat_type=1)
+        asset_acc = create_account('asset', asset_header, 0, 1)
+        entry = create_entry(datetime.date(2012, 2, 1), 'Entry')
+        create_transaction(entry, asset_acc, -20)
+        create_transaction(entry, asset_acc, 20)
+
+        form_data = {
+                'year': 2013,
+                'end_month': 2,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_no_earnings_accounts_fail(self):
+        '''
+        A FiscalYear is invalid if ``Current Year Earnings`` and
+        ``Retained Earnings`` Equity(type=3) ``Accounts`` do not exist and
+        there are previous ``FiscalYears``.
+        '''
+        Account.objects.all().delete()
+        FiscalYear.objects.create(year=2000, end_month=4, period=12)
+        form_data = {
+                'year': 2001,
+                'end_month': 4,
+                'period': 12
+        }
+        form = FiscalYearForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+
+class FiscalYearAccountsFormSetTests(TestCase):
+    '''
+    Test the FiscalYearAccountsForm initial data.
+    '''
+    def setUp(self):
+        self.asset_header = create_header('asset', cat_type=1)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+
+    def test_unreconciled_account_initial(self):
+        '''
+        An Account that is unreconciled should have it's initial ``exclude``
+        value unchecked.
+        '''
+        formset = FiscalYearAccountsFormSet()
+        self.assertFalse(formset.forms[0].fields['exclude'].initial)
+
+    def test_reconciled_account_initial(self):
+        '''
+        A reconciled Account will have its initial ``exclude`` value checked.
+        '''
+        self.asset_account.last_reconciled = datetime.date.today()
+        self.asset_account.save()
+        formset = FiscalYearAccountsFormSet()
+        self.assertTrue(formset.forms[0].fields['exclude'].initial)
+
+    def test_old_reconciled_account_initial(self):
+        '''
+        An Account reconciled a long time ago will also have it's initial
+        ``exclude`` value checked.
+        '''
+        self.asset_account.last_reconciled = datetime.date.today() - datetime.timedelta(days=1000)
+        self.asset_account.save()
+        formset = FiscalYearAccountsFormSet()
+        self.assertTrue(formset.forms[0].fields['exclude'].initial)
 
 
 class QuickSearchViewTests(TestCase):
@@ -797,6 +1496,8 @@ class AccountReconcileViewTests(TestCase):
         A `POST` to the `reconcile_account` view with a `statement_date` before
         the Accounts last_reconciled date will return an Error and no Transactions.
         '''
+        self.bank_account.last_reconciled = datetime.date.today()
+        self.bank_account.save()
         past_entry = create_entry(datetime.date.today() - datetime.timedelta(days=60), 'before reconciled date entry')
         create_transaction(past_entry, self.bank_account, 100)
         create_transaction(past_entry, self.liability_account, -100)
@@ -1265,6 +1966,27 @@ class AccountReconcileViewTests(TestCase):
         self.assertTrue(Transaction.objects.all()[3].reconciled)
         self.assertFalse(Transaction.objects.all()[2].reconciled)
 
+    def test_reconcile_account_view_fail_invalid_form_data(self):
+        '''
+        A `POST` to the `reconcile_account` view with an invalid data
+        should return forms with errors.
+        '''
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, -275)
+        create_transaction(entry, self.liability_account, 275)
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
+                                    data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
+                                          'account-statement_balance': 'arg',
+                                          'form-TOTAL_FORMS': 1,
+                                          'form-INITIAL_FORMS': 1,
+                                          'form-0-id': 1,
+                                          'form-0-reconciled': 'over 9000',
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, 'account_form', 'statement_balance',
+                'Enter a number.')
+
     def test_reconcile_account_view_fail_no_submit(self):
         '''
         A `POST` to the `reconcile_account` view with no value for `submit` should
@@ -1302,10 +2024,12 @@ class AccountReconcileViewTests(TestCase):
 
     def test_reconcile_account_view_fail_old_statement_date(self):
         '''
-        A `POST` to the `reconcile_account` view with valid Transaction data but
-        a `statement_date` before the Accounts last_reconciled date will return
-        an Error and the Transactions.
+        A `POST` to the `reconcile_account` view with valid Transaction data
+        but a `statement_date` before the Accounts last_reconciled date will
+        return an Error and the Transactions.
         '''
+        self.bank_account.last_reconciled = datetime.date.today()
+        self.bank_account.save()
         entry = create_entry(datetime.date.today(), 'test memo')
         create_transaction(entry, self.bank_account, -50)
         create_transaction(entry, self.bank_account, -50)
@@ -1627,6 +2351,68 @@ class AccountDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', 'startdate', 'Enter a valid date.')
         self.assertFormError(response, 'form', 'stopdate', 'Enter a valid date.')
+
+    def test_show_account_detail_view_date_in_fiscal_year(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug`,
+        startdate, and stopdate will show the running balance and counters if
+        the startdate is in the FiscalYear.
+        '''
+        in_range_date = datetime.date.today()
+        FiscalYear.objects.create(year=in_range_date.year, end_month=12, period=12)
+        date_range = (datetime.date(in_range_date.year, 1, 1),
+                      datetime.date(in_range_date.year, 12, 31))
+
+        # In range entries
+        general = create_entry(in_range_date, 'general entry')
+        create_transaction(general, self.bank_account, -100)
+
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.bank_account.slug}),
+                                   data={'startdate': date_range[0], 'stopdate': date_range[1]})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['show_balance'])
+
+    def test_show_account_detail_view_date_no_fiscal_year(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug`,
+        startdate, and stopdate will show the running balance and counters if
+        there is no current FiscalYear
+        '''
+        in_range_date = datetime.date.today()
+        date_range = (datetime.date(in_range_date.year, 1, 1),
+                      datetime.date(in_range_date.year, 12, 31))
+
+        # In range entries
+        general = create_entry(in_range_date, 'general entry')
+        create_transaction(general, self.bank_account, -100)
+
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.bank_account.slug}),
+                                   data={'startdate': date_range[0], 'stopdate': date_range[1]})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['show_balance'])
+
+    def test_show_account_detail_view_date_out_fiscal_year(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug`,
+        startdate, and stopdate will show the running balance and counters if
+        the startdate is in the FiscalYear.
+        '''
+        in_range_date = datetime.date.today()
+        FiscalYear.objects.create(year=in_range_date.year + 2, end_month=12, period=12)
+        date_range = (datetime.date(in_range_date.year, 1, 1),
+                      datetime.date(in_range_date.year, 12, 31))
+
+        # In range entries
+        general = create_entry(in_range_date, 'general entry')
+        create_transaction(general, self.bank_account, -100)
+
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.bank_account.slug}),
+                                   data={'startdate': date_range[0], 'stopdate': date_range[1]})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['show_balance'])
 
 
 class HistoricalAccountViewTests(TestCase):
@@ -2230,11 +3016,143 @@ class JournalEntryViewTests(TestCase):
                                     data={'delete': 'Delete'})
         self.assertEqual(response.status_code, 404)
 
-    def test_add_journal_entry_view_edit(self):
+    def test_add_journal_entry_view_fiscal_year(self):
+        '''
+        A `POST` to the ``add_journal_entry`` view with a ``date`` on or after
+        the start of the current ``FiscalYear`` will create a JournalEntry
+        and Transactions.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': datetime.date(2011, 1, 1),
+                                          'entry-memo': 'test GJ entry',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-event': self.event.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'subbtn': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
+                                               kwargs={'journal_id': 1}))
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.all()[0].balance, -5)
+        self.assertEqual(Account.objects.all()[1].balance, 5)
+
+    def test_add_journal_entry_view_fail_fiscal_year(self):
+        '''
+        A `POST` to the ``add_journal_entry`` view with a ``date`` before
+        the start of the current ``FiscalYear`` will not create a JournalEntry
+        or Transactions and displays and error message.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': datetime.date(2011, 1, 1),
+                                          'entry-memo': 'test GJ entry',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-event': self.event.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'subbtn': 'Submit'})
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_add_journal_entry_view_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_journal_entry`` view with a ``date`` on or after
+        the start of the current ``FiscalYear`` will create a JournalEntry
+        and Transactions.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2010, end_month=12, period=12)
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': datetime.date(2011, 1, 1),
+                                          'entry-memo': 'test GJ entry',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-event': self.event.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'subbtn': 'Submit'})
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
+                                               kwargs={'journal_id': 1}))
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.all()[0].balance, -5)
+        self.assertEqual(Account.objects.all()[1].balance, 5)
+
+    def test_add_journal_entry_view_fail_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_journal_entry`` view with a ``date`` before
+        the start of the current ``FiscalYear`` will not create a JournalEntry
+        or Transactions and displays and error message.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': datetime.date(2011, 12, 31),
+                                          'entry-memo': 'test GJ entry',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-debit': 5,
+                                          'transaction-0-event': self.event.id,
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-account': self.expense_account.id,
+                                          'transaction-1-credit': 5,
+                                          'subbtn': 'Submit'})
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_add_journal_entry_view_edit_no_fiscal_year(self):
         '''
         A `GET` to the `add_journal_entry` view with a `journal_id` will return
         a JournalEntryForm and TransactionFormSet with the specified JournalEntry
-        instance
+        instance if there is no current FiscalYear.
         '''
         self.test_add_journal_entry_view_success()
         entry = JournalEntry.objects.all()[0]
@@ -2252,6 +3170,36 @@ class JournalEntryViewTests(TestCase):
                          entry.transaction_set.all()[1])
         self.assertEqual(response.context['transaction_formset'].forms[0].initial['debit'], 5)
         self.assertEqual(response.context['transaction_formset'].forms[1].initial['credit'], 5)
+
+    def test_add_journal_entry_view_edit_in_fiscal_year(self):
+        '''
+        A `GET` to the `add_journal_entry` view with a `journal_id` will return
+        a JournalEntryForm and TransactionFormSet with the specified JournalEntry
+        instance if the entry is in the current Fiscal Year
+        '''
+        today = datetime.date.today()
+        FiscalYear.objects.create(year=today.year, end_month=12, period=12)
+        self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+
+    def test_add_journal_entry_view_edit_out_of_fiscal_year(self):
+        '''
+        A `GET` to the `add_journal_entry` view with a `journal_id` will return
+        a 404 Error if the entry is before the current Fiscal Year.
+        '''
+        self.test_add_journal_entry_view_success()
+        today = datetime.date.today()
+        FiscalYear.objects.create(year=today.year + 2, end_month=12, period=12)
+        entry = JournalEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_journal_entry',
+                                           kwargs={'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 404)
 
     def test_add_journal_entry_view_edit_account_success(self):
         '''
@@ -2795,13 +3743,14 @@ class BankEntryViewTests(TestCase):
         '''
         A `GET` to the `add_bank_entry` view with a `journal_type` of `CR` and
         a `journal_id` should display BankReceiving Forms and Formsets using an
-        instance of the BankReceivingEntry with id `journal_id`.
+        instance of the BankReceivingEntry with id `journal_id` if there is
+        no current FiscalYear.
         '''
         self.test_bank_receiving_add_view_success()
         entry = BankReceivingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.add_bank_entry',
                                            kwargs={'journal_type': 'CR',
-                                                   'journal_id': 1}))
+                                                   'journal_id': entry.id}))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_add.html')
         self.failUnless(isinstance(response.context['entry_form'], BankReceivingForm))
@@ -2867,6 +3816,167 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(new_bank_account, Transaction.objects.all()[0].account)
         self.assertEqual(new_expense_account, Transaction.objects.all()[1].account)
         self.assertEqual(self.expense_account, Transaction.objects.all()[2].account)
+
+    def test_bank_receiving_add_view_edit_in_fiscal_year(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CR` and
+        a `journal_id` should display BankReceiving Forms and Formsets using an
+        instance of the BankReceivingEntry with id `journal_id` if the `date`
+        is in the current FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2013, end_month=12, period=12)
+        self.test_bank_receiving_add_view_success()
+        entry = BankReceivingEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CR',
+                                                   'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+
+    def test_bank_receiving_add_view_edit_out_of_fiscal_year(self):
+        '''
+        A `GET` to the `add_journal_entry` view with a `journal_id` will return
+        a 404 Error if the entry is before the current Fiscal Year.
+        '''
+        self.test_bank_receiving_add_view_success()
+        FiscalYear.objects.create(year=2015, end_month=12, period=12)
+        entry = BankReceivingEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CR',
+                                                   'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_bank_receiving_add_view_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CR`` and a ``date`` on or after the start of the current
+        ``FiscalYear`` will create a BankReceivingEntry and Transactions.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, -20)
+        self.assertEqual(Account.objects.get(bank=False).balance, 20)
+
+    def test_bank_receiving_add_view_fail_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CR`` and a ``date`` before the start of the current ``FiscalYear``
+        will not create a BankReceivingEntry or Transactions and displays an
+        error message.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2011-01-11',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_receiving_add_view_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CR`` and a ``date`` on or after the start of the current
+        ``FiscalYear`` will create a BankReceivingEntry and Transactions.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2010, end_month=12, period=12)
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, -20)
+        self.assertEqual(Account.objects.get(bank=False).balance, 20)
+
+    def test_bank_receiving_add_view_fail_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CR`` and a ``date`` before the start of the current ``FiscalYear``
+        will not create a BankReceivingEntry or Transactions and displays an
+        error message.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2011-01-11',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_bank_receiving_add_view_post_fail(self):
         '''
@@ -3072,7 +4182,7 @@ class BankEntryViewTests(TestCase):
         entry = BankSpendingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.add_bank_entry',
                                            kwargs={'journal_type': 'CD',
-                                                   'journal_id': 1}))
+                                                   'journal_id': entry.id}))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_add.html')
         self.failUnless(isinstance(response.context['entry_form'], BankSpendingForm))
@@ -3086,6 +4196,38 @@ class BankEntryViewTests(TestCase):
                          entry.transaction_set.all()[0])
         self.assertEqual(response.context['transaction_formset'].forms[0].initial['amount'],
                          -1 * entry.transaction_set.all()[0].balance_delta)
+
+    def test_bank_spending_add_view_edit_in_fiscal_year(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CD` and
+        a `journal_id` should display BankSpending Forms and Formsets editing
+        the BankSpendingEntry with id of `journal_id` if the `date`
+        is in the current FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2013, end_month=12, period=12)
+        self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CD',
+                                                   'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/entry_add.html')
+
+    def test_bank_spending_add_view_edit_out_of_fiscal_year(self):
+        '''
+        A `GET` to the `add_bank_entry` view with a `journal_type` of `CD` and
+        a `journal_id` will return a 404 Error if the entry is before the
+        current Fiscal Year.
+        '''
+        self.test_bank_spending_add_view_success()
+        FiscalYear.objects.create(year=2015, end_month=12, period=12)
+        entry = BankSpendingEntry.objects.all()[0]
+        response = self.client.get(reverse('accounts.views.add_bank_entry',
+                                           kwargs={'journal_type': 'CD',
+                                                   'journal_id': entry.id}))
+
+        self.assertEqual(response.status_code, 404)
 
     def test_bank_spending_add_view_edit_success(self):
         '''
@@ -3138,6 +4280,138 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(new_expense_account.balance, -15)
         self.assertEqual(new_bank_account, Transaction.objects.all()[0].account)
         self.assertEqual(new_expense_account, Transaction.objects.all()[1].account)
+
+    def test_bank_spending_add_view_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CD`` and a ``date`` on or after the start of the current
+        ``FiscalYear`` will create a BankReceivingEntry and Transactions.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2013-03-12',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, 20)
+        self.assertEqual(Account.objects.get(bank=False).balance, -20)
+
+    def test_bank_spending_add_view_fail_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CD`` and a ``date`` before the start of the current ``FiscalYear``
+        will not create a BankReceivingEntry or Transactions and displays an
+        error message.
+        If there is only one FiscalYear, the ``period`` amount of months before
+        the ``end_month`` is used.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2011-01-11',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_bank_spending_add_view_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CD`` and a ``date`` on or after the start of the current
+        ``FiscalYear`` will create a BankReceivingEntry and Transactions.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2010, end_month=12, period=12)
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2011-01-12',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        self.assertEqual(BankReceivingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, -20)
+        self.assertEqual(Account.objects.get(bank=False).balance, 20)
+
+    def test_bank_spending_add_view_fail_two_fiscal_year(self):
+        '''
+        A `POST` to the ``add_bank_entry`` view with a ``journal_type`` of
+        ``CD`` and a ``date`` before the start of the current ``FiscalYear``
+        will not create a BankReceivingEntry or Transactions and displays an
+        error message.
+        If there is are multiple FiscalYear, the ``date`` cannot be before the
+        ``end_month`` of the Second to Latest FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+                                    data={'entry-account': self.bank_account.id,
+                                          'entry-date': '2011-01-11',
+                                          'entry-payor': 'test payor',
+                                          'entry-amount': 20,
+                                          'entry-memo': 'test memo',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-bankspend_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-amount': 20,
+                                          'transaction-0-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['entry_form'].is_valid())
+        self.assertFormError(response, 'entry_form', 'date',
+                'The date must be in the current Fiscal Year.')
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_bank_spending_add_view_post_fail(self):
         '''
@@ -3311,3 +4585,701 @@ class BankRegisterViewTests(TestCase):
         self.assertItemsEqual(response.context['transactions'], [banktran_receive, banktran_spend])
         self.assertEqual(response.context['startdate'], datetime.date(2011, 1, 1))
         self.assertEqual(response.context['stopdate'], datetime.date(2012, 3, 7))
+
+
+class FiscalYearViewTests(TestCase):
+    '''
+    Test the view for creating new Fiscal Years.
+    '''
+    def setUp(self):
+        '''
+        Fiscal Years need Accounts to clear Transactions from.
+        Equity Accounts named ``Retained Earnings`` and ``Current Year
+        Earnings`` is required to move balances after purging.
+        '''
+        self.asset_header = create_header('asset', cat_type=1)
+        self.expense_header = create_header('expense', cat_type=6)
+        self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
+        self.bank_account.last_reconciled = datetime.date(2012, 11, 1)
+        self.bank_account.save()
+        self.expense_account = create_account('expense', self.expense_header, 0, 6)
+        self.equity_header = create_header('Equity', cat_type=3)
+        self.retained_account = create_account('Retained Earnings', self.equity_header, 0, 3)
+        self.current_earnings = create_account('Current Year Earnings', self.equity_header, 0, 3)
+
+    def test_add_fiscal_year_initial(self):
+        '''
+        A `GET` to the ``add_fiscal_year`` view should display a FiscalYearForm
+        and FiscalYearAccountsFormSet.
+        '''
+        response = self.client.get(reverse('accounts.views.add_fiscal_year'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/year_add.html')
+        self.assertTrue(isinstance(response.context['fiscal_year_form'],
+                                   FiscalYearForm))
+        self.assertTrue(isinstance(response.context['accounts_formset'],
+                                   FiscalYearAccountsFormSet))
+        self.assertFalse(response.context['previous_year'])
+
+    def test_add_fiscal_year_success(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data will
+        create a new ``FiscalYear`` and redirect to the ``show_accounts_chart``
+        view.
+        '''
+        response = self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_accounts_chart'))
+        self.assertEqual(FiscalYear.objects.count(), 1)
+
+    def test_add_fiscal_year_post_fail(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with invalid data will
+        return a bound ``FiscalYearForm`` with the errors.
+        '''
+        response = self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 'over 9000',
+                                     'end_month': 15,
+                                     'period': 11,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': 'yes',
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': 'whatever',
+                                     'submit': 'Start New Year'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/year_add.html')
+        self.assertFormError(response, 'fiscal_year_form', 'year',
+                'Enter a whole number.')
+        self.assertFormError(response, 'fiscal_year_form', 'end_month',
+                "Select a valid choice. 15 is not one of the available "
+                "choices.")
+        self.assertFormError(response, 'fiscal_year_form', 'period',
+                'Select a valid choice. 11 is not one of the available '
+                'choices.')
+
+    def test_add_fiscal_year_create_historical_accounts(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and no
+        previous FiscalYear will not create any HistoricalAccount entries.
+        '''
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+
+        self.assertEqual(HistoricalAccount.objects.count(), 0)
+
+    def test_add_fiscal_year_purge_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and no
+        previous ``FiscalYear`` will delete no ``JournalEntry``,
+        ``BankReceivingEntry``, or ``BankSpendingEntry`` instances.
+        '''
+        date = datetime.date(2012, 3, 20)
+        entry = create_entry(date, 'reconciled entry')
+        bank_trans = create_transaction(entry, self.bank_account, 20)
+        bank_trans.reconciled = True
+        bank_trans.save()
+        create_transaction(entry, self.expense_account, 20)
+        unreconciled_entry = create_entry(date, 'unreconciled entry')
+        create_transaction(unreconciled_entry, self.bank_account, 35)
+        create_transaction(unreconciled_entry, self.expense_account, 20)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)
+
+    def test_add_fiscal_year_balance_change(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and no
+        previous ``FiscalYear`` will not change ``Account`` balances.
+        '''
+        date = datetime.date(2012, 3, 20)
+        entry = create_entry(date, 'reconciled entry')
+        bank_trans = create_transaction(entry, self.bank_account, 20)
+        bank_trans.reconciled = True
+        bank_trans.save()
+        create_transaction(entry, self.expense_account, 20)
+        purged_entry = create_entry(date, 'unreconciled but not excluded')
+        create_transaction(purged_entry, self.expense_account, -20)
+        create_transaction(purged_entry, self.current_earnings, 20)
+        unreconciled_entry = create_entry(date, 'unreconciled entry')
+        create_transaction(unreconciled_entry, self.bank_account, 35)
+        create_transaction(unreconciled_entry, self.expense_account, 20)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.bank_account = Account.objects.get(id=self.bank_account.id)
+        self.expense_account = Account.objects.get(id=self.expense_account.id)
+        self.current_earnings = Account.objects.get(id=self.current_earnings.id)
+        self.retained_account = Account.objects.get(id=self.retained_account.id)
+        self.assertEqual(self.bank_account.balance, 55)
+        self.assertEqual(self.expense_account.balance, 20)
+        self.assertEqual(self.current_earnings.balance, 20)
+        self.assertEqual(self.retained_account.balance, 0)
+
+    def test_add_fiscal_year_with_previous_initial(self):
+        '''
+        If there is a previous FiscalYear, a ``GET`` to the ``add_fiscal_year``
+        view should display a FiscalYearForm, FiscalYearAccountsFormSet and the
+        previous FiscalYear.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        prev = FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.get(reverse('accounts.views.add_fiscal_year'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/year_add.html')
+        self.assertTrue(isinstance(response.context['fiscal_year_form'],
+                                   FiscalYearForm))
+        self.assertTrue(isinstance(response.context['accounts_formset'],
+                                   FiscalYearAccountsFormSet))
+        self.assertEqual(response.context['previous_year'], prev)
+
+    def test_add_fiscal_year_with_previous_success(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and a
+        previous FiscalYear will redirect to the ``show_accounts_chart`` view.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        response = self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertRedirects(response,
+                             reverse('accounts.views.show_accounts_chart'))
+        self.assertEqual(FiscalYear.objects.count(), 2)
+
+    def test_add_fiscal_year_with_previous_create_historical_accounts(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one
+        previous FiscalYear will create HistoricalAccounts from the previous
+        Years end date to ``period`` months before.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(HistoricalAccount.objects.count(), 48)
+
+    def test_add_fiscal_year_with_previous_purge_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one
+        previous ``FiscalYear`` will delete all ``JournalEntry``,
+        ``BankReceivingEntry``, and ``BankSpendingEntry`` from the previous
+        ``FiscalYear`` excluding those with unreconciled ``Transactions``
+        for ``Accounts`` in the POSTed data.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        entry = create_entry(date, 'reconciled entry')
+        bank_trans = create_transaction(entry, self.bank_account, 20)
+        bank_trans.reconciled = True
+        bank_trans.save()
+        create_transaction(entry, self.expense_account, 20)
+        purged_entry = create_entry(date, 'unreconciled but not excluded')
+        create_transaction(purged_entry, self.expense_account, -20)
+        create_transaction(purged_entry, self.current_earnings, 20)
+        unreconciled_entry = create_entry(date, 'unreconciled entry')
+        unreconciled_bank = create_transaction(unreconciled_entry, self.bank_account, 35)
+        unreconciled_expense = create_transaction(unreconciled_entry, self.expense_account, 20)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_with_previous_purge_bank_spending_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one
+        previous ``FiscalYear`` will delete all ``JournalEntry``,
+        ``BankReceivingEntry``, and ``BankSpendingEntry`` from the previous
+        ``FiscalYear`` excluding those with unreconciled ``Transactions``
+        for ``Accounts`` in the POSTed data.
+        '''
+        bank_account2 = create_account('bank2', self.asset_header, 0, 1, True)
+        bank_account2.last_reconciled = datetime.date(2012, 11, 1)
+        bank_account2.save()
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        # This Account is excluded but the entry is reconciled.
+        entry_main = Transaction.objects.create(account=self.bank_account, balance_delta=20, reconciled=True)
+        entry = BankSpendingEntry.objects.create(main_transaction=entry_main,
+                date=date, memo='reconciled entry', payee='test payee', ach_payment=True)
+        Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=entry)
+        # This Account is not excluded so the entry will be deleted
+        purged_entry_main = Transaction.objects.create(account=bank_account2,
+                balance_delta=20, reconciled=False)
+        purged_entry = BankSpendingEntry.objects.create(main_transaction=purged_entry_main,
+                date=date, memo='unreconiled but not excluded', payee='test payee', ach_payment=True)
+        Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=purged_entry)
+        # This Account is excluded and the entry is unreconciled so it will stay
+        unreconciled_bank = Transaction.objects.create(account=self.bank_account,
+                balance_delta=20, reconciled=False)
+        unreconciled_entry = BankSpendingEntry.objects.create(main_transaction=unreconciled_bank,
+                date=date, memo='unreconciled entry', payee='test payee', ach_payment=True)
+        unreconciled_expense = Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=unreconciled_entry)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 3,
+                                     'form-INITIAL_FORMS': 3,
+                                     'form-MAX_NUM_FORMS': 3,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'form-2-id': bank_account2.id,
+                                     'form-2-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_with_previous_purge_bank_receiving_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one
+        previous ``FiscalYear`` will delete all ``JournalEntry``,
+        ``BankReceivingEntry``, and ``BankSpendingEntry`` from the previous
+        ``FiscalYear`` excluding those with unreconciled ``Transactions``
+        for ``Accounts`` in the POSTed data.
+        '''
+        bank_account2 = create_account('bank2', self.asset_header, 0, 1, True)
+        bank_account2.last_reconciled = datetime.date(2012, 11, 1)
+        bank_account2.save()
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        # This Account is excluded but the entry is reconciled.
+        entry_main = Transaction.objects.create(account=self.bank_account, balance_delta=-20, reconciled=True)
+        entry = BankReceivingEntry.objects.create(main_transaction=entry_main,
+                date=date, memo='reconciled entry', payor='test payor')
+        Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=entry)
+        # This Account is not excluded so the entry will be deleted
+        purged_entry_main = Transaction.objects.create(account=bank_account2,
+                balance_delta=-20, reconciled=False)
+        purged_entry = BankReceivingEntry.objects.create(main_transaction=purged_entry_main,
+                date=date, memo='unreconiled but not excluded', payor='test payor')
+        Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=purged_entry)
+        # This Account is excluded and the entry is unreconciled so it will stay
+        unreconciled_bank = Transaction.objects.create(account=self.bank_account,
+                balance_delta=-20, reconciled=False)
+        unreconciled_entry = BankReceivingEntry.objects.create(main_transaction=unreconciled_bank,
+                date=date, memo='unreconciled entry', payor='test payor')
+        unreconciled_expense = Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=unreconciled_entry)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 3,
+                                     'form-INITIAL_FORMS': 3,
+                                     'form-MAX_NUM_FORMS': 3,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'form-2-id': bank_account2.id,
+                                     'form-2-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_with_previous_balance_changes(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and a
+        previous ``FiscalYear`` will set new ``Account`` balances.
+        Accounts with types 1-3 will have their balance set to the last
+
+        HistoricalAccount of the just completed FiscalYear, plus any
+        Transactions in the new FiscalYear.
+
+        Accounts with type 4-8 will have their balance set to the sum of its
+        Transactions balance_deltas in the new FiscalYear.
+
+        The balance of the ``Current Year Earnings`` account will be moved
+        to the ``Retained Earnings`` account.
+        '''
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        other_expense_account = create_account('Other Expense', self.expense_header, 0, 6)
+        date = datetime.date(2012, 3, 20)
+        entry = create_entry(date, 'reconciled entry')
+        bank_trans = create_transaction(entry, self.bank_account, 20)
+        bank_trans.reconciled = True
+        bank_trans.save()
+        create_transaction(entry, self.expense_account, 20)
+        purged_entry = create_entry(date, 'unreconciled but not excluded')
+        create_transaction(purged_entry, self.expense_account, -20)
+        create_transaction(purged_entry, self.current_earnings, 20)
+        unreconciled_entry = create_entry(date, 'unreconciled entry')
+        create_transaction(unreconciled_entry, self.bank_account, 35)
+        create_transaction(unreconciled_entry, self.expense_account, 20)
+        future_date = datetime.date(2013, 2, 1)
+        future_entry = create_entry(future_date, 'in new fiscal year')
+        create_transaction(future_entry, other_expense_account, 2)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.bank_account = Account.objects.get(id=self.bank_account.id)
+        self.expense_account = Account.objects.get(id=self.expense_account.id)
+        other_expense_account = Account.objects.get(id=other_expense_account.id)
+        self.current_earnings = Account.objects.get(id=self.current_earnings.id)
+        self.retained_account = Account.objects.get(id=self.retained_account.id)
+        self.assertEqual(self.bank_account.balance, 55)
+        self.assertEqual(self.expense_account.balance, 0)
+        self.assertEqual(other_expense_account.balance, 2)
+        self.assertEqual(self.current_earnings.balance, 0)
+        self.assertEqual(self.retained_account.balance, 20)
+
+    def test_add_fiscal_year_w_two_previous_create_historical_accounts(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and two
+        previous FiscalYear will create HistoricalAccount entries for the
+        time period of the previous FiscalYear.
+
+        HistoricalAccounts with a ``type`` between 1 and 3 will have balance
+        sums per month while those with a ``type`` between 4 and 8 will have
+        the net_change for the month.
+        '''
+        jan = datetime.date(2012, 1, 20)
+        jan_entry = create_entry(jan, 'jan entry')
+        create_transaction(jan_entry, self.bank_account, -20)
+        create_transaction(jan_entry, self.expense_account, -15)
+        create_transaction(jan_entry, self.current_earnings, 35)
+
+        sept = datetime.date(2012, 9, 4)
+        sept_entry = create_entry(sept, 'sept entry')
+        create_transaction(sept_entry, self.bank_account, -20)
+        create_transaction(sept_entry, self.expense_account, -15)
+        create_transaction(sept_entry, self.current_earnings, 35)
+
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(HistoricalAccount.objects.count(), 48)
+
+        jan_bank = HistoricalAccount.objects.get(date__month=1, date__year=2012,
+                name=self.bank_account.name)
+        jan_exp = HistoricalAccount.objects.get(date__month=1, date__year=2012,
+                name=self.expense_account.name)
+        jan_earn = HistoricalAccount.objects.get(date__month=1, date__year=2012,
+                name=self.current_earnings.name)
+        self.assertEqual(jan_bank.amount, -20)
+        self.assertEqual(jan_exp.amount, -15)
+        self.assertEqual(jan_earn.amount, 35)
+
+        mar_bank = HistoricalAccount.objects.get(date__month=3, date__year=2012,
+                name=self.bank_account.name)
+        mar_exp = HistoricalAccount.objects.get(date__month=3, date__year=2012,
+                name=self.expense_account.name)
+        mar_earn = HistoricalAccount.objects.get(date__month=3, date__year=2012,
+                name=self.current_earnings.name)
+        self.assertEqual(mar_bank.amount, -20)
+        self.assertEqual(mar_exp.amount, 0)
+        self.assertEqual(mar_earn.amount, 35)
+
+        sept_bank = HistoricalAccount.objects.get(date__month=9, date__year=2012,
+                name=self.bank_account.name)
+        sept_exp = HistoricalAccount.objects.get(date__month=9, date__year=2012,
+                name=self.expense_account.name)
+        sept_earn = HistoricalAccount.objects.get(date__month=9, date__year=2012,
+                name=self.current_earnings.name)
+        self.assertEqual(sept_bank.amount, -40)
+        self.assertEqual(sept_exp.amount, -15)
+        self.assertEqual(sept_earn.amount, 70)
+
+    def test_add_fiscal_year_w_two_previous_purge_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and two
+        previous ``FiscalYears`` will purge all ``JournalEntry``,
+        ``BankReceivingEntry`` and ``BankReceivingEntry`` instances in the last
+        ``FiscalYear`` excluding Entries containing unreconciled
+        ``Transactions`` for ``Accounts`` in the POSTed data.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        entry = create_entry(date, 'reconciled entry')
+        bank_trans = create_transaction(entry, self.bank_account, 20)
+        bank_trans.reconciled = True
+        bank_trans.save()
+        create_transaction(entry, self.expense_account, 20)
+        unreconciled_entry = create_entry(date, 'unreconciled entry')
+        unreconciled_bank = create_transaction(unreconciled_entry, self.bank_account, 35)
+        unreconciled_expense = create_transaction(unreconciled_entry, self.expense_account, 20)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_w_two_previous_purge_bank_spending_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and two
+        previous ``FiscalYears`` will purge all ``JournalEntry``,
+        ``BankReceivingEntry`` and ``BankReceivingEntry`` instances in the last
+        ``FiscalYear`` excluding Entries containing unreconciled
+        ``Transactions`` for ``Accounts`` in the POSTed data.
+        '''
+        bank_account2 = create_account('bank2', self.asset_header, 0, 1, True)
+        bank_account2.last_reconciled = datetime.date(2012, 11, 1)
+        bank_account2.save()
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        # This Account is excluded but the entry is reconciled.
+        entry_main = Transaction.objects.create(account=self.bank_account, balance_delta=20, reconciled=True)
+        entry = BankSpendingEntry.objects.create(main_transaction=entry_main,
+                date=date, memo='reconciled entry', payee='test payee', ach_payment=True)
+        Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=entry)
+        # This Account is not excluded so the entry will be deleted
+        purged_entry_main = Transaction.objects.create(account=bank_account2,
+                balance_delta=20, reconciled=False)
+        purged_entry = BankSpendingEntry.objects.create(main_transaction=purged_entry_main,
+                date=date, memo='unreconiled but not excluded', payee='test payee', ach_payment=True)
+        Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=purged_entry)
+        # This Account is excluded and the entry is unreconciled so it will stay
+        unreconciled_bank = Transaction.objects.create(account=self.bank_account,
+                balance_delta=20, reconciled=False)
+        unreconciled_entry = BankSpendingEntry.objects.create(main_transaction=unreconciled_bank,
+                date=date, memo='unreconciled entry', payee='test payee', ach_payment=True)
+        unreconciled_expense = Transaction.objects.create(account=self.expense_account, balance_delta=-20,
+                bankspend_entry=unreconciled_entry)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 3,
+                                     'form-INITIAL_FORMS': 3,
+                                     'form-MAX_NUM_FORMS': 3,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'form-2-id': bank_account2.id,
+                                     'form-2-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_w_two_previous_purge_bank_receiving_entries(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and two
+        previous ``FiscalYears`` will purge all ``JournalEntry``,
+        ``BankReceivingEntry`` and ``BankReceivingEntry`` instances in the last
+        ``FiscalYear`` excluding Entries containing unreconciled
+        ``Transactions`` for ``Accounts`` in the POSTed data.
+        '''
+        bank_account2 = create_account('bank2', self.asset_header, 0, 1, True)
+        bank_account2.last_reconciled = datetime.date(2012, 11, 1)
+        bank_account2.save()
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        # This Account is excluded but the entry is reconciled.
+        entry_main = Transaction.objects.create(account=self.bank_account, balance_delta=-20, reconciled=True)
+        entry = BankReceivingEntry.objects.create(main_transaction=entry_main,
+                date=date, memo='reconciled entry', payor='test payor')
+        Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=entry)
+        # This Account is not excluded so the entry will be deleted
+        purged_entry_main = Transaction.objects.create(account=bank_account2,
+                balance_delta=-20, reconciled=False)
+        purged_entry = BankReceivingEntry.objects.create(main_transaction=purged_entry_main,
+                date=date, memo='unreconiled but not excluded', payor='test payor')
+        Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=purged_entry)
+        # This Account is excluded and the entry is unreconciled so it will stay
+        unreconciled_bank = Transaction.objects.create(account=self.bank_account,
+                balance_delta=-20, reconciled=False)
+        unreconciled_entry = BankReceivingEntry.objects.create(main_transaction=unreconciled_bank,
+                date=date, memo='unreconciled entry', payor='test payor')
+        unreconciled_expense = Transaction.objects.create(account=self.expense_account, balance_delta=20,
+                bankreceive_entry=unreconciled_entry)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 3,
+                                     'form-INITIAL_FORMS': 3,
+                                     'form-MAX_NUM_FORMS': 3,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'form-2-id': bank_account2.id,
+                                     'form-2-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertEqual(Transaction.objects.count(), 4)    # Includes 2 Transactions
+                                                            # for Current Year -> Retained entry
+        curr_trans = Account.objects.get(id=self.current_earnings.id).transaction_set.all()[0]
+        ret_trans = Account.objects.get(id=self.retained_account.id).transaction_set.all()[0]
+        self.assertSequenceEqual(Transaction.objects.all(),
+                [unreconciled_bank, unreconciled_expense, curr_trans, ret_trans])
+
+    def test_add_fiscal_year_with_previous_purge_entries_main_trans(self):
+        '''
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and two
+        previous ``FiscalYears`` will purge the `main_transactions` of
+        ``BankReceivingEntry`` and ``BankReceivingEntry`` instances in the last
+        ``FiscalYear`` excluding Entries containing unreconciled
+        ``Transactions`` for ``Accounts`` in the POSTed data.
+
+        Tests for regression in bug where `main_transaction` was not being
+        deleted in FiscalYear creation.
+        '''
+        FiscalYear.objects.create(year=2011, end_month=12, period=12)
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        date = datetime.date(2012, 3, 20)
+        unreconciled_main = Transaction.objects.create(date=date, detail='unrec main',
+                account=self.bank_account, balance_delta=50)
+        unreconciled_bank_entry = BankSpendingEntry.objects.create(ach_payment=True,
+                main_transaction=unreconciled_main, date=date, memo='unreconciled')
+        Transaction.objects.create(bankspend_entry=unreconciled_bank_entry,
+                balance_delta=-50, account=self.expense_account)
+        reconciled_main = Transaction.objects.create(date=date, detail='rec main',
+                account=self.bank_account, balance_delta=50, reconciled=True)
+        reconciled_bank_entry = BankReceivingEntry.objects.create(payor='test',
+                main_transaction=reconciled_main, date=date, memo='reconciled')
+        Transaction.objects.create(bankreceive_entry=reconciled_bank_entry, detail='rec gen',
+                balance_delta=-50, account=self.expense_account)
+        self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    {'year': 2013,
+                                     'end_month': 12,
+                                     'period': 12,
+                                     'form-TOTAL_FORMS': 2,
+                                     'form-INITIAL_FORMS': 2,
+                                     'form-MAX_NUM_FORMS': 2,
+                                     'form-0-id': self.bank_account.id,
+                                     'form-0-exclude': True,
+                                     'form-1-id': self.expense_account.id,
+                                     'form-1-exclude': False,
+                                     'submit': 'Start New Year'})
+        self.assertTrue(Transaction.objects.filter(detail='unrec main').exists())
+        self.assertFalse(Transaction.objects.filter(detail='rec main').exists())
+        self.assertFalse(Transaction.objects.filter(detail='rec gen').exists())
+        self.assertEqual(BankReceivingEntry.objects.count(), 0)
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 4)

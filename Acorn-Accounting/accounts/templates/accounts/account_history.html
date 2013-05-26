@@ -24,7 +24,7 @@
     <tr class="{% cycle 'main' 'alt' %}">
         <td>{{ account.number }}</a></td>
         <td>{{ account.name }}</td>
-        <td class="right">{{ account.amount|currency }}</td>
+        <td class="right">{{ account.get_amount|currency }}</td>
     </tr>
 {% endfor %}
     </tbody>

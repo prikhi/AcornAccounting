@@ -46,8 +46,8 @@ class Command(BaseCommand):
         if Account.objects.count() == 0:
             with open('./ACCOUNTS.TXT') as f:
                 for (counter, line) in enumerate(f):
-                    columns = line.split('\t')   # 0: number, 1: name
-                                                 # 2: header, 3:balance
+                    columns = line.split('\t')      # 0: number, 1: name
+                                                    # 2: header, 3:balance
                     if 'H' in columns[2]:   # is header
                         current_header = Header.objects.get(
                                 slug=slugify(columns[1]))

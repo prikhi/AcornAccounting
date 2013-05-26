@@ -41,7 +41,7 @@ class Command(BaseCommand):
         for day in range(0, 366):
             print "Starting day {} of 366".format(day)
             date = datetime.date.today() + datetime.timedelta(days=day)
-            for GJ in range(0,3):
+            for GJ in range(0, 3):
                 entry = JournalEntry.objects.create(date=date, memo='test entry')
                 amt1 = random.randint(100, 80000)
                 amt2 = random.randint(100, 80000)

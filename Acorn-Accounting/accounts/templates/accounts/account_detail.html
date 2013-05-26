@@ -17,6 +17,14 @@
 <h1>#{{ account.get_full_number }} {{ account.name|capwords }} - {{ account.get_balance|currency }}</h1>
 <a href="{% url accounts.views.reconcile_account account_slug=account.slug %}">Reconcile</a>
 <br /><br />
+{% if not show_balance %}
+<div class="alert alert-info">
+    <strong>Warning!</strong> The running balance and start/end counters are
+    only available when the Start Date is in the current Fiscal Year (after
+    {{ fiscal_start|date:"m/d/Y" }}).
+</div>
+<br />
+{% endif %}
 <table summary="{{ account.name }} Details" id="accounts_chart">
     <thead>
     <tr>
@@ -27,14 +35,16 @@
         <th scope="col" class="right">Debit</th>
         <th scope="col" class="right">Credit</th>
         <th scope="col" class="right">Event</th>
-        <th scope="col" class="right">Balance</th>
+        {% if show_balance %}
+            <th scope="col" class="right">Balance</th>
+        {% endif %}
     </tr>
     </thead>
     <tbody>
 {% for transaction in transactions %}
     <tr class="{% cycle 'main' 'alt' %} clickable">
         <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
-        <td>{{ transaction.get_date|date:"m/d/Y" }}</td>
+        <td>{{ transaction.date|date:"m/d/Y" }}</td>
         <td>{{ transaction.get_memo|capwords }}</td>
         <td>{{ transaction.detail|capwords }}</td>
         {% if transaction.balance_delta < 0 %}
@@ -44,37 +54,55 @@
             <td class="right"></td>
             <td class="right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
-        <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
-        <td class="right">{{ transaction.final_balance|currency }}</td>
+        <td class="right">
+            {% if transaction.event %}
+            <a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>
+            {% endif %}
+        </td>
+        {% if show_balance %}
+            <td class="right">{{ transaction.final_balance|currency }}</td>
+        {% endif %}
     </tr>
 {% endfor %}
     </tbody>
     <tfoot>
-    <tr><td colspan="8">&nbsp;</td></tr>
+    <tr><td colspan="{% if show_balance %}8{% else %}7{% endif %}">&nbsp;</td></tr>
     <tr>
-        <td class="right" colspan="2">Start Balance:</td>
-        <td>{{ startbalance|currency }}</td>
+        {% if show_balance %}
+            <td class="right" colspan="2">Start Balance:</td>
+            <td>{{ startbalance|currency }}</td>
+        {% else %}
+            <td colspan="3"></td>
+        {% endif %}
         <td class="right">Totals:</td>
         <td class="right">{{ debit_total|currency }}</td>
         <td class="right">{{ credit_total|currency }}</td>
         <td colspan="2"></td>
     </tr>
     <tr>
-        <td class="right" colspan="2">End Balance:</td><td>{{ endbalance|currency }}</td><td class="right">Net Change:</td>
-            {% if net_change < 0 %}
-                <td class="right">{{ net_change|currency }}</td>
+        {% if show_balance %}
+            <td class="right" colspan="2">End Balance:</td>
+            <td>{{ endbalance|currency }}</td>
+        {% else %}
+            <td colspan="3"></td>
+        {% endif %}
+        <td class="right">Net Change:</td>
+        {% if net_change < 0 %}
+            <td class="right">{{ net_change|currency }}</td>
+            <td class="right"></td>
+        {% else %}
+            {% if net_change > 0 %}
                 <td class="right"></td>
+                <td class="right">{{ net_change|currency }}</td>
             {% else %}
-                {% if net_change > 0 %}
-                    <td class="right"></td>
-                    <td class="right">{{ net_change|currency }}</td>
-                {% else %}
-                    <td class="right">$0.00</td>
-                    <td class="right">$0.00</td>
-                {% endif %}
+                <td class="right">$0.00</td>
+                <td class="right">$0.00</td>
             {% endif %}
+        {% endif %}
         <td></td>
-        <td></td>
+        {% if show_balance %}
+            <td></td>
+        {% endif %}
     </tr>
     </tfoot>
 </table>

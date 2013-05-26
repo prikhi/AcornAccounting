@@ -1,4 +1,6 @@
+import calendar
 import datetime
+from dateutil import rrule
 
 from django.db.models import Q, Sum, Max
 from django.core.urlresolvers import reverse
@@ -8,11 +10,12 @@ from django.template.context import RequestContext
 from django.utils import timezone
 
 from .accounting import american_today, process_date_range_form
-from .forms import JournalEntryForm, TransferFormSet, TransactionFormSet, BankSpendingForm,             \
-                   BankReceivingForm, BankReceivingTransactionFormSet, BankSpendingTransactionFormSet,  \
-                   AccountReconcileForm, ReconcileTransactionFormSet
-from .models import Header, Account, JournalEntry, BankReceivingEntry, BankSpendingEntry, Transaction,  \
-                    Event, HistoricalAccount
+from .forms import (JournalEntryForm, TransferFormSet, TransactionFormSet,
+        BankSpendingForm, BankReceivingForm, BankReceivingTransactionFormSet,
+        BankSpendingTransactionFormSet, AccountReconcileForm,
+        ReconcileTransactionFormSet, FiscalYearForm, FiscalYearAccountsFormSet)
+from .models import (Header, Account, JournalEntry, BankReceivingEntry,
+        BankSpendingEntry, Transaction, Event, HistoricalAccount, FiscalYear)
 
 
 def quick_account_search(request):
@@ -57,12 +60,47 @@ def show_accounts_chart(request, header_slug=None, template_name="accounts/accou
 
 def show_account_detail(request, account_slug,
                         template_name="accounts/account_detail.html"):
+    '''
+    Displays a list of :class:`Transaction` instances for the :class:`Account`
+    with a :attr:`~Account.slug` of :param:`account_slug`.
+
+    The following ``GET`` parameters are accessible:
+        * ``startdate`` - The starting date to filter the returned
+          :class:`Transactions<Transaction>` by.
+        * ``stopdate`` - The ending date to filter the returned
+          :class:`Transactions<Transaction>` by.
+
+    The ``startdate`` and ``stopdate`` variables default to the first day of
+    the month and the current date.
+
+    The view will provide ``startbalance``, ``endbalance``, ``debit_total``,
+    ``credit_total`` and ``net_change`` context variables. The
+    :class:`Transactions<Transaction>` in the context variable ``transactions``
+    will have the running balance added to the instance through the
+    ``final_balance`` attribute.
+
+    If the provided ``startdate`` is before the start of the current
+    :class:`FiscalYear`, the running balance and
+    :class:`Transactions<Transaction>` ``final_balance`` will not be
+    calculated.
+
+    :param account_slug: The :attr:`Account.slug` of the :class:`Account` to \
+            retrieve.
+    :type account_slug: string
+    :param template_name: The template file to use to render the response.
+    :type template_name:
+    :returns: HTTP Response with :class:`Transactions<Transaction>` and \
+            balance counters.
+    :rtype: HttpResponse
+    '''
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug)
     query = (Q(date__lte=stopdate) & Q(date__gte=startdate))
     debit_total, credit_total, net_change = account.transaction_set.get_totals(query=query, net_change=True)
     transactions = account.transaction_set.filter(query)
-    if transactions:        # Calculate final balances with math instead of many db queries
+    fiscal_start = FiscalYear.objects.current_start()
+    show_balance = fiscal_start is None or fiscal_start <= startdate
+    if transactions.exists() and show_balance:
         startbalance = transactions[0].get_initial_account_balance()
         endbalance = startbalance
         for transaction in transactions:
@@ -79,7 +117,7 @@ def show_account_detail(request, account_slug,
 
 def show_account_history(request, month=None, year=None, template_name="accounts/account_history.html"):
     '''
-    Displays a list of :class:`accounts.models.HistoricalAccount` instances,
+    Displays a list of :class:`~accounts.models.HistoricalAccount` instances,
     grouped by the optional ``month`` and ``year``.
 
     By default a list of the instances from this month of last year will be
@@ -116,9 +154,11 @@ def show_account_history(request, month=None, year=None, template_name="accounts
         datemod = datetime.timedelta(0)
 
     if month is None and year is None:
-        today = datetime.date.today() - datetime.timedelta(datetime.date.today().day - 1)
-        accounts = HistoricalAccount.objects.filter(date__month=today.month, date__year=today.year - 1)
-        max_date = HistoricalAccount.objects.all().aggregate(Max('date'))['date__max']
+        today = (datetime.date.today() -
+                 datetime.timedelta(datetime.date.today().day - 1))
+        accounts = HistoricalAccount.objects.filter(date__month=today.month,
+                                                    date__year=today.year - 1)
+        max_date = HistoricalAccount.objects.aggregate(Max('date'))['date__max']
         if accounts.exists():
             month = today.month
             year = today.year - 1
@@ -204,6 +244,8 @@ def show_bank_entry(request, journal_id, journal_type):
 def add_journal_entry(request, template_name="accounts/entry_add.html", journal_id=None):
     try:
         entry = JournalEntry.objects.get(id=journal_id)
+        if not entry.in_fiscal_year():
+            raise Http404
         entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
             if transaction.balance_delta < 0:
@@ -275,6 +317,8 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
     InlineFormSet = formset_types[journal_type]
     try:
         entry = entry_type.objects.get(id=journal_id)
+        if not entry.in_fiscal_year():
+            raise Http404
         entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
             transaction.amount = abs(transaction.balance_delta)
@@ -415,3 +459,149 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
         reconciled_balance = reconciled_balance * (-1 if account.flip_balance() else 1)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
+
+
+def add_fiscal_year(request, template_name="accounts/year_add.html"):
+    '''
+    Creates a new :class:`FiscalYear` using a :class:`FiscalYearForm` and
+    :data:`FiscalYearAccountsFormSet`.
+
+    Starting a new :class:`FiscalYear` involves the following procedure::
+
+        1. Setting a ``period`` and Ending ``month`` and ``year`` for the New
+           Fiscal Year.
+        2. Selecting Accounts to exclude from purging of unreconciled
+           :class:`Transactions`.
+        3. Create a :class:`HistoricalAccount` for every :class:`Account` and
+           month in the previous :class:`FiscalYear`, using ending balances
+           for Asset, Liability and Equity :class:`Accounts<Account>` and
+           balance changes for the others.
+        4. Delete all :class:`Journal Entries<JournalEntry>`, except those
+           with unreconciled :class:`Transactions<Transaction>` with
+           :class:`Accounts<Account>` in the exclude lists.
+        5. Move the ``balance`` of the ``Current Year Earnings``
+           :class:`Account` into the ``Retained Earnings`` :class:`Account`.
+        6. Zero the ``balance`` of all Income, Cost of Sales, Expense, Other
+           Income and Other Expense :class:`Accounts<Account>`.
+
+    :param template_name: The template to use.
+    :type template_name: string
+    :returns: HTTP response containing :class:`FiscalYearForm` and \
+            :class:`FiscalYearAccountsFormSet` as context. Redirects if \
+            successful POST is sent.
+    :rtype: HttpResponse or HttpResponseRedirect
+    '''
+    try:
+        previous_year = FiscalYear.objects.latest()
+    except FiscalYear.DoesNotExist:
+        previous_year = False
+
+    if request.method == 'POST':
+        fiscal_year_form = FiscalYearForm(request.POST)
+        accounts_formset = FiscalYearAccountsFormSet(request.POST)
+        valid = fiscal_year_form.is_valid() and accounts_formset.is_valid()
+        if valid and previous_year:
+            # Create HistoricalAccounts
+            stopdate = previous_year.date
+            startdate = FiscalYear.objects.current_start()
+            for month in rrule.rrule(rrule.MONTHLY, dtstart=startdate,
+                    until=stopdate):
+                last_day_of_month = month.replace(
+                        day=calendar.monthrange(month.year, month.month)[1]
+                ).date()
+                for account in Account.objects.filter(type__in=(1, 2, 3)):
+                    # Amount is end of month balance
+                    amount = account.get_balance_by_date(
+                            date=last_day_of_month)
+                    if account.flip_balance():      # Flip back to credit/debit
+                        amount *= -1                # amount from value amount
+                    HistoricalAccount.objects.create(
+                            account=account, date=month,
+                            name=account.name, type=account.type,
+                            number=account.get_full_number(),
+                            amount=amount
+                    )
+                for account in Account.objects.filter(type__in=range(4, 9)):
+                    # Amount is net change for month
+                    amount = account.get_balance_change_by_month(month)
+                    if account.flip_balance():      # Flip back to credit/debit
+                        amount *= -1                # amount from value amount
+                    HistoricalAccount.objects.create(
+                            account=account, date=month,
+                            name=account.name, type=account.type,
+                            number=account.get_full_number(),
+                            amount=amount
+                    )
+            # Create Transaction exclusion list
+            excluded_accounts = list()
+            for form in accounts_formset:
+                if form.cleaned_data.get('exclude'):
+                    excluded_accounts.append(form.instance)
+            excluded_transactions = Transaction.objects.filter(
+                    account__in=excluded_accounts, reconciled=False)
+            # Purge Journal Entries
+            historical_year_end = previous_year.date.replace(day=
+                        calendar.monthrange(previous_year.year,
+                            previous_year.end_month)[1])
+            general = JournalEntry.objects.filter(
+                    date__lte=historical_year_end)
+            receiving = BankReceivingEntry.objects.filter(
+                    date__lte=historical_year_end)
+            spending = BankSpendingEntry.objects.filter(
+                    date__lte=historical_year_end)
+            for entries in (general, receiving, spending):
+                for entry in entries:
+                    skip = False
+                    for transaction in entry.transaction_set.all():
+                        if transaction in excluded_transactions:
+                            skip = True
+                            break
+                    if (hasattr(entry, 'main_transaction') and
+                            entry.main_transaction in excluded_transactions):
+                        skip = True
+                    if not skip:
+                        entry.transaction_set.all().delete()
+                        if hasattr(entry, 'main_transaction'):
+                            entry.main_transaction.delete()
+                        entry.delete()
+            # Set new Account Balances
+            for account in Account.objects.filter(type__in=(1, 2, 3)):
+                # Balances will build upon last years
+                hist_acct = account.historicalaccount_set.latest()
+                new_year_sum = account.transaction_set.filter(date__gt=
+                        historical_year_end).aggregate(Sum('balance_delta'))
+                account.balance = (new_year_sum.get('balance_delta__sum') or
+                        0) + hist_acct.amount
+                account.save()
+            for account in Account.objects.filter(type__in=range(4, 9)):
+                # Balances will reflect Transactions in new Year
+                new_year_sum = account.transaction_set.filter(
+                        date__gt=historical_year_end).aggregate(
+                        Sum('balance_delta'))
+                account.balance = (new_year_sum.get('balance_delta__sum') or 0)
+                account.save()
+            # Move balance of Current Year Earnings to Retained Earnings
+            current_earnings = Account.objects.get(
+                    name='Current Year Earnings')
+            retained_earnings = Account.objects.get(name='Retained Earnings')
+            hist_current = current_earnings.historicalaccount_set.latest()
+            transfer_date = historical_year_end + datetime.timedelta(days=1)
+            entry = JournalEntry.objects.create(date=transfer_date,
+                    memo='End of Fiscal Year Adjustment')
+            Transaction.objects.create(journal_entry=entry,
+                                       account=current_earnings,
+                                       balance_delta=hist_current.amount * -1)
+            Transaction.objects.create(journal_entry=entry,
+                                       account=retained_earnings,
+                                       balance_delta=hist_current.amount)
+            fiscal_year_form.save()
+            return HttpResponseRedirect(reverse(
+                'accounts.views.show_accounts_chart'))
+        elif valid:
+            fiscal_year_form.save()
+            return HttpResponseRedirect(reverse(
+                'accounts.views.show_accounts_chart'))
+    else:
+        fiscal_year_form = FiscalYearForm()
+        accounts_formset = FiscalYearAccountsFormSet()
+    return render_to_response(template_name, locals(), RequestContext(request))
