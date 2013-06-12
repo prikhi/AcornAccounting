@@ -59,15 +59,9 @@ def show_account_detail(request, account_slug,
                         template_name="accounts/account_detail.html"):
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug)
-    query = ((Q(journal_entry__date__lte=stopdate,) & Q(journal_entry__date__gte=startdate)) |
-             (Q(bankspend_entry__date__lte=stopdate,) & Q(bankspend_entry__date__gte=startdate)) |
-             (Q(bankreceive_entry__date__lte=stopdate,) & Q(bankreceive_entry__date__gte=startdate)) |
-             (Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
-             (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate))
-            )
+    query = (Q(date__lte=stopdate) & Q(date__gte=startdate))
     debit_total, credit_total, net_change = account.transaction_set.get_totals(query=query, net_change=True)
-    transactions = list(account.transaction_set.filter(query))
-    transactions.sort(key=lambda x: x.get_date())
+    transactions = account.transaction_set.filter(query)
     if transactions:        # Calculate final balances with math instead of many db queries
         startbalance = transactions[0].get_initial_account_balance()
         endbalance = startbalance
@@ -178,11 +172,9 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
 def bank_register(request, account_slug, template_name="accounts/bank_register.html"):
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
-    transactions = list(Transaction.objects.filter(account=account).filter(
-                                             (Q(bankspendingentry__isnull=False) | Q(bankreceivingentry__isnull=False)) &
-                                             ((Q(bankspendingentry__date__lte=stopdate) & Q(bankspendingentry__date__gte=startdate)) |
-                                              (Q(bankreceivingentry__date__lte=stopdate) & Q(bankreceivingentry__date__gte=startdate)))))
-    transactions.sort(key=lambda x: x.get_date())
+    transactions = Transaction.objects.filter(account=account).filter(
+            (Q(bankspendingentry__isnull=False) | Q(bankreceivingentry__isnull=False)) &
+            (Q(date__lte=stopdate) & Q(date__gte=startdate)))
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
@@ -300,11 +292,13 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
                         entry.main_transaction.account = entry_form.cleaned_data['account']
                         entry.main_transaction.balance_delta = entry_form.cleaned_data['amount']
                         entry.main_transaction.detail = entry_form.cleaned_data['memo']
-                        entry.main_transaction.save()
+                        entry.main_transaction.date = entry_form.cleaned_data['date']
+                        entry.main_transaction.save(pull_date=False)
                     except Transaction.DoesNotExist:
                         entry.main_transaction = Transaction.objects.create(account=entry_form.cleaned_data['account'],
                                                                             balance_delta=entry_form.cleaned_data['amount'],
-                                                                            detail=entry_form.cleaned_data['memo'])
+                                                                            detail=entry_form.cleaned_data['memo'],
+                                                                            date=entry_form.cleaned_data['date'])
                     entry.save()
                     transaction_formset.save(commit=False)
                     for form in transaction_formset.forms:
@@ -404,12 +398,7 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
             if account_form.is_valid():
                 startdate = last_reconciled
                 stopdate = account_form.cleaned_data['statement_date']
-                queryset = account.transaction_set.filter(reconciled=False).filter(
-                    Q(journal_entry__date__lte=stopdate) |
-                    Q(bankspend_entry__date__lte=stopdate) |
-                    Q(bankreceive_entry__date__lte=stopdate) |
-                    Q(bankspendingentry__date__lte=stopdate) |
-                    Q(bankreceivingentry__date__lte=stopdate))
+                queryset = account.transaction_set.filter(reconciled=False).filter(date__lte=stopdate)
                 transaction_formset = ReconcileTransactionFormSet(queryset=queryset)
                 return render_to_response(template_name, {'account': account,
                                                           'reconciled_balance': reconciled_balance * (-1 if account.flip_balance() else 1),

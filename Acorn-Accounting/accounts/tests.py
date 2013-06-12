@@ -237,6 +237,58 @@ class BankSpendingEntryModelTests(TestCase):
                                   main_transaction=main_transaction, date=datetime.date.today())
         self.assertRaises(ValidationError, entry.save)
 
+    def test_save_set_transaction_date(self):
+        '''
+        Saving a BankSpendingEntry should set the ``date`` fields of it's
+        ``main_transaction`` and the ``Transactions`` in it's
+        ``transaction_set``.
+        '''
+        date = datetime.date.today() - datetime.timedelta(days=42)
+        main_transaction = Transaction.objects.create(account=self.account, balance_delta=25)
+        entry = BankSpendingEntry.objects.create(check_number="23", memo='change date',
+                                  main_transaction=main_transaction, date=datetime.date.today())
+        tran = Transaction.objects.create(bankspend_entry=entry, account=self.account, balance_delta=15)
+        main_transaction = Transaction.objects.get(id=main_transaction.id)
+        tran = Transaction.objects.get(id=tran.id)
+        self.assertEqual(tran.date, datetime.date.today())
+        self.assertEqual(main_transaction.date, datetime.date.today())
+        entry.date = date
+        entry.save()
+        main_transaction = Transaction.objects.get(id=main_transaction.id)
+        tran = Transaction.objects.get(id=tran.id)
+        self.assertEqual(main_transaction.date, date)
+        self.assertEqual(tran.date, date)
+
+
+class BankReceivingEntryModelTests(TestCase):
+    '''Test the custom BankSpendingEntry model methods'''
+    def setUp(self):
+        self.header = create_header('Initial')
+        self.account = create_account('Account', self.header, 0)
+
+    def test_save_set_transaction_date(self):
+        '''
+        Saving a BankReceivingEntry should set the ``date`` fields of it's
+        ``main_transaction`` and the ``Transactions`` in it's
+        ``transaction_set``.
+        '''
+        date = datetime.date.today() - datetime.timedelta(days=42)
+        main_transaction = Transaction.objects.create(account=self.account, balance_delta=25)
+        entry = BankReceivingEntry.objects.create(payor='test payor', memo='change date',
+                                  main_transaction=main_transaction, date=datetime.date.today())
+        tran = Transaction.objects.create(bankreceive_entry=entry, account=self.account, balance_delta=15)
+        main_transaction = Transaction.objects.get(id=main_transaction.id)
+        tran = Transaction.objects.get(id=tran.id)
+        self.assertEqual(tran.date, datetime.date.today())
+        self.assertEqual(main_transaction.date, datetime.date.today())
+        entry = BankReceivingEntry.objects.all()[0]
+        entry.date = date
+        entry.save()
+        main_transaction = Transaction.objects.get(id=main_transaction.id)
+        tran = Transaction.objects.get(id=tran.id)
+        self.assertEqual(main_transaction.date, date)
+        self.assertEqual(tran.date, date)
+
 
 class TransactionModelTests(TestCase):
     def test_creation(self):
@@ -366,8 +418,8 @@ class TransactionModelTests(TestCase):
         entry2 = create_entry(datetime.date.today() - datetime.timedelta(days=2), 'Entry2')
         create_transaction(entry=entry, account=source, delta=-20)
         create_transaction(entry=entry2, account=source, delta=-20)
-        trans_newer = Transaction.objects.all()[0]
-        trans_older = Transaction.objects.all()[1]
+        trans_newer = Transaction.objects.all()[1]
+        trans_older = Transaction.objects.all()[0]
         self.assertEqual(trans_older.get_final_account_balance(), -20)
         self.assertEqual(trans_newer.get_final_account_balance(), -40)
 
@@ -411,6 +463,37 @@ class TransactionModelTests(TestCase):
         bankreceive_tran = Transaction.objects.create(bankspend_entry=bankreceive, account=account, balance_delta=50)
         self.assertEqual(bankreceive_main.get_journal_entry(), bankreceive)
         self.assertEqual(bankreceive_tran.get_journal_entry(), bankreceive)
+
+    def test_transaction_save_date(self):
+        '''
+        Saving a Transaction should cause the Transaction to use the ``date``
+        value of it's ``journal_entry``.
+        '''
+        date = datetime.date.today() - datetime.timedelta(days=42)
+        header = create_header('Account Change')
+        source = create_account('Source', header, 0)
+        entry = create_entry(date, 'test entry')
+        trans = create_transaction(entry, source, 20)
+        self.assertEqual(trans.date, date)
+
+    def test_transaction_save_date_no_pull(self):
+        '''
+        Saving a Transaction with a ``pull_date`` of ``False`` will cause the
+        Transaction to not use it's ``journal_entry`` ``date`` to populate it's
+        ``date`` field.
+        '''
+        date = datetime.date.today() - datetime.timedelta(days=42)
+        header = create_header('Account Change')
+        source = create_account('Source', header, 0)
+        entry = create_entry(date, 'test entry')
+        trans = Transaction(journal_entry=entry, account=source, balance_delta=20)
+        trans.save(pull_date=False)
+        self.assertEqual(trans.date, None)
+        trans.date = datetime.date.today()
+        trans.save(pull_date=False)
+        self.assertEqual(trans.date, datetime.date.today())
+        trans.save(pull_date=True)
+        self.assertEqual(trans.date, date)
 
 
 class QuickSearchViewTests(TestCase):
@@ -1358,7 +1441,7 @@ class AccountDetailViewTests(TestCase):
         self.assertEqual(response.context['debit_total'], -120)
         self.assertEqual(response.context['credit_total'], 50)
         self.assertEqual(response.context['net_change'], -70)
-        # These value are flipped from expected because account.bank = True
+        # These value are flipped from expected because account.flip_balance = True
         self.assertEqual(response.context['startbalance'], 20)
         self.assertEqual(response.context['endbalance'], 90)
 
@@ -2718,6 +2801,7 @@ class BankEntryViewTests(TestCase):
         self.assertEqual(new_expense_account.balance, 15)
         self.assertEqual(new_bank_account, Transaction.objects.all()[0].account)
         self.assertEqual(new_expense_account, Transaction.objects.all()[1].account)
+        self.assertEqual(self.expense_account, Transaction.objects.all()[2].account)
 
     def test_bank_receiving_add_view_post_fail(self):
         '''

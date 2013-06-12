@@ -279,7 +279,12 @@ class BaseJournalEntry(CachingMixin, models.Model):
 
 
 class JournalEntry(BaseJournalEntry):
-    pass
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(BaseJournalEntry, self).save(*args, **kwargs)
+        for transaction in self.transaction_set.all():
+            transaction.date = self.date
+            transaction.save()
 
 
 class BankSpendingEntry(BaseJournalEntry):
@@ -306,7 +311,12 @@ class BankSpendingEntry(BaseJournalEntry):
 
     def save(self, *args, **kwargs):
         self.full_clean()
+        self.main_transaction.date = self.date
+        self.main_transaction.save(pull_date=False)
         super(BankSpendingEntry, self).save(*args, **kwargs)
+        for transaction in self.transaction_set.all():
+            transaction.date = self.date
+            transaction.save()
 
     def clean(self):
         '''Require either a Check Number XOR an ACH payment'''
@@ -339,6 +349,15 @@ class BankReceivingEntry(BaseJournalEntry):
         return reverse('accounts.views.show_bank_entry', kwargs={'journal_id': str(self.id),
                                                                  'journal_type': 'CR'})
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        self.main_transaction.date = self.date
+        self.main_transaction.save(pull_date=False)
+        super(BankReceivingEntry, self).save(*args, **kwargs)
+        for transaction in self.transaction_set.all():
+            transaction.date = self.date
+            transaction.save()
+
     def get_edit_url(self):
         return reverse('accounts.views.add_bank_entry', args=['CR', str(self.id)])
 
@@ -359,14 +378,21 @@ class Transaction(CachingMixin, models.Model):
                                         max_digits=19, decimal_places=4)
     event = models.ForeignKey('Event', blank=True, null=True)
     reconciled = models.BooleanField(default=False)
+    date = models.DateField(blank=True, null=True)
 
     objects = TransactionManager()
 
     class Meta:
-        ordering = ['id']
+        ordering = ['date', 'id']
 
     def __unicode__(self):
         return self.detail
+
+    def save(self, pull_date=True, *args, **kwargs):
+        self.full_clean()
+        if self.get_journal_entry() and pull_date:
+            self.date = self.get_journal_entry().date
+        super(Transaction, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
         return self.get_journal_entry().get_absolute_url()
@@ -379,17 +405,11 @@ class Transaction(CachingMixin, models.Model):
 
     def get_final_account_balance(self):
         """Returns Account balance after transaction has occured."""
-        date = self.get_date()
+        date = self.date
         acct_balance = self.account.balance
-        query = (models.Q(journal_entry__date__gt=date) | models.Q(bankspend_entry__date__gt=date) |
-                 models.Q(bankreceive_entry__date__gt=date) | models.Q(bankreceivingentry__date__gt=date) |
-                 models.Q(bankspendingentry__date__gt=date) |
-                ((models.Q(journal_entry__date=date) | models.Q(bankspend_entry__date=date) |
-                  models.Q(bankreceive_entry__date=date) | models.Q(bankreceivingentry__date=date) |
-                  models.Q(bankspendingentry__date=date))
-                    & models.Q(id__gt=self.id)))
-        newer_transactions = list(self.account.transaction_set.filter(query))
-        newer_transactions.sort(key=lambda x: x.get_date())
+        query = (models.Q(date__gt=date) |
+                (models.Q(date=date) & models.Q(id__gt=self.id)))
+        newer_transactions = self.account.transaction_set.filter(query)
         for transaction in newer_transactions:
             acct_balance += (-1 * (transaction.balance_delta))
         if self.account.flip_balance():
