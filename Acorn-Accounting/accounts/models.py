@@ -419,7 +419,7 @@ class Transaction(CachingMixin, models.Model):
     journal_entry = models.ForeignKey(JournalEntry, blank=True, null=True)
     bankspend_entry = models.ForeignKey(BankSpendingEntry, blank=True, null=True)
     bankreceive_entry = models.ForeignKey(BankReceivingEntry, blank=True, null=True)
-    account = models.ForeignKey(Account)
+    account = models.ForeignKey(Account, on_delete=models.PROTECT)
     detail = models.CharField(max_length=50, help_text="Short description", blank=True)
     balance_delta = models.DecimalField(help_text="Positive balance is a credit, negative is a debit",
                                         max_digits=19, decimal_places=4)

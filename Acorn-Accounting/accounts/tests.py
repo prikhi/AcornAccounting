@@ -2,6 +2,7 @@ import datetime
 
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
+from django.db.models import ProtectedError
 from django.db.utils import IntegrityError
 from django.template.defaultfilters import slugify
 from django.test import TestCase
@@ -208,6 +209,31 @@ class AccountModelTests(TestCase):
                                                                                   child_acc.account_number()))
         self.assertEqual(gchild_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(gchild_acc.type, gchild_acc.parent.account_number(),
                                                                                   gchild_acc.account_number()))
+
+    def test_account_delete_no_transactions(self):
+        '''
+        Accounts can be deleted if they have no Transactions.
+        '''
+        top_head = create_header('Initial')
+        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
+        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
+
+        self.assertEqual(Account.objects.count(), 1)
+        child_acc.delete()
+        self.assertEqual(Account.objects.count(), 0)
+
+    def test_account_delete_with_transactions(self):
+        '''
+        Accounts can not be deleted if they have Transactions.
+        '''
+        top_head = create_header('Initial')
+        child_head = Header.objects.create(name='Child', parent=top_head, slug='child')
+        child_acc = Account.objects.create(name='child', parent=child_head, balance=0, slug='child')
+
+        entry = create_entry(datetime.date.today(), 'blocking entry')
+        create_transaction(entry, child_acc, 20)
+        self.assertEqual(Account.objects.count(), 1)
+        self.assertRaises(ProtectedError, child_acc.delete)
 
 
 class BankSpendingEntryModelTests(TestCase):
