@@ -289,10 +289,44 @@ class JournalEntry(BaseJournalEntry):
 
 class BankSpendingEntry(BaseJournalEntry):
     '''
-    Holds information about a Check or ACH payment for a Bank Account
-    Main Transaction is linked to a Bank Account
+    Holds information about a Check or ACH payment for a Bank
+    :class:`Account`. The :attr:`main_transaction` is linked to a Bank
+    :class:`Account`.
+
+    .. attribute:: check_number
+
+        The number of the Check, if applicable. An ACH Payment should have
+        no :attr:`check_number` and and :attr:`ach_payment` value of ``True``
+        will cause the :attr:`check_number` to be set to ``None``. This value
+        must be unique with respect to the
+        :attr:`main_transaction's<main_transaction>` :class:`account<Account>`
+        attribute.
+
+    .. attribute:: ach_payment
+
+        A boolean representing if this :class:`BankSpendingEntry` is an ACH
+        Payment or not. If this is ``True`` the :attr:`check_number` will be
+        set to ``None``.
+
+    .. attribute:: payee
+
+        An optional Payee for the :class:`BankSpendingEntry`.
+
+    .. attribute:: void
+
+        A boolean representing whether this :class:`BankSpendingEntry` is void.
+        If this value switches from ``False`` to ``True``, all of this
+        :class:`BankSpendingEntry's<BankSpendingEntry>`
+        :class:`Transactions<Transaction>` will be deleted and it's
+        :attr:`main_transaction` will have it's
+        :attr:`~Transaction.balance_delta` set to ``0``.
+
+    .. attribute:: main_transaction
+
+        The :class:`Transaction` that links this :class:`BankSpendingEntry`
+        with it's Bank :class:`Account`.
     '''
-    check_number = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    check_number = models.CharField(max_length=10, blank=True, null=True)
     ach_payment = models.BooleanField(default=False, help_text="Invalidates Check Number")
     payee = models.CharField(max_length=20, blank=True, null=True)
     void = models.BooleanField(default=False, help_text="Refunds Associated Transactions.")
@@ -306,8 +340,9 @@ class BankSpendingEntry(BaseJournalEntry):
         return self.memo
 
     def get_absolute_url(self):
-        return reverse('accounts.views.show_bank_entry', kwargs={'journal_id': str(self.id),
-                                                                 'journal_type': 'CD'})
+        return reverse('accounts.views.show_bank_entry',
+                kwargs={'journal_id': str(self.id),
+                        'journal_type': 'CD'})
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -319,9 +354,21 @@ class BankSpendingEntry(BaseJournalEntry):
             transaction.save()
 
     def clean(self):
-        '''Require either a Check Number XOR an ACH payment'''
+        '''
+        Either a :attr:`check_number` xor an :attr:`ach_payment` is required.
+
+        The :attr:`check_number` must be unique per :attr:`BankSpendingEntry.main_transaction`
+        :attr:`~Transaction.account`.
+        '''
         if not (bool(self.ach_payment) ^ bool(self.check_number)):
-            raise ValidationError('Either A Check Number or ACH status is required.')
+            raise ValidationError('Either A Check Number or ACH status is '
+                    'required.')
+        same_check_number = BankSpendingEntry.objects.filter(
+                main_transaction__account=self.main_transaction.account,
+                check_number=self.check_number).exclude(id=self.id).exists()
+        if self.check_number is not None and same_check_number:
+            raise ValidationError('The check number must be unique per Bank '
+                    'Account.')
         super(BankSpendingEntry, self).clean()
 
     def get_edit_url(self):

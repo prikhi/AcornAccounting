@@ -133,6 +133,40 @@ class BaseBankForm(forms.ModelForm):
                                                               'id': 'entry_amount'}),
                                 min_value=Decimal(".01"))
 
+    def clean(self):
+        '''
+        Cleaning the :class:`BaseBankForm` will update or create the
+        :attr:`BankSpendingEntry.main_transaction` or
+        :attr:`BankReceivingEntry.main_transaction`.
+        '''
+        super(BaseBankForm, self).clean()
+        cleaned_data = self.cleaned_data
+        try:
+            self.instance.main_transaction.account = cleaned_data['account']
+            self.instance.main_transaction.balance_delta = cleaned_data['amount']
+            self.instance.main_transaction.detail = cleaned_data['memo']
+            self.instance.main_transaction.date = cleaned_data['date']
+            cleaned_data['main_transaction'] = self.instance.main_transaction
+        except Transaction.DoesNotExist:
+            cleaned_data['main_transaction'] = Transaction(
+                    account=cleaned_data['account'],
+                    balance_delta=cleaned_data['amount'],
+                    detail=cleaned_data['memo'],
+                    date=cleaned_data['date'])
+            self.instance.main_transaction = cleaned_data['main_transaction']
+        return cleaned_data
+
+    def save(self, *args, **kwargs):
+        '''
+        Saving the :class:`BaseBankFormForm` will save both the
+        :class:`BaseBankForm` and the
+        :attr:`BankSpendingEntry.main_transaction` or
+        :attr:`BankReceivingEntry.main_transaction`.
+        '''
+        self.cleaned_data['main_transaction'].save()
+        self.instance.main_transaction = self.cleaned_data['main_transaction']
+        super(BaseBankForm, self).save(*args, **kwargs)
+
 
 @parsleyfy
 class BankSpendingForm(BaseBankForm):

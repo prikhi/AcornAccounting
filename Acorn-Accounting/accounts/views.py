@@ -288,18 +288,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
             if entry_form.is_valid():
                 transaction_formset.entry_form = entry_form     # Used for clean function
                 if transaction_formset.is_valid():
-                    try:
-                        entry.main_transaction.account = entry_form.cleaned_data['account']
-                        entry.main_transaction.balance_delta = entry_form.cleaned_data['amount']
-                        entry.main_transaction.detail = entry_form.cleaned_data['memo']
-                        entry.main_transaction.date = entry_form.cleaned_data['date']
-                        entry.main_transaction.save(pull_date=False)
-                    except Transaction.DoesNotExist:
-                        entry.main_transaction = Transaction.objects.create(account=entry_form.cleaned_data['account'],
-                                                                            balance_delta=entry_form.cleaned_data['amount'],
-                                                                            detail=entry_form.cleaned_data['memo'],
-                                                                            date=entry_form.cleaned_data['date'])
-                    entry.save()
+                    entry_form.save()
                     transaction_formset.save(commit=False)
                     for form in transaction_formset.forms:
                         if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
