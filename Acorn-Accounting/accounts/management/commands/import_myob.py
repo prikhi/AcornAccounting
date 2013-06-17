@@ -25,40 +25,50 @@ def get_date(date_string):
 
 
 def strip_cur_format(inputstr):
-    return inputstr.replace('$', '').replace(',', '').replace('(', '').replace(')', '')
+    inputstr = inputstr.replace('$', '').replace(',', '')
+    return inputstr.replace('(', '-').replace(')', '')
 
 
 class Command(BaseCommand):
     args = ''
     help = '''\
     Will created Accounts, Entries and Transactions based on MYOB data.
-    ACCOUNTS.TXT and JOURNAL.TXT must in your current working directory. All Headers should already be created.'''
+    ACCOUNTS.TXT and JOURNAL.TXT must in your current working directory.
+    All Headers should already be created.
+    '''
 
     def handle(self, *args, **options):
-        # fill this dictionary with MYOB acct number => django pk for use in processing JOURNAL.txt
+        # fill this dictionary with MYOB acct number => django pk for use in
+        # processing JOURNAL.txt
         acct_dict = dict()
 
         # open accounts file
         if Account.objects.count() == 0:
             with open('./ACCOUNTS.TXT') as f:
                 for (counter, line) in enumerate(f):
-                    columns = line.split('\t')   # 0: number, 1: name, 2: header, 3:balance
+                    columns = line.split('\t')   # 0: number, 1: name
+                                                 # 2: header, 3:balance
                     if 'H' in columns[2]:   # is header
-                        current_header = Header.objects.get(slug=slugify(columns[1]))
+                        current_header = Header.objects.get(
+                                slug=slugify(columns[1]))
                     else:   # create an account under the current header
-                        number = columns[0].replace('-', '')         # strip the `-` between number and type
-                        balance = strip_cur_format(columns[3])
-
+                        number = columns[0].replace('-', '')    # strip the `-`
+                                                    # between number and type
+                        balance = Decimal(strip_cur_format(columns[3]))
+                        acc_type = columns[0][0]
+                        if int(acc_type) in (1, 5, 6, 8):
+                            balance *= -1
                         # check if slug or name is taken
                         name = columns[1]
                         slug = slugify(name)
-                        quer = Account.objects.filter(Q(name=name) | Q(slug=slug))
+                        quer = Account.objects.filter(Q(name=name) |
+                                Q(slug=slug))
                         if quer.exists():
                             name = name + str(counter)
                             slug = slugify(name)
 
-                        acct = Account.objects.create(parent=current_header, name=name,
-                                                    slug=slug, balance=balance)
+                        acct = Account.objects.create(parent=current_header,
+                                name=name, slug=slug, balance=balance)
                         acct_dict[number] = acct.pk
 
         # Now create Entries and Transactions
@@ -72,21 +82,29 @@ class Command(BaseCommand):
                         last_entry = None
                         last_type = None
                     else:
-                        columns = line.split('\t')  # 0: number, 1: date, 2: memo, 3: myob acct num, 4: debit, 5: credit, 6: job
+                        columns = line.split('\t')  # 0: number, 1: date
+                                                    # 2: memo, 3: myob acct num
+                                                    # 4: debit, 5: credit
+                                                    # 6: job
                         # Derive Event and Balance Delta
-                        if len(columns) >= 7 and columns[6] != '':        # Event present
+                        if len(columns) >= 7 and columns[6] != '':
+                            # Event present
                             event = Event.objects.get(number=columns[6])
                         else:
                             event = None
                         if columns[2].lower() == 'void':
                             balance_delta = Decimal(0)
-                        elif len(columns) >= 5 and columns[4] == '':        # Delta is a credit
+                        elif len(columns) >= 5 and columns[4] == '':
+                            # Delta is a credit
                             if columns[5] != '':
-                                balance_delta = Decimal(strip_cur_format(columns[5]))
+                                balance_delta = Decimal(
+                                        strip_cur_format(columns[5]))
                             else:
                                 balance_delta = 0
-                        elif columns[4] != '':                       # Delta is debit
-                            balance_delta = -1 * Decimal(strip_cur_format(columns[4]))
+                        elif columns[4] != '':
+                            # Delta is debit
+                            balance_delta = -1 * Decimal(
+                                    strip_cur_format(columns[4]))
                         else:
                             balance_delta = 0
                         date = get_date(columns[1])
@@ -95,38 +113,92 @@ class Command(BaseCommand):
                         else:
                             columns[2] = columns[2][:60]
 
-                        if not last_entry:                  # create new entry
+                        if not last_entry:
+                            # create new entry
                             entry_num = columns[0]
-                            # first 2 chars will be GJ for gen, CR for bank rec, ## or 2 ints for bank spend
-                            if entry_num[:2] == 'GJ':       # gen entry
+                            # first 2 chars will be GJ for gen
+                            # CR for bank rec, ## or 2 ints for bank spend
+                            if entry_num[:2] == 'GJ':
+                                # gen entry
                                 last_type = 'GJ'
-                                last_entry = JournalEntry.objects.create(date=date, memo=columns[2])
-                                Transaction.objects.create(journal_entry=last_entry, balance_delta=balance_delta, event=event, account_id=acct_dict[columns[3]])
-                            elif entry_num[:2] == 'CR':     # bank receive
+                                last_entry = JournalEntry.objects.create(
+                                        date=date,
+                                        memo=columns[2])
+                                Transaction.objects.create(
+                                        journal_entry=last_entry,
+                                        balance_delta=balance_delta,
+                                        event=event,
+                                        account_id=acct_dict[columns[3]])
+                            elif entry_num[:2] == 'CR':
+                                # bank receive
                                 last_type = 'CR'
-                                main_transaction = Transaction.objects.create(account_id=acct_dict[columns[3]], balance_delta=balance_delta)
-                                last_entry = BankReceivingEntry.objects.create(main_transaction=main_transaction, memo=columns[2], date=date)
+                                main_transaction = Transaction.objects.create(
+                                        account_id=acct_dict[columns[3]],
+                                        balance_delta=balance_delta)
+                                last_entry = BankReceivingEntry.objects.create(
+                                        main_transaction=main_transaction,
+                                        memo=columns[2],
+                                        date=date,
+                                        payor=str(columns[2])[:50])
                             else:                           # bank spend
                                 last_type = 'CD'
-                                ach = entry_num[:2] == '##'     # if ach payment, first two chars is `##`
+                                ach = entry_num[:2] == '##'  # if ach payment
+                                                    # first two chars is `##`
                                 if ach:
-                                    main_transaction = Transaction.objects.create(account_id=acct_dict[columns[3]], balance_delta=balance_delta)
-                                    last_entry = BankSpendingEntry.objects.create(main_transaction=main_transaction, memo=columns[2], date=date,
-                                                                             ach_payment=True)
+                                    main_transaction = Transaction.objects.create(
+                                            account_id=acct_dict[columns[3]],
+                                            balance_delta=balance_delta)
+                                    last_entry = BankSpendingEntry.objects.create(
+                                            main_transaction=main_transaction,
+                                            memo=columns[2],
+                                            date=date,
+                                            ach_payment=True)
                                 else:
+                                    account_id = acct_dict[columns[3]]
+                                    check_taken = (
+                                    BankSpendingEntry.objects.filter(
+                                        check_number=entry_num,
+                                        main_transaction__account=account_id
+                                        ).exists()
+                                    )
+                                    if check_taken:
+                                        continue
                                     if balance_delta == 0:
-                                        main_transaction = Transaction.objects.create(account_id=acct_dict[columns[3]], balance_delta=balance_delta)
-                                        last_entry = BankSpendingEntry.objects.create(main_transaction=main_transaction, memo=columns[2], date=date,
-                                                                                      check_number=entry_num, void=True)
+                                        main_transaction = Transaction.objects.create(
+                                                account_id=acct_dict[columns[3]],
+                                                balance_delta=balance_delta)
+                                        last_entry = BankSpendingEntry.objects.create(
+                                                main_transaction=main_transaction,
+                                                memo=columns[2],
+                                                date=date,
+                                                check_number=entry_num,
+                                                void=True)
                                     else:
-                                        main_transaction = Transaction.objects.create(account_id=acct_dict[columns[3]], balance_delta=balance_delta)
-                                        last_entry = BankSpendingEntry.objects.create(main_transaction=main_transaction, memo=columns[2], date=date,
-                                                                                      check_number=entry_num)
+                                        main_transaction = Transaction.objects.create(
+                                                account_id=acct_dict[columns[3]],
+                                                balance_delta=balance_delta)
+                                        last_entry = BankSpendingEntry.objects.create(
+                                                main_transaction=main_transaction,
+                                                memo=columns[2],
+                                                date=date,
+                                                check_number=entry_num)
                         else:
                             # entry already created, just add a Transaction
                             if last_type == 'GJ':
-                                Transaction.objects.create(journal_entry=last_entry, balance_delta=balance_delta, event=event, account_id=acct_dict[columns[3]])
+                                Transaction.objects.create(
+                                        journal_entry=last_entry,
+                                        balance_delta=balance_delta,
+                                        event=event,
+                                        account_id=acct_dict[columns[3]])
                             elif last_type == 'CR':
-                                Transaction.objects.create(bankreceive_entry=last_entry, balance_delta=balance_delta, event=event, account_id=acct_dict[columns[3]])
+                                Transaction.objects.create(
+                                        bankreceive_entry=last_entry,
+                                        balance_delta=balance_delta,
+                                        event=event,
+                                        account_id=acct_dict[columns[3]])
                             else:
-                                Transaction.objects.create(bankspend_entry=last_entry, balance_delta=balance_delta, event=event, account_id=acct_dict[columns[3]])
+                                Transaction.objects.create(
+                                        bankspend_entry=last_entry,
+                                        balance_delta=balance_delta,
+                                        event=event,
+                                        account_id=acct_dict[columns[3]])
