@@ -22,7 +22,7 @@
             deleteCssClass: 'delete-row',
             added: addActions,
             removed: removeRow});
-    })
+    });
     /*
     Pressing `Enter` on a Select or Text input in the `accounts_chart` table
     should move the cursor to the next row.
@@ -48,7 +48,7 @@
     {{entry_form}}
 </table>
 <ul class="errorlist">
-{% for error in transaction_formset.non_form_errors %}
+{% for error in transaction_formset.non_field_errors %}
     <li>{{ error }}</li>
 {% endfor %}
 </ul><!-- 
@@ -217,9 +217,6 @@
     </script>
 {% else %}
 {% if journal_type == 'CR' or journal_type == 'CD' %}
-{% comment %}
-    Exclude transfer entries
-{% endcomment %}
     <script type="text/javascript">
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
@@ -288,6 +285,70 @@
         newSum();
     }
     </script>
+{% else %}
+{% comment %}
+Transfer Entries
+{% endcomment %}
+    <script type="text/javascript">
+    /* Update Total and Out of Balance amounts on input change or delete */
+    $(document).ready(function() {
+        addActions();
+        $(".amount").each(function() {
+            var that = this;
+            assignRequired.call(that);
+        });
+    });
+    function addActions(){
+        $(".source").each(function() {
+            var that = this;
+            $(this).blur(function(){
+                assignRequired.call(that);
+            });
+        });
+        $(".destination").each(function() {
+            var that = this;
+            $(this).blur(function(){
+                assignRequired.call(that);
+            });
+        });
+        $(".amount").each(function() {
+            var that = this;
+            $(this).blur(function(){
+                assignRequired.call(that);
+            });
+        });
+    }
+    function assignRequired() {
+        /* Set Account and Amount widgets to required if either is set */
+        $source = $(this).closest('tr').find('.source');
+        $destination = $(this).closest('tr').find('.destination');
+        $amount = $(this).closest('tr').find('.amount');
+        console.log("source len " + $source.val().length);
+        console.log("dest len " + $destination.val().length);
+        console.log("amount len " + $amount.val().length);
+        if ((($amount.val().length != 0) || ($source.val().length != 0) ||
+                    ($destination.val().length != 0)) && $source.is(':visible')) {
+            $('#entry_form').parsley('addItem', $source);
+            $('#entry_form').parsley('addItem', $destination);
+            $('#entry_form').parsley('addItem', $amount);
+        } else {
+            $('#entry_form').parsley('removeItem', $source);
+            $('#entry_form').parsley('removeItem', $destination);
+            $('#entry_form').parsley('removeItem', $amount);
+        }
+    }
+    function removeRow(row) {
+        /* Remove validation from deleted rows */
+        console.log("remove row called");
+        $source = $(row).find('.source');
+        $destination = $(row).find('.destination');
+        $amount = $(row).find('.amount');
+        $('#entry_form').parsley('removeItem', $source);
+        $('#entry_form').parsley('removeItem', $destination);
+        $('#entry_form').parsley('removeItem', $amount);
+    }
+    </script>
+
 {% endif %}
 {% endif %}
 

@@ -349,7 +349,8 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
             if transfer_formset.is_valid():
                 entry.save()
                 for form in transfer_formset.forms:
-                    if form.is_valid() and form.has_changed():
+                    if (form.is_valid() and form.has_changed() and
+                            form not in transfer_formset.deleted_forms):
                         debit = Transaction(journal_entry=entry, account=form.cleaned_data['source'],
                                             detail=form.cleaned_data['detail'],
                                             balance_delta=(-1 * form.cleaned_data['amount']))

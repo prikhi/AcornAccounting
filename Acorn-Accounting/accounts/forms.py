@@ -105,11 +105,18 @@ TransactionFormSet = inlineformset_factory(JournalEntry, Transaction,
                                            can_delete=True)
 
 
+@parsleyfy
 class TransferForm(forms.Form):
-    source = forms.ModelChoiceField(queryset=Account.objects.all())
-    destination = forms.ModelChoiceField(queryset=Account.objects.all())
-    amount = forms.DecimalField(max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
-                                widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10}))
+    source = forms.ModelChoiceField(queryset=Account.objects.all(),
+            widget=forms.Select(attrs={'class': 'source'}))
+    destination = forms.ModelChoiceField(queryset=Account.objects.all(),
+            widget=forms.Select(attrs={'class': 'destination'}))
+    amount = forms.DecimalField(max_digits=19,
+            decimal_places=4,
+            min_value=Decimal("0.01"),
+            widget=forms.TextInput(attrs={'size': 10,
+                                          'maxlength': 10,
+                                          'class': 'amount'}))
     detail = forms.CharField(max_length=50, required=False)
 
     def clean(self):
