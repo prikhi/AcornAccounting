@@ -323,9 +323,6 @@ Transfer Entries
         $source = $(this).closest('tr').find('.source');
         $destination = $(this).closest('tr').find('.destination');
         $amount = $(this).closest('tr').find('.amount');
-        console.log("source len " + $source.val().length);
-        console.log("dest len " + $destination.val().length);
-        console.log("amount len " + $amount.val().length);
         if ((($amount.val().length != 0) || ($source.val().length != 0) ||
                     ($destination.val().length != 0)) && $source.is(':visible')) {
             $('#entry_form').parsley('addItem', $source);
@@ -339,7 +336,6 @@ Transfer Entries
     }
     function removeRow(row) {
         /* Remove validation from deleted rows */
-        console.log("remove row called");
         $source = $(row).find('.source');
         $destination = $(row).find('.destination');
         $amount = $(row).find('.amount');
