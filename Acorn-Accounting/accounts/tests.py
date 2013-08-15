@@ -151,7 +151,7 @@ class HeaderModelTests(TestCase):
         Tests that root Headers require a type.
         '''
         head = Header(name='initial', slug='initial', type=None)
-        self.assertRaisesMessage(IntegrityError, 'accounts_header.type may not be NULL', head.save)
+        self.assertRaises(IntegrityError, head.save)
 
     def test_root_node_get_number(self):
         '''
@@ -1527,19 +1527,19 @@ class AccountReconcileViewTests(TestCase):
         redirect to the Account Detail Page.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -50)
-        create_transaction(entry, self.bank_account, -50)
-        create_transaction(entry, self.bank_account, 275)
+        trans1 = create_transaction(entry, self.bank_account, -50)
+        trans2 = create_transaction(entry, self.bank_account, -50)
+        trans3 = create_transaction(entry, self.bank_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '-175',
                                           'form-TOTAL_FORMS': 3,
                                           'form-INITIAL_FORMS': 3,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
-                                          'form-2-id': 3,
+                                          'form-2-id': trans3.id,
                                           'form-2-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1556,16 +1556,16 @@ class AccountReconcileViewTests(TestCase):
         redirect to the Account Detail Page.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -50)
-        create_transaction(entry, self.bank_account, 50)
+        trans1 = create_transaction(entry, self.bank_account, -50)
+        trans2 = create_transaction(entry, self.bank_account, 50)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -1582,14 +1582,14 @@ class AccountReconcileViewTests(TestCase):
         redirect to the Account Detail Page.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -275)
+        trans1 = create_transaction(entry, self.bank_account, -275)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '275',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -1607,14 +1607,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, 275)
+        trans1 = create_transaction(entry, self.bank_account, 275)
         create_transaction(entry, self.liability_account, -275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '-450',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1631,14 +1631,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, -275)
+        trans1 = create_transaction(entry, self.bank_account, -275)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '100',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1655,14 +1655,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, -175)
+        trans1 = create_transaction(entry, self.bank_account, -175)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1679,14 +1679,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, 375)
+        trans1 = create_transaction(entry, self.bank_account, 375)
         create_transaction(entry, self.liability_account, -275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '-100',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 3,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1703,14 +1703,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, 175)
+        trans1 = create_transaction(entry, self.bank_account, 175)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '100',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 3,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1727,14 +1727,14 @@ class AccountReconcileViewTests(TestCase):
         '''
         self.test_reconcile_account_view_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
-        create_transaction(entry, self.bank_account, -175)
+        trans1 = create_transaction(entry, self.bank_account, -175)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1750,19 +1750,19 @@ class AccountReconcileViewTests(TestCase):
         redirect to the Account Detail Page.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.liability_account, 50)
-        create_transaction(entry, self.liability_account, 50)
-        create_transaction(entry, self.liability_account, -275)
+        trans1 = create_transaction(entry, self.liability_account, 50)
+        trans2 = create_transaction(entry, self.liability_account, 50)
+        trans3 = create_transaction(entry, self.liability_account, -275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '-175',
                                           'form-TOTAL_FORMS': 3,
                                           'form-INITIAL_FORMS': 3,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
-                                          'form-2-id': 3,
+                                          'form-2-id': trans3.id,
                                           'form-2-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -1780,16 +1780,16 @@ class AccountReconcileViewTests(TestCase):
         redirect to the Account Detail Page.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.liability_account, -50)
-        create_transaction(entry, self.liability_account, 50)
+        trans1 = create_transaction(entry, self.liability_account, -50)
+        trans2 = create_transaction(entry, self.liability_account, 50)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -1807,13 +1807,13 @@ class AccountReconcileViewTests(TestCase):
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
         create_transaction(entry, self.bank_account, -275)
-        create_transaction(entry, self.liability_account, 275)
+        trans2 = create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '275',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 2,
+                                          'form-0-id': trans2.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -1832,13 +1832,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, 275)
-        create_transaction(entry, self.liability_account, -275)
+        trans5 = create_transaction(entry, self.liability_account, -275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '-450',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 5,
+                                          'form-0-id': trans5.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1856,13 +1856,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, -275)
-        create_transaction(entry, self.liability_account, 275)
+        trans5 = create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '100',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 5,
+                                          'form-0-id': trans5.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1880,13 +1880,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_neg_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, -175)
-        create_transaction(entry, self.liability_account, 175)
+        trans5 = create_transaction(entry, self.liability_account, 175)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 5,
+                                          'form-0-id': trans5.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1904,13 +1904,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, 375)
-        create_transaction(entry, self.liability_account, -375)
+        trans4 = create_transaction(entry, self.liability_account, -375)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '-100',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans4.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1928,13 +1928,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, 275)
-        create_transaction(entry, self.liability_account, 275)
+        trans4 = create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '550',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans4.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1952,13 +1952,13 @@ class AccountReconcileViewTests(TestCase):
         self.test_reconcile_account_view_no_flip_success_pos_statement_zero_reconciled()
         entry = create_entry(datetime.date.today() + datetime.timedelta(days=7), 'test memo')
         create_transaction(entry, self.bank_account, 275)
-        create_transaction(entry, self.liability_account, -275)
+        trans4 = create_transaction(entry, self.liability_account, -275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=10),
                                           'account-statement_balance': '0',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 4,
+                                          'form-0-id': trans4.id,
                                           'form-0-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertRedirects(response, reverse('accounts.views.show_account_detail',
@@ -1972,14 +1972,14 @@ class AccountReconcileViewTests(TestCase):
         should return forms with errors.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -275)
+        trans1 = create_transaction(entry, self.bank_account, -275)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': 'arg',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': 'over 9000',
                                           'submit': 'Reconcile Transactions'})
 
@@ -1993,14 +1993,14 @@ class AccountReconcileViewTests(TestCase):
         return a 404.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -275)
+        trans1 = create_transaction(entry, self.bank_account, -275)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '275',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True})
         self.assertEqual(response.status_code, 404)
 
@@ -2010,14 +2010,14 @@ class AccountReconcileViewTests(TestCase):
         should return a 404.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -275)
+        trans1 = create_transaction(entry, self.bank_account, -275)
         create_transaction(entry, self.liability_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() + datetime.timedelta(days=5),
                                           'account-statement_balance': '275',
                                           'form-TOTAL_FORMS': 1,
                                           'form-INITIAL_FORMS': 1,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
                                           'submit': 'this button doesnt exist'})
         self.assertEqual(response.status_code, 404)
@@ -2031,19 +2031,19 @@ class AccountReconcileViewTests(TestCase):
         self.bank_account.last_reconciled = datetime.date.today()
         self.bank_account.save()
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, -50)
-        create_transaction(entry, self.bank_account, -50)
-        create_transaction(entry, self.bank_account, 275)
+        trans1 = create_transaction(entry, self.bank_account, -50)
+        trans2 = create_transaction(entry, self.bank_account, -50)
+        trans3 = create_transaction(entry, self.bank_account, 275)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today() - datetime.timedelta(days=500),
                                           'account-statement_balance': '-175',
                                           'form-TOTAL_FORMS': 3,
                                           'form-INITIAL_FORMS': 3,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
-                                          'form-2-id': 3,
+                                          'form-2-id': trans3.id,
                                           'form-2-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
         self.assertEqual(response.status_code, 200)
@@ -2057,17 +2057,17 @@ class AccountReconcileViewTests(TestCase):
         error for Accounts where `flip_balance` is `True`.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, 50)
-        create_transaction(entry, self.bank_account, 50)
+        trans1 = create_transaction(entry, self.bank_account, 50)
+        trans2 = create_transaction(entry, self.bank_account, 50)
         create_transaction(entry, self.liability_account, -100)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today(),
                                           'account-statement_balance': '75',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -2084,17 +2084,17 @@ class AccountReconcileViewTests(TestCase):
         error for Accounts where `flip_balance` is `True`.
         '''
         entry = create_entry(datetime.date.today(), 'test memo')
-        create_transaction(entry, self.bank_account, 50)
-        create_transaction(entry, self.bank_account, 50)
+        trans1 = create_transaction(entry, self.bank_account, 50)
+        trans2 = create_transaction(entry, self.bank_account, 50)
         create_transaction(entry, self.liability_account, -100)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}),
                                     data={'account-statement_date': datetime.date.today(),
                                           'account-statement_balance': '100',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 1,
+                                          'form-0-id': trans1.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 2,
+                                          'form-1-id': trans2.id,
                                           'form-1-reconciled': False,
                                           'submit': 'Reconcile Transactions'})
 
@@ -2113,16 +2113,16 @@ class AccountReconcileViewTests(TestCase):
         entry = create_entry(datetime.date.today(), 'test memo')
         create_transaction(entry, self.bank_account, 50)
         create_transaction(entry, self.bank_account, 50)
-        create_transaction(entry, self.liability_account, -50)
-        create_transaction(entry, self.liability_account, -50)
+        trans3 = create_transaction(entry, self.liability_account, -50)
+        trans4 = create_transaction(entry, self.liability_account, -50)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today(),
                                           'account-statement_balance': '75',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 3,
+                                          'form-0-id': trans3.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 4,
+                                          'form-1-id': trans4.id,
                                           'form-1-reconciled': True,
                                           'submit': 'Reconcile Transactions'})
 
@@ -2141,16 +2141,16 @@ class AccountReconcileViewTests(TestCase):
         entry = create_entry(datetime.date.today(), 'test memo')
         create_transaction(entry, self.bank_account, 50)
         create_transaction(entry, self.bank_account, 50)
-        create_transaction(entry, self.liability_account, -50)
-        create_transaction(entry, self.liability_account, -50)
+        trans3 = create_transaction(entry, self.liability_account, -50)
+        trans4 = create_transaction(entry, self.liability_account, -50)
         response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
                                     data={'account-statement_date': datetime.date.today(),
                                           'account-statement_balance': '100',
                                           'form-TOTAL_FORMS': 2,
                                           'form-INITIAL_FORMS': 2,
-                                          'form-0-id': 3,
+                                          'form-0-id': trans3.id,
                                           'form-0-reconciled': True,
-                                          'form-1-id': 4,
+                                          'form-1-id': trans4.id,
                                           'form-1-reconciled': False,
                                           'submit': 'Reconcile Transactions'})
 
@@ -2848,8 +2848,9 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
                                           'subbtn': 'Submit'})
+        entry = JournalEntry.objects.get(memo='test GJ entry')
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
-                                               kwargs={'journal_id': 1}))
+                                               kwargs={'journal_id': entry.id}))
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(Account.objects.all()[0].balance, -5)
@@ -3041,8 +3042,9 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
                                           'subbtn': 'Submit'})
+        entry = JournalEntry.objects.get(memo='test GJ entry')
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
-                                               kwargs={'journal_id': 1}))
+                                               kwargs={'journal_id': entry.id}))
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(Account.objects.all()[0].balance, -5)
@@ -3107,8 +3109,9 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
                                           'subbtn': 'Submit'})
+        entry = JournalEntry.objects.get(memo='test GJ entry')
         self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
-                                               kwargs={'journal_id': 1}))
+                                               kwargs={'journal_id': entry.id}))
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(Account.objects.all()[0].balance, -5)
@@ -3208,6 +3211,7 @@ class JournalEntryViewTests(TestCase):
         to the Entry's detail page.
         '''
         self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                            kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
                                     data={'entry-date': '5/1/11',
@@ -3215,19 +3219,21 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 22,
                                           'transaction-INITIAL_FORMS': 2,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 1,
-                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[0].id,
+                                          'transaction-0-journal_entry': entry.id,
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-debit': 5,
                                           'transaction-0-detail': 'debit',
                                           'transaction-0-event': self.event.id,
-                                          'transaction-1-id': 2,
-                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-id': Transaction.objects.all()[1].id,
+                                          'transaction-1-journal_entry': entry.id,
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 5,
                                           'transaction-1-detail': 'credit',
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        self.assertRedirects(response,
+                reverse('accounts.views.show_journal_entry',
+                    kwargs={'journal_id': entry.id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
@@ -3243,6 +3249,7 @@ class JournalEntryViewTests(TestCase):
         to the Entry's detail page.
         '''
         self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                            kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
                                     data={'entry-date': '5/1/11',
@@ -3250,19 +3257,21 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 22,
                                           'transaction-INITIAL_FORMS': 2,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 1,
-                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[0].id,
+                                          'transaction-0-journal_entry': entry.id,
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-credit': 8,
                                           'transaction-0-detail': 'debit',
                                           'transaction-0-event': self.event.id,
-                                          'transaction-1-id': 2,
-                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-id': Transaction.objects.all()[1].id,
+                                          'transaction-1-journal_entry': entry.id,
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-debit': 8,
                                           'transaction-1-detail': 'credit',
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        self.assertRedirects(response,
+                reverse('accounts.views.show_journal_entry',
+                    kwargs={'journal_id': entry.id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
@@ -3278,6 +3287,7 @@ class JournalEntryViewTests(TestCase):
         to the Entry's detail page.
         '''
         self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                            kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
                                     data={'entry-date': '5/1/11',
@@ -3285,19 +3295,20 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 22,
                                           'transaction-INITIAL_FORMS': 2,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 1,
-                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[0].id,
+                                          'transaction-0-journal_entry': entry.id,
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-debit': 8,
                                           'transaction-0-detail': 'debit',
-                                          'transaction-1-id': 2,
-                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-id': Transaction.objects.all()[1].id,
+                                          'transaction-1-journal_entry': entry.id,
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 8,
                                           'transaction-1-detail': 'credit',
                                           'transaction-1-event': self.event.id,
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        self.assertRedirects(response, reverse('accounts.views.show_journal_entry',
+                kwargs={'journal_id': entry.id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
@@ -3315,6 +3326,7 @@ class JournalEntryViewTests(TestCase):
         to the Entry's detail page.
         '''
         self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                            kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
                                     data={'entry-date': '5/1/11',
@@ -3322,23 +3334,25 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 22,
                                           'transaction-INITIAL_FORMS': 2,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 1,
-                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[0].id,
+                                          'transaction-0-journal_entry': entry.id,
                                           'transaction-0-account': self.asset_account.id,
                                           'transaction-0-debit': 8,
                                           'transaction-0-detail': 'debit',
                                           'transaction-0-event': self.event.id,
-                                          'transaction-1-id': 2,
-                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-id': Transaction.objects.all()[1].id,
+                                          'transaction-1-journal_entry': entry.id,
                                           'transaction-1-account': self.expense_account.id,
                                           'transaction-1-credit': 5,
                                           'transaction-1-detail': 'credit',
                                           'transaction-2-id': '',
-                                          'transaction-2-journal_entry': 1,
+                                          'transaction-2-journal_entry': entry.id,
                                           'transaction-2-account': self.asset_account.id,
                                           'transaction-2-credit': 3,
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        self.assertRedirects(response,
+                reverse('accounts.views.show_journal_entry',
+                    kwargs={'journal_id': entry.id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 3)
@@ -3354,6 +3368,7 @@ class JournalEntryViewTests(TestCase):
         to the Entry's detail page.
         '''
         self.test_add_journal_entry_view_success()
+        entry = JournalEntry.objects.all()[0]
         response = self.client.post(reverse('accounts.views.add_journal_entry',
                                            kwargs={'journal_id': JournalEntry.objects.all()[0].id}),
                                     data={'entry-date': '5/1/11',
@@ -3361,23 +3376,25 @@ class JournalEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 22,
                                           'transaction-INITIAL_FORMS': 2,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 1,
-                                          'transaction-0-journal_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[0].id,
+                                          'transaction-0-journal_entry': entry.id,
                                           'transaction-0-account': self.expense_account.id,
                                           'transaction-0-credit': 8,
                                           'transaction-0-detail': 'debit',
                                           'transaction-0-event': self.event.id,
-                                          'transaction-1-id': 2,
-                                          'transaction-1-journal_entry': 1,
+                                          'transaction-1-id': Transaction.objects.all()[1].id,
+                                          'transaction-1-journal_entry': entry.id,
                                           'transaction-1-account': self.asset_account.id,
                                           'transaction-1-credit': 10,
                                           'transaction-1-detail': 'credit',
                                           'transaction-2-id': '',
-                                          'transaction-2-journal_entry': 1,
+                                          'transaction-2-journal_entry': entry.id,
                                           'transaction-2-account': self.expense_account.id,
                                           'transaction-2-debit': 18,
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': JournalEntry.objects.all()[0].id}))
+        self.assertRedirects(response,
+                reverse('accounts.views.show_journal_entry',
+                    kwargs={'journal_id': entry.id}))
         entry = JournalEntry.objects.all()[0]
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 3)
@@ -3406,7 +3423,7 @@ class JournalEntryViewTests(TestCase):
         create_transaction(entry, self.expense_account, -50)
 
         response = self.client.get(reverse('accounts.views.show_journal_entry',
-                                           kwargs={'journal_id': 1}))
+                                           kwargs={'journal_id': entry.id}))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_detail.html')
@@ -3419,7 +3436,7 @@ class JournalEntryViewTests(TestCase):
         entry.created_at = datetime.datetime(datetime.date.today().year - 20, 1, 1, 1, 1, 1, tzinfo=utc)
         entry.save()
         response = self.client.get(reverse('accounts.views.show_journal_entry',
-                                           kwargs={'journal_id': 1}))
+                                           kwargs={'journal_id': entry.id}))
         self.assertEqual(response.context['updated'], True)
 
     def test_show_journal_entry_view_fail(self):
@@ -3467,11 +3484,14 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-MAX_NUM_FORMS': '',
                                           'transfer-0-id': '',
                                           'transfer-0-journal_entry': '',
-                                          'transfer-0-source': 1,
-                                          'transfer-0-destination': 2,
+                                          'transfer-0-source': self.asset_account.id,
+                                          'transfer-0-destination': self.expense_account.id,
                                           'transfer-0-amount': 15,
                                           'subbtn': 'Submit'})
-        self.assertRedirects(response, reverse('accounts.views.show_journal_entry', kwargs={'journal_id': 1}))
+        entry = JournalEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_journal_entry',
+                    kwargs={'journal_id': entry.id}))
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Account.objects.all()[0].balance, -15)
@@ -3490,8 +3510,8 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-MAX_NUM_FORMS': '',
                                           'transfer-0-id': '',
                                           'transfer-0-journal_entry': '',
-                                          'transfer-0-source': 1,
-                                          'transfer-0-destination': 2,
+                                          'transfer-0-source': self.asset_account.id,
+                                          'transfer-0-destination': self.expense_account.id,
                                           'transfer-0-amount': 15,
                                           'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
@@ -3516,7 +3536,7 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-MAX_NUM_FORMS': '',
                                           'transfer-0-id': '',
                                           'transfer-0-journal_entry': '',
-                                          'transfer-0-source': '1',
+                                          'transfer-0-source': 1,
                                           'transfer-0-destination': '',
                                           'transfer-0-amount': '',
                                           'subbtn': 'Submit'})
@@ -3606,9 +3626,10 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        entry = BankReceivingEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CR', 'journal_id': entry.id}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, -20)
         self.assertEqual(Account.objects.get(bank=False).balance, 20)
@@ -3772,10 +3793,11 @@ class BankEntryViewTests(TestCase):
         redirect.
         '''
         self.test_bank_receiving_add_view_success()
+        entry = BankReceivingEntry.objects.all()[0]
         new_bank_account = create_account('2nd bank', self.asset_header, 0, 1, True)
         new_expense_account = create_account('2nd expense', self.expense_header, 0, 6)
         response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR',
-                                                                                     'journal_id': 1}),
+                                                                                     'journal_id': entry.id}),
                                     data={'entry-account': new_bank_account.id,
                                           'entry-date': '4/20/1999',
                                           'entry-payor': 'new payor',
@@ -3784,20 +3806,20 @@ class BankEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 20,
                                           'transaction-INITIAL_FORMS': 1,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 2,
-                                          'transaction-0-bankreceive_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[1].id,
+                                          'transaction-0-bankreceive_entry': entry.id,
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
                                           'transaction-0-account': new_expense_account.id,
                                           'transaction-1-id': '',
-                                          'transaction-1-bankreceive_entry': 1,
+                                          'transaction-1-bankreceive_entry': entry.id,
                                           'transaction-1-detail': 'test detail 2',
                                           'transaction-1-amount': 5,
                                           'transaction-1-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+                                               kwargs={'journal_type': 'CR', 'journal_id': entry.id}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 3)
         entry = BankReceivingEntry.objects.all()[0]
@@ -3873,8 +3895,10 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        entry = BankReceivingEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CR', 'journal_id': entry.id}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, -20)
         self.assertEqual(Account.objects.get(bank=False).balance, 20)
@@ -3938,8 +3962,10 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
+        entry = BankReceivingEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CR', 'journal_id': entry.id}))
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, -20)
         self.assertEqual(Account.objects.get(bank=False).balance, 20)
@@ -3995,8 +4021,9 @@ class BankEntryViewTests(TestCase):
         journal_entry, main_transaction and transaction set
         '''
         self.test_bank_receiving_add_view_success()
+        entry = BankReceivingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.show_bank_entry',
-                                           kwargs={'journal_type': 'CR', 'journal_id': 1}))
+                                           kwargs={'journal_type': 'CR', 'journal_id': entry.id}))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_bankreceive_detail.html')
         self.failUnless(isinstance(response.context['journal_entry'], BankReceivingEntry))
@@ -4038,9 +4065,9 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-
+        entry = BankSpendingEntry.objects.all()[0]
         self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+                                               kwargs={'journal_type': 'CD', 'journal_id': entry.id}))
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, 20)
         self.assertEqual(Account.objects.get(bank=False).balance, -20)
@@ -4236,10 +4263,11 @@ class BankEntryViewTests(TestCase):
         redirect.
         '''
         self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.all()[0]
         new_bank_account = create_account('2nd bank', self.asset_header, 0, 1, True)
         new_expense_account = create_account('2nd expense', self.expense_header, 0, 6)
         response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD',
-                                                                                     'journal_id': 1}),
+                                                                                     'journal_id': entry.id}),
                                     data={'entry-account': new_bank_account.id,
                                           'entry-date': '12/12/12',
                                           'entry-check_number': 2177,
@@ -4249,20 +4277,21 @@ class BankEntryViewTests(TestCase):
                                           'transaction-TOTAL_FORMS': 20,
                                           'transaction-INITIAL_FORMS': 1,
                                           'transaction-MAX_NUM_FORMS': '',
-                                          'transaction-0-id': 2,
-                                          'transaction-0-bankspend_entry': 1,
+                                          'transaction-0-id': Transaction.objects.all()[1].id,
+                                          'transaction-0-bankspend_entry': entry.id,
                                           'transaction-0-detail': 'test detail',
                                           'transaction-0-amount': 15,
                                           'transaction-0-account': new_expense_account.id,
                                           'transaction-1-id': '',
-                                          'transaction-1-bankspend_entry': 1,
+                                          'transaction-1-bankspend_entry': entry.id,
                                           'transaction-1-detail': 'test detail 2',
                                           'transaction-1-amount': 5,
                                           'transaction-1-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CD', 'journal_id': entry.id}))
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 3)
         entry = BankSpendingEntry.objects.all()[0]
@@ -4307,9 +4336,10 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CD', 'journal_id': 1}))
+        entry = BankSpendingEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CD', 'journal_id': entry.id}))
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, 20)
         self.assertEqual(Account.objects.get(bank=False).balance, -20)
@@ -4357,10 +4387,11 @@ class BankEntryViewTests(TestCase):
         '''
         FiscalYear.objects.create(year=2010, end_month=12, period=12)
         FiscalYear.objects.create(year=2011, end_month=12, period=12)
-        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
                                     data={'entry-account': self.bank_account.id,
                                           'entry-date': '2011-01-12',
-                                          'entry-payor': 'test payor',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
                                           'entry-amount': 20,
                                           'entry-memo': 'test memo',
                                           'transaction-TOTAL_FORMS': 20,
@@ -4373,11 +4404,13 @@ class BankEntryViewTests(TestCase):
                                           'transaction-0-account': self.expense_account.id,
                                           'subbtn': 'Submit',
                                           })
-        self.assertRedirects(response, reverse('accounts.views.show_bank_entry',
-                                               kwargs={'journal_type': 'CR', 'journal_id': 1}))
-        self.assertEqual(BankReceivingEntry.objects.count(), 1)
-        self.assertEqual(Account.objects.get(bank=True).balance, -20)
-        self.assertEqual(Account.objects.get(bank=False).balance, 20)
+        entry = BankSpendingEntry.objects.all()[0]
+        self.assertRedirects(response,
+                reverse('accounts.views.show_bank_entry',
+                    kwargs={'journal_type': 'CD', 'journal_id': entry.id}))
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.get(bank=True).balance, 20)
+        self.assertEqual(Account.objects.get(bank=False).balance, -20)
 
     def test_bank_spending_add_view_fail_two_fiscal_year(self):
         '''
@@ -4390,10 +4423,11 @@ class BankEntryViewTests(TestCase):
         '''
         FiscalYear.objects.create(year=2011, end_month=12, period=12)
         FiscalYear.objects.create(year=2012, end_month=12, period=12)
-        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CR'}),
+        response = self.client.post(reverse('accounts.views.add_bank_entry', kwargs={'journal_type': 'CD'}),
                                     data={'entry-account': self.bank_account.id,
                                           'entry-date': '2011-01-11',
-                                          'entry-payor': 'test payor',
+                                          'entry-ach_payment': True,
+                                          'entry-payee': 'test payee',
                                           'entry-amount': 20,
                                           'entry-memo': 'test memo',
                                           'transaction-TOTAL_FORMS': 20,
@@ -4429,8 +4463,9 @@ class BankEntryViewTests(TestCase):
         journal_id will retrieve the respective BankSpendingEntry
         '''
         self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.all()[0]
         response = self.client.get(reverse('accounts.views.show_bank_entry',
-                                           kwargs={'journal_type': 'CD', 'journal_id': 1}))
+            kwargs={'journal_type': 'CD', 'journal_id': entry.id}))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_bankspend_detail.html')
         self.failUnless(isinstance(response.context['journal_entry'], BankSpendingEntry))
