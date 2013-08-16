@@ -110,7 +110,7 @@ def show_account_detail(request, account_slug,
                 endbalance += transaction.balance_delta
             transaction.final_balance = endbalance
     else:
-        startbalance = endbalance = 0
+        startbalance = endbalance = account.get_balance_by_date(startdate)
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 

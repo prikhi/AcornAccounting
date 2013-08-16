@@ -2241,6 +2241,39 @@ class AccountDetailViewTests(TestCase):
         `startbalance`, `endbalance`, `net_change`, `debit_total` and
         `credit_total`.
         '''
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.bank_account.slug}))
+        self.assertEqual(response.status_code, 200)
+        self.assertSequenceEqual(response.context['transactions'], [])
+        self.assertEqual(response.context['debit_total'], 0)
+        self.assertEqual(response.context['credit_total'], 0)
+        self.assertEqual(response.context['net_change'], 0)
+        # These value are flipped from expected because account.flip_balance = True
+        self.assertEqual(response.context['startbalance'], 0)
+        self.assertEqual(response.context['endbalance'], 0)
+
+    def test_show_account_detail_view_no_transaction_in_range(self):
+        '''
+        A `GET` to the `show_account_detail` view with an `account_slug` for an
+        Account with no Transactions in the start/stop date range should return
+        the correct balance counters `startbalance`, `endbalance`,
+        `net_change`, `debit_total` and `credit_total`.
+        '''
+        out_range_date = datetime.date(datetime.date.today().year - 20, 1, 1)
+        general = create_entry(out_range_date, 'general entry')
+        create_transaction(general, self.bank_account, -100)
+        create_transaction(general, self.liability_account, 100)
+        response = self.client.get(reverse('accounts.views.show_account_detail',
+                                            kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertSequenceEqual(response.context['transactions'], [])
+        self.assertEqual(response.context['debit_total'], 0)
+        self.assertEqual(response.context['credit_total'], 0)
+        self.assertEqual(response.context['net_change'], 0)
+        # These value are flipped from expected because account.flip_balance = True
+        self.assertEqual(response.context['startbalance'], 100)
+        self.assertEqual(response.context['endbalance'], 100)
 
     def test_show_account_detail_view_initial_only_debits(self):
         '''
