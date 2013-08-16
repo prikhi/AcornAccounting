@@ -46,7 +46,8 @@ class QuickEventForm(forms.Form):
 class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
+                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
 
     def clean_date(self):
         '''The date must be in the Current :class:`FiscalYear`.'''
@@ -54,7 +55,7 @@ class JournalEntryForm(forms.ModelForm):
         start = FiscalYear.objects.current_start()
         if start is not None and date < start:
             raise forms.ValidationError("The date must be in the current "
-                    "Fiscal Year.")
+                                        "Fiscal Year.")
         return date
 
 
@@ -205,16 +206,19 @@ class BaseBankForm(forms.ModelForm):
 class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
-        fields = ('account', 'date', 'check_number', 'ach_payment', 'payee', 'amount', 'memo',)
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
+        fields = ('account', 'date', 'check_number', 'ach_payment', 'payee',
+                  'amount', 'memo', 'comments')
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
+                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
 
 
 @parsleyfy
 class BankReceivingForm(BaseBankForm):
     class Meta:
         model = BankReceivingEntry
-        fields = ('account', 'date', 'payor', 'amount', 'memo',)
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True})}
+        fields = ('account', 'date', 'payor', 'amount', 'memo', 'comments')
+        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
+                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
 
     def clean_amount(self):
         '''Should be negative(debit) for receiving money'''

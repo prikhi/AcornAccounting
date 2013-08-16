@@ -398,6 +398,7 @@ class BaseJournalEntry(CachingMixin, models.Model):
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
     memo = models.CharField(max_length=60)
+    comments = models.TextField(blank=True, null=True)
 
     objects = CachingManager()
 
