@@ -179,11 +179,9 @@ class Header(BaseAccountModel):
         for header in descendants:
             accounts = header.account_set.all()
             for account in accounts:
-                balance += account.balance
+                balance += account.get_balance()
         for account in self.account_set.all():
-            balance += account.balance
-        if self.flip_balance():
-            balance = -1 * balance
+            balance += account.get_balance()
         return balance
 
 
@@ -223,24 +221,62 @@ class Account(BaseAccountModel):
     get_full_number.short_description = "Number"
 
     def get_balance(self):
-        if self.flip_balance():
-            return self.balance * -1
+        '''
+        Returns the value balance for the :class:`Account`.
+
+        The :class:`Account` model stores the credit/debit balance in the
+        :attr:`balance` field. This method will convert the credit/debit
+        balance to a value balance for :attr:`Account.type` where a debit
+        increases the :class:`Account's<Account>` value, instead of decreasing
+        it(the normal action).
+
+        The ``Current Year Earnings`` :class:`Account` does not source it's
+        :attr:`~Account.balance` field but instead uses the Sum of all
+        :class:`Accounts<Account>` with :attr:`~BaseAccountModel.type` of 4 to
+        8.
+
+        .. seealso::
+
+            :meth:`~BaseAccountModel.flip_balance` method for more information
+            on value balances.
+
+        :returns: The Account's current value balance.
+        :rtype: decimal.Decimal
+        '''
+        if self.name == "Current Year Earnings":
+            balance = Account.objects.filter(type__in=range(4, 9)
+                    ).aggregate(models.Sum('balance'))['balance__sum']
         else:
-            return self.balance
+            balance = self.balance
+        if self.flip_balance():
+            balance *= -1
+        return balance
 
     def get_balance_by_date(self, date):
         '''
         Calculates the :class:`Accounts<Account>` balance on a specific
         ``date``.
 
+        For the ``Current Year Earnings`` :class:`Account`,
+        :class:`Transactions<Transaction>` from all :class:`Accounts<Account>`
+        with :attr:`~BaseAccountModel.type` of 4 to 8 will be used.
+
         :param date: The day whose balance should be returned.
         :type date: datetime.date
         :returns: The Account's balance on a specified date.
         :rtype: decimal.Decimal
         '''
-        transactions = self.transaction_set.filter(
-                date__lte=date).order_by('-date', '-id')
-        if transactions.exists():
+        if self.name == "Current Year Earnings":
+            transaction_set = Transaction.objects.filter(
+                    account__type__in=range(4,9))
+        else:
+            transaction_set = self.transaction_set
+        transactions = transaction_set.filter(date__lte=date
+                ).order_by('-date', '-id')
+        if self.name == "Current Year Earnings" and transactions.exists():
+            return transactions.aggregate(
+                    models.Sum('balance_delta'))['balance_delta__sum']
+        elif transactions.exists():
             return transactions[0].get_final_account_balance()
         else:
             return Decimal(0)
@@ -250,6 +286,10 @@ class Account(BaseAccountModel):
         Calculates the :class:`Accounts<Account>` net change in balance for the
         specified ``date``.
 
+        For the ``Current Year Earnings`` :class:`Account`,
+        :class:`Transactions<Transaction>` from all :class:`Accounts<Account>`
+        with :attr:`~BaseAccountModel.type` of 4 to 8 will be used.
+
         :param date: The month to calculate the net change for.
         :type date: datetime.date
         :returns: The Account's net balance change for the specified month.
@@ -258,8 +298,11 @@ class Account(BaseAccountModel):
         days_in_month = calendar.monthrange(date.year, date.month)[1]
         firstday = datetime.date(date.year, date.month, 1)
         lastday = datetime.date(date.year, date.month, days_in_month)
-        query = (models.Q(date__gte=firstday, date__lte=lastday) &
-                 models.Q(account__id=self.id))
+        query = models.Q(date__gte=firstday, date__lte=lastday)
+        if self.name == "Current Year Earnings":
+            query.add(models.Q(account__type__in=range(4, 9)), models.Q.AND)
+        else:
+            query.add(models.Q(account__id=self.id), models.Q.AND)
         (_, _, net_change) = Transaction.objects.get_totals(query, True)
         if self.flip_balance():
             net_change *= -1

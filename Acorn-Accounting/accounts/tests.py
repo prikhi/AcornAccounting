@@ -502,6 +502,107 @@ class AccountModelTests(TestCase):
         self.assertTrue(isinstance(net_change, Decimal))
         self.assertEqual(net_change, 0)
 
+    def test_current_earnings_get_balance(self):
+        '''
+        For the Current Year Earnings Account, the `get_balance` method will
+        return the sum of all balance_deltas of Accounts with `type` 4-8.
+        '''
+        equity_header = create_header('Equity', cat_type=3)
+        current_earnings = create_account('Current Year Earnings', equity_header, 0, 3)
+        income_header = create_header('Income', None, 4)
+        income_account = create_account('Income', income_header, 0, 4)
+        cost_header = create_header('Cost of Sales', None, 5)
+        cost_account = create_account('Cost of Sales', cost_header, 0, 5)
+        expense_header = create_header('Expense', None, 6)
+        expense_account = create_account('Expense', expense_header, 0, 6)
+        oth_income_header = create_header('Other Income', None, 7)
+        oth_income = create_account('Other Income', oth_income_header, 0, 7)
+        oth_expense_header = create_header('Other Expense', None, 8)
+        oth_expense = create_account('Other Expense', oth_expense_header, 0, 8)
+
+        entry = create_entry(datetime.date.today(), 'test entry')
+        create_transaction(entry, income_account, -35)
+        create_transaction(entry, cost_account, 420)
+        create_transaction(entry, expense_account, 67)
+        create_transaction(entry, oth_income, -89)
+        create_transaction(entry, oth_expense, 44)
+
+        self.assertEqual(current_earnings.get_balance(), 407)
+
+    def test_current_earnings_get_balance_by_date(self):
+        '''
+        For the Current Year Earnings Account, the `get_balance_by_date` method
+        will return the sum of all Account balances with `type` 4-8 on the
+        specified date.
+        '''
+        equity_header = create_header('Equity', cat_type=3)
+        current_earnings = create_account('Current Year Earnings', equity_header, 0, 3)
+        income_header = create_header('Income', None, 4)
+        income_account = create_account('Income', income_header, 0, 4)
+        cost_header = create_header('Cost of Sales', None, 5)
+        cost_account = create_account('Cost of Sales', cost_header, 0, 5)
+        expense_header = create_header('Expense', None, 6)
+        expense_account = create_account('Expense', expense_header, 0, 6)
+        oth_income_header = create_header('Other Income', None, 7)
+        oth_income = create_account('Other Income', oth_income_header, 0, 7)
+        oth_expense_header = create_header('Other Expense', None, 8)
+        oth_expense = create_account('Other Expense', oth_expense_header, 0, 8)
+
+        today = datetime.date.today()
+        past = today - datetime.timedelta(days=20)
+        entry = create_entry(past, 'past entry')
+        create_transaction(entry, income_account, -35)
+        create_transaction(entry, cost_account, 420)
+        create_transaction(entry, expense_account, 67)
+        create_transaction(entry, oth_income, -89)
+        create_transaction(entry, oth_expense, 44)
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, income_account, -35)
+        create_transaction(entry, cost_account, 420)
+        create_transaction(entry, expense_account, 67)
+        create_transaction(entry, oth_income, -89)
+        create_transaction(entry, oth_expense, 44)
+
+        self.assertEqual(current_earnings.get_balance_by_date(past), 407)
+        self.assertEqual(current_earnings.get_balance_by_date(today), 814)
+
+    def test_current_earnings_get_balance_change_by_month(self):
+        '''
+        For the Current Year Earnngs Account, the `get_balance_change_by_month`
+        method will return the sum of all balance_deltas for all Accounts of
+        `type` 4-8 in the speicifed month.
+        '''
+        equity_header = create_header('Equity', cat_type=3)
+        current_earnings = create_account('Current Year Earnings', equity_header, 0, 3)
+        income_header = create_header('Income', None, 4)
+        income_account = create_account('Income', income_header, 0, 4)
+        cost_header = create_header('Cost of Sales', None, 5)
+        cost_account = create_account('Cost of Sales', cost_header, 0, 5)
+        expense_header = create_header('Expense', None, 6)
+        expense_account = create_account('Expense', expense_header, 0, 6)
+        oth_income_header = create_header('Other Income', None, 7)
+        oth_income = create_account('Other Income', oth_income_header, 0, 7)
+        oth_expense_header = create_header('Other Expense', None, 8)
+        oth_expense = create_account('Other Expense', oth_expense_header, 0, 8)
+
+        today = datetime.date.today()
+        past = today - datetime.timedelta(days=60)
+        entry = create_entry(past, 'past entry')
+        create_transaction(entry, income_account, 35)
+        create_transaction(entry, cost_account, 420)
+        create_transaction(entry, expense_account, 67)
+        create_transaction(entry, oth_income, 89)
+        create_transaction(entry, oth_expense, 44)
+        entry = create_entry(today, 'today entry')
+        create_transaction(entry, income_account, -35)
+        create_transaction(entry, cost_account, 420)
+        create_transaction(entry, expense_account, 67)
+        create_transaction(entry, oth_income, -89)
+        create_transaction(entry, oth_expense, 44)
+
+        self.assertEqual(current_earnings.get_balance_change_by_month(past), 655)
+        self.assertEqual(current_earnings.get_balance_change_by_month(today), 407)
+
     def test_account_delete_no_transactions(self):
         '''
         Accounts can be deleted if they have no Transactions.
@@ -5104,13 +5205,11 @@ class FiscalYearViewTests(TestCase):
         jan_entry = create_entry(jan, 'jan entry')
         create_transaction(jan_entry, self.bank_account, -20)
         create_transaction(jan_entry, self.expense_account, -15)
-        create_transaction(jan_entry, self.current_earnings, 35)
 
         sept = datetime.date(2012, 9, 4)
         sept_entry = create_entry(sept, 'sept entry')
         create_transaction(sept_entry, self.bank_account, -20)
         create_transaction(sept_entry, self.expense_account, -15)
-        create_transaction(sept_entry, self.current_earnings, 35)
 
         FiscalYear.objects.create(year=2011, end_month=12, period=12)
         FiscalYear.objects.create(year=2012, end_month=12, period=12)
@@ -5137,7 +5236,7 @@ class FiscalYearViewTests(TestCase):
                 name=self.current_earnings.name)
         self.assertEqual(jan_bank.amount, -20)
         self.assertEqual(jan_exp.amount, -15)
-        self.assertEqual(jan_earn.amount, 35)
+        self.assertEqual(jan_earn.amount, -15)
 
         mar_bank = HistoricalAccount.objects.get(date__month=3, date__year=2012,
                 name=self.bank_account.name)
@@ -5147,7 +5246,7 @@ class FiscalYearViewTests(TestCase):
                 name=self.current_earnings.name)
         self.assertEqual(mar_bank.amount, -20)
         self.assertEqual(mar_exp.amount, 0)
-        self.assertEqual(mar_earn.amount, 35)
+        self.assertEqual(mar_earn.amount, -15)
 
         sept_bank = HistoricalAccount.objects.get(date__month=9, date__year=2012,
                 name=self.bank_account.name)
@@ -5157,7 +5256,7 @@ class FiscalYearViewTests(TestCase):
                 name=self.current_earnings.name)
         self.assertEqual(sept_bank.amount, -40)
         self.assertEqual(sept_exp.amount, -15)
-        self.assertEqual(sept_earn.amount, 70)
+        self.assertEqual(sept_earn.amount, -30)
 
     def test_add_fiscal_year_w_two_previous_purge_entries(self):
         '''
