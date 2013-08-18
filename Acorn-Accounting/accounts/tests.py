@@ -260,6 +260,23 @@ class AccountModelTests(TestCase):
         create_transaction(entry, self.child_acc, 20)
         self.assertEqual(self.child_acc.get_balance_by_date(datetime.date.today()), 40)
 
+    def test_get_balance_by_date_previous_transactions_starting_balance(self):
+        '''
+        The ``get_balance_by_date`` method should return a Decimal value of the
+        starting balance if the ``Account`` has ``Transactions`` only before
+        the ``date``.
+
+        Fix for bug#167
+        '''
+        today = datetime.date.today()
+        date = today - datetime.timedelta(days=1)
+        account_w_balance = create_account('test acc', self.child_head, 42)
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, account_w_balance, 20)
+        create_transaction(entry, account_w_balance, 20)
+        account_w_balance = Account.objects.get(id=account_w_balance.id)
+        self.assertEqual(account_w_balance.get_balance_by_date(today), 82)
+
     def test_get_balance_by_date_future_transactions(self):
         '''
         The ``get_balance_by_date`` method should return a Decimal value of 0
@@ -269,7 +286,25 @@ class AccountModelTests(TestCase):
         entry = create_entry(date, 'entry')
         create_transaction(entry, self.child_acc, 20)
         create_transaction(entry, self.child_acc, 20)
+        self.child_acc = Account.objects.get(id=self.child_acc.id)
         self.assertEqual(self.child_acc.get_balance_by_date(datetime.date.today()), 0)
+
+    def test_get_balance_by_date_future_transactions_starting_balance(self):
+        '''
+        The ``get_balance_by_date`` method should return a Decimal value of the
+        starting balance if the ``Account`` has ``Transactions`` only after the
+        ``date``.
+
+        Fix for bug#167
+        '''
+        today = datetime.date.today()
+        date = today + datetime.timedelta(days=1)
+        account_w_balance = create_account('test acc', self.child_head, 42)
+        entry = create_entry(date, 'entry')
+        create_transaction(entry, account_w_balance, 20)
+        create_transaction(entry, account_w_balance, 20)
+        account_w_balance = Account.objects.get(id=account_w_balance.id)
+        self.assertEqual(account_w_balance.get_balance_by_date(today), 42)
 
     def test_get_balance_by_date_no_transactions(self):
         '''
@@ -280,6 +315,17 @@ class AccountModelTests(TestCase):
         balance = self.child_acc.get_balance_by_date(date=date)
         self.assertTrue(isinstance(balance, Decimal))
         self.assertEqual(balance, 0)
+
+    def test_get_balance_by_date_no_transactions_starting_balance(self):
+        '''
+        The ``get_balance_by_date`` method should return a Decimal value of the
+        starting balance if the ``Account`` has no ``Transactions``
+
+        Fix for bug#167
+        '''
+        date = datetime.date.today()
+        account_w_balance = create_account('test acc', self.child_head, 42)
+        self.assertEqual(account_w_balance.get_balance_by_date(date), 42)
 
     def test_get_balance_by_date_multiple_transactions(self):
         '''

@@ -279,7 +279,13 @@ class Account(BaseAccountModel):
         elif transactions.exists():
             return transactions[0].get_final_account_balance()
         else:
-            return Decimal(0)
+            transaction_sum = (transaction_set.all().aggregate(
+                    models.Sum('balance_delta'))['balance_delta__sum'] or
+                    Decimal(0))
+            balance = self.balance - transaction_sum
+            if self.flip_balance():
+                balance *= -1
+            return balance
 
     def get_balance_change_by_month(self, date):
         '''
