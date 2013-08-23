@@ -110,6 +110,7 @@
         }
     );
     var recalcCounters = function () {
+        // Calculate and set the Credit Total
         var credit_sum = 0;
         $(".credit").each( function(){
             if($(this).closest('tr').find('input:checkbox').is(':checked') == true) {
@@ -122,6 +123,7 @@
         if (isNaN(credit_sum)) {credit_sum = 0}
         $('#credit_total').text('$' + credit_sum.toFixed(2));
 
+        // Calculate and set the Debit Total
         var debit_sum = 0;
         $(".debit").each( function(){
             if( $(this).closest('tr').find('input:checkbox').is(':checked') == true) {
@@ -133,6 +135,7 @@
         });
         $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
 
+        // Calculate and set the Net Change
         var net_change = credit_sum - debit_sum;
         if(net_change < 0) {
             $('#net_change').text('($' + (debit_sum - credit_sum).toFixed(2) + ')');
@@ -142,19 +145,20 @@
             $('#net_change').text('$0.00');
         }
 
+        // Calculate and set the Out of Balance amount
         var statement_balance = $('#id_account-statement_balance').val();
-
-        if(!isNaN(statement_balance) && statement_balance.length != 0) {
-            if ( {{ account.flip_balance|lower }} ) {
-                statement_balance = -1 * parseFloat(statement_balance);
-            }
-            if(net_change > statement_balance) {
-                $('#out_of_balance').text('($' + (net_change - statement_balance).toFixed(2) + ')');
-            } else if (statement_balance > net_change) {
-                $('#out_of_balance').text('$' + (statement_balance - net_change).toFixed(2));
-            } else {
-                $('#out_of_balance').text('$0.00');
-            }
+        if (isNaN(statement_balance)) {
+            statement_balance = 0;
+        }
+        if ( {{ account.flip_balance|lower }} ) {
+            statement_balance = -1 * parseFloat(statement_balance);
+        }
+        if(net_change > statement_balance) {
+            $('#out_of_balance').text('($' + (net_change - statement_balance).toFixed(2) + ')');
+        } else if (statement_balance > net_change) {
+            $('#out_of_balance').text('$' + (statement_balance - net_change).toFixed(2));
+        } else {
+            $('#out_of_balance').text('$0.00');
         }
     }
 </script>
