@@ -281,8 +281,7 @@ class Account(BaseAccountModel):
             on value balances.
 
         :returns: The Account's current value balance.
-        :rtype: decimal.Decimal
-
+        :rtype: :class:`decimal.Decimal`
         """
         if self.name == "Current Year Earnings":
             balance = Account.objects.filter(type__in=range(4, 9)).aggregate(
@@ -305,8 +304,7 @@ class Account(BaseAccountModel):
         :param date: The day whose balance should be returned.
         :type date: datetime.date
         :returns: The Account's balance on a specified date.
-        :rtype: decimal.Decimal
-
+        :rtype: :class:`decimal.Decimal`
         """
         if self.name == "Current Year Earnings":
             transaction_set = Transaction.objects.filter(
@@ -341,8 +339,7 @@ class Account(BaseAccountModel):
         :param date: The month to calculate the net change for.
         :type date: datetime.date
         :returns: The Account's net balance change for the specified month.
-        :rtype: decimal.Decimal
-
+        :rtype: :class:`decimal.Decimal`
         """
         days_in_month = calendar.monthrange(date.year, date.month)[1]
         first_day = datetime.date(date.year, date.month, 1)

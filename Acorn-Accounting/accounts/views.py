@@ -68,7 +68,7 @@ def show_account_detail(request, account_slug,
                         template_name="accounts/account_detail.html"):
     """
     Displays a list of :class:`Transaction` instances for the :class:`Account`
-    with a :attr:`~Account.slug` of :param:`account_slug`.
+    with a :attr:`~Account.slug` equal to the ``account_slug`` parameter.
 
     The following ``GET`` parameters are accessible:
         * ``start_date`` - The starting date to filter the returned
@@ -97,8 +97,8 @@ def show_account_detail(request, account_slug,
             retrieve.
     :type account_slug: string
     :param template_name: The template file to use to render the response.
-    :type template_name:
-    :returns: HTTP Response with :class:`Transactions<Transaction>` and       \
+    :type template_name: string
+    :returns: HTTP Response with :class:`Transactions<Transaction>` and \
             balance counters.
     :rtype: HttpResponse
     """
@@ -148,9 +148,9 @@ def show_account_history(request, month=None, year=None,
           and ``year`` if no Historical Accounts exist.
 
     :param month: The Month to select, usage requires a specified year.
-    :type month: integer
+    :type month: int
     :param year: The Year to select, usage requires a specified month.
-    :type year: integer
+    :type year: int
     :param template_name: The template to use.
     :type template_name: string
     :returns: HTTP context with a list of instances or empty string as \
@@ -563,29 +563,29 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
     Creates a new :class:`FiscalYear` using a :class:`FiscalYearForm` and
     :data:`FiscalYearAccountsFormSet`.
 
-    Starting a new :class:`FiscalYear` involves the following procedure::
+    Starting a new :class:`FiscalYear` involves the following procedure:
 
-        1. Setting a ``period`` and Ending ``month`` and ``year`` for the New
-           Fiscal Year.
-        2. Selecting Accounts to exclude from purging of unreconciled
-           :class:`Transactions`.
-        3. Create a :class:`HistoricalAccount` for every :class:`Account` and
-           month in the previous :class:`FiscalYear`, using ending balances
-           for Asset, Liability and Equity :class:`Accounts<Account>` and
-           balance changes for the others.
-        4. Delete all :class:`Journal Entries<JournalEntry>`, except those
-           with unreconciled :class:`Transactions<Transaction>` with
-           :class:`Accounts<Account>` in the exclude lists.
-        5. Move the ``balance`` of the ``Current Year Earnings``
-           :class:`Account` into the ``Retained Earnings`` :class:`Account`.
-        6. Zero the ``balance`` of all Income, Cost of Sales, Expense, Other
-           Income and Other Expense :class:`Accounts<Account>`.
+         1. Setting a ``period`` and Ending ``month`` and ``year`` for the New
+            Fiscal Year.
+         2. Selecting Accounts to exclude from purging of unreconciled
+            :class:`accounts.models.Transactions`.
+         3. Create a :class:`HistoricalAccount` for every :class:`Account` and
+            month in the previous :class:`FiscalYear`, using ending balances
+            for Asset, Liability and Equity :class:`Accounts<Account>` and
+            balance changes for the others.
+         4. Delete all :class:`Journal Entries<accounts.models.JournalEntry>`,
+            except those with unreconciled :class:`Transactions<Transaction>`
+            with :class:`Accounts<Account>` in the exclude lists.
+         5. Move the ``balance`` of the ``Current Year Earnings``
+            :class:`Account` into the ``Retained Earnings`` :class:`Account`.
+         6. Zero the ``balance`` of all Income, Cost of Sales, Expense, Other
+            Income and Other Expense :class:`Accounts<Account>`.
 
     :param template_name: The template to use.
     :type template_name: string
     :returns: HTTP response containing :class:`FiscalYearForm` and \
-            :class:`FiscalYearAccountsFormSet` as context. Redirects if \
-            successful POST is sent.
+            :class:`~accounts.forms.FiscalYearAccountsFormSet` as context. \
+            Redirects if successful POST is sent.
     :rtype: HttpResponse or HttpResponseRedirect
     """
     # TODO: Refactor this into FiscalYear.objects.get_latest_or_none()
