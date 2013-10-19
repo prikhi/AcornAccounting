@@ -15,6 +15,9 @@ def first_of_month():
     return datetime.date(today.year, today.month, 1).strftime('%m/%d/%Y')
 
 
+# TODO: Refactor the 3 following functions into a single function that:
+#   Takes a form, request and get variable
+#   Returns either a new or bound form
 def process_quick_account_form(GET):
     '''
     Returns a quick account dropdown select form and an Account id
@@ -50,7 +53,7 @@ def process_quick_event_form(GET):
     if 'event' in GET:
         form = QuickBankForm(GET)
         if form.is_valid():
-            event_id = form.cleaned_data['event']
+            event_id = form.cleaned_data.get('event')
     return form, event_id
 
 
@@ -66,6 +69,6 @@ def process_date_range_form(request):
     if 'startdate' in request.GET and 'stopdate' in request.GET:
         form = DateRangeForm(request.GET)
         if form.is_valid():
-            startdate = form.cleaned_data['startdate']
-            stopdate = form.cleaned_data['stopdate']
+            startdate = form.cleaned_data.get('startdate', startdate)
+            stopdate = form.cleaned_data.get('stopdate', stopdate)
     return form, startdate, stopdate

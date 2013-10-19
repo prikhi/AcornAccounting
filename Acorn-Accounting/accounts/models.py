@@ -12,7 +12,10 @@ from django.utils import timezone
 from mptt.models import MPTTModel, TreeForeignKey
 
 
+# TODO: Move all managers to a separate manager.py
+
 class BankAccountManager(models.Manager):
+    # TODO: Is this ever used? if it is, we should make sure it is tested
     def get_query_set(self):
         return super(BankAccountManager, self).get_query_set().filter(bank=True)
 
@@ -32,11 +35,14 @@ class TransactionManager(CachingManager):
     use_for_related_fields = True
 
     def get_totals(self, query=None, net_change=False):
+        # TODO: Flags are generally bad and should be refactored into another
+        # funciton (net_change)
         '''
         Calculate debit and credit totals for the respective Queryset.
 
-        Groups and Sums the default Queryset by positive/negative :attr:~`Transaction.balance_delta`.
-        Totals default to ``0`` if no corresponding :class:`Transaction` is found.
+        Groups and Sums the default Queryset by positive/negative
+        :attr:`~Transaction.balance_delta`. Totals default to ``0`` if no
+        corresponding :class:`Transaction` is found.
 
         Optionally:
             * Filters the Manager's Queryset by ``query`` parameter.
@@ -49,9 +55,12 @@ class TransactionManager(CachingManager):
         :returns: debit and credit sums and optionally net_change.
         :rtype: tuple
         '''
+        # TODO: Can we just use `self` for this and filtering `query`?
         base_qs = self.get_query_set()
         if query:
+            # TODO: Can we assume the qs has already been filtered?
             base_qs = base_qs.filter(query)
+        # TODO: Ugly, maybe use parenthesis to fix?
         debit_total = base_qs.filter(models.Q(balance_delta__lt=0)).        \
             aggregate(models.Sum('balance_delta'))['balance_delta__sum'] or Decimal(0)
         credit_total = base_qs.filter(models.Q(balance_delta__gt=0)).       \
@@ -90,6 +99,7 @@ class FiscalYearManager(CachingManager):
                         months=1)
             else:
                 current_year = FiscalYear.objects.get()
+                # TODO: Ugly
                 return current_year.date - relativedelta.relativedelta(
                         months=current_year.period - 1)
         else:
@@ -100,6 +110,7 @@ class BaseAccountModel(CachingMixin, MPTTModel):
     """
     Abstract class storing common attributes of Headers and Accounts
     """
+    # TODO: Move to constants.py
     ASSET = 1
     LIABILITY = 2
     EQUITY = 3
@@ -108,6 +119,7 @@ class BaseAccountModel(CachingMixin, MPTTModel):
     EXPENSE = 6
     OTHER_INCOME = 7
     OTHER_EXPENSE = 8
+    # TODO: Could just use enumerate here
     TYPE_CHOICES = (
         (ASSET, 'Asset'),
         (LIABILITY, 'Liability'),
@@ -164,7 +176,12 @@ class Header(BaseAccountModel):
 
     def get_full_number(self):
         """Use type and tree position to generate full account number"""
-        full_number = ""
+        # TODO: Cache this function, save in a field and refresh on save:
+        # could create save method with flag argument. Method would usually
+        # not regenerate full_number. If header changed and no flag, it would
+        # call save method for siblings and self with flag up. If flag on,
+        # would recalculate full_number and save (no recurse if header
+        # changed). Make Redmine ticket for this one.
         if self.parent:
             full_number = "{0}-{1:02d}00".format(self.type, self.account_number())
         else:
@@ -175,7 +192,9 @@ class Header(BaseAccountModel):
     def get_account_balance(self):
         ''''Traverses child Headers and Accounts to generate the current balance'''
         balance = Decimal("0.00")
-        descendants = self.get_descendants()
+        descendants = self.get_descendants()    # TODO: is this all or just
+                                                # 1-level deep? Should Test on
+                                                # 3-level deep header.
         for header in descendants:
             accounts = header.account_set.all()
             for account in accounts:
@@ -189,6 +208,7 @@ class Account(BaseAccountModel):
     """
     Holds information on Accounts
     """
+    # TODO: Fix help text, not true for flip_balance accounts
     balance = models.DecimalField(help_text="Positive balance is a credit, negative is a debit",
                                   max_digits=19, decimal_places=4, default="0.00",
                                   editable=False)
@@ -216,10 +236,12 @@ class Account(BaseAccountModel):
 
     def get_full_number(self):
         """Use parent Header and sibling position to generate full account number"""
+        # TODO: Cache or store + refresh this (see header method above)
         full_number = self.parent.get_full_number()[:-2] + "{0:02d}".format(self.account_number())
         return full_number
     get_full_number.short_description = "Number"
 
+# TODO: get_value_balance()?
     def get_balance(self):
         '''
         Returns the value balance for the :class:`Account`.
@@ -290,7 +312,7 @@ class Account(BaseAccountModel):
     def get_balance_change_by_month(self, date):
         '''
         Calculates the :class:`Accounts<Account>` net change in balance for the
-        specified ``date``.
+        month of the specified ``date``.
 
         For the ``Current Year Earnings`` :class:`Account`,
         :class:`Transactions<Transaction>` from all :class:`Accounts<Account>`
@@ -302,9 +324,9 @@ class Account(BaseAccountModel):
         :rtype: decimal.Decimal
         '''
         days_in_month = calendar.monthrange(date.year, date.month)[1]
-        firstday = datetime.date(date.year, date.month, 1)
-        lastday = datetime.date(date.year, date.month, days_in_month)
-        query = models.Q(date__gte=firstday, date__lte=lastday)
+        first_day = datetime.date(date.year, date.month, 1)
+        last_day = datetime.date(date.year, date.month, days_in_month)
+        query = models.Q(date__gte=first_day, date__lte=last_day)
         if self.name == "Current Year Earnings":
             query.add(models.Q(account__type__in=range(4, 9)), models.Q.AND)
         else:
@@ -318,8 +340,9 @@ class Account(BaseAccountModel):
 class HistoricalAccount(CachingMixin, models.Model):
     '''
     A model for Archiving Historical Account Data.
-    It stores an :class:`Account's<Account>` balance or net_change for a
-    certain month in a previous :class:`Fiscal Years`.
+    It stores an :class:`Account's<Account>` balance (for Assets, Liabilities
+    and Equities) or net_change (for Incomes and Expenses) for a certain month
+    in a previous :class:`Fiscal Years`.
 
     Hard data is stored in additon to a link back to the originating
     :class:`Account`.
@@ -429,7 +452,7 @@ class HistoricalAccount(CachingMixin, models.Model):
         :attr:`Account Types<BaseAccountModel.TYPE_CHOICES>`.
 
         In essence, this method will return ``True`` if the credit/debit amount
-        needs to be flipped(multiplied by -1) to display the value amount, and
+        needs to be negated(multiplied by -1) to display the value amount, and
         ``False`` if the credit/debit amount is the displayable value amount.
         '''
         if self.type in (BaseAccountModel.ASSET, BaseAccountModel.EXPENSE,
@@ -451,6 +474,7 @@ class BaseJournalEntry(CachingMixin, models.Model):
 
     objects = CachingManager()
 
+    # TODO: Do subclasses inherit Meta?
     class Meta:
         abstract = True
         verbose_name_plural = "journal entries"
@@ -485,10 +509,12 @@ class BaseJournalEntry(CachingMixin, models.Model):
 
 
 class JournalEntry(BaseJournalEntry):
+    # TODO: Add caching manager to this and other Journal Entries
     def save(self, *args, **kwargs):
         self.full_clean()
         super(BaseJournalEntry, self).save(*args, **kwargs)
         for transaction in self.transaction_set.all():
+            # TODO: Just do save(), it will pull the date itself
             transaction.date = self.date
             transaction.save()
 
@@ -496,15 +522,15 @@ class JournalEntry(BaseJournalEntry):
 class BankSpendingEntry(BaseJournalEntry):
     '''
     Holds information about a Check or ACH payment for a Bank
-    :class:`Account`. The :attr:`main_transaction` is linked to a Bank
+    :class:`Account`. The :attr:`main_transaction` is linked to the Bank
     :class:`Account`.
 
     .. attribute:: check_number
 
         The number of the Check, if applicable. An ACH Payment should have
-        no :attr:`check_number` and and :attr:`ach_payment` value of ``True``
-        will cause the :attr:`check_number` to be set to ``None``. This value
-        must be unique with respect to the
+        no :attr:`check_number` and :attr:`ach_payment` value of ``True`` will
+        cause the :attr:`check_number` to be set to ``None``. This value must
+        be unique with respect to the
         :attr:`main_transaction's<main_transaction>` :class:`account<Account>`
         attribute.
 
@@ -525,13 +551,16 @@ class BankSpendingEntry(BaseJournalEntry):
         :class:`BankSpendingEntry's<BankSpendingEntry>`
         :class:`Transactions<Transaction>` will be deleted and it's
         :attr:`main_transaction` will have it's
-        :attr:`~Transaction.balance_delta` set to ``0``.
+        :attr:`~Transaction.balance_delta` set to ``0``. Switching void back to
+        ``False`` will simply allow transactions to be saved again, it will not
+        recreate any previouse :class:`Transactions<Transaction>`.
 
     .. attribute:: main_transaction
 
         The :class:`Transaction` that links this :class:`BankSpendingEntry`
         with it's Bank :class:`Account`.
     '''
+    # TODO: Change check number to Integer field? Ensure never set to ###ACH###
     check_number = models.CharField(max_length=10, blank=True, null=True)
     ach_payment = models.BooleanField(default=False, help_text="Invalidates Check Number")
     payee = models.CharField(max_length=20, blank=True, null=True)
@@ -540,9 +569,11 @@ class BankSpendingEntry(BaseJournalEntry):
 
     class Meta:
         verbose_name_plural = "bank spending entries"
+        # TODO: Needed? in base class
         ordering = ['date', 'id']
 
     def __unicode__(self):
+        # TODO: Add Date
         return self.memo
 
     def get_absolute_url(self):
@@ -551,6 +582,7 @@ class BankSpendingEntry(BaseJournalEntry):
                         'journal_type': 'CD'})
 
     def save(self, *args, **kwargs):
+        # TODO: Should we move this to the base class?
         self.full_clean()
         self.main_transaction.date = self.date
         self.main_transaction.save(pull_date=False)
@@ -561,7 +593,8 @@ class BankSpendingEntry(BaseJournalEntry):
 
     def clean(self):
         '''
-        Either a :attr:`check_number` xor an :attr:`ach_payment` is required.
+        Only a :attr:`check_number` or an :attr:`ach_payment` must be entered,
+        not both.
 
         The :attr:`check_number` must be unique per :attr:`BankSpendingEntry.main_transaction`
         :attr:`~Transaction.account`.
@@ -570,6 +603,7 @@ class BankSpendingEntry(BaseJournalEntry):
             raise ValidationError('Either A Check Number or ACH status is '
                     'required.')
         if not self.ach_payment and self.check_number is not None:
+            # TODO: Refactor into same_check_number_exists() method (manager?)
             same_check_number = BankSpendingEntry.objects.filter(
                     main_transaction__account=self.main_transaction.account,
                     check_number=self.check_number).exclude(id=self.id).exists()
@@ -594,6 +628,7 @@ class BankReceivingEntry(BaseJournalEntry):
 
     class Meta:
         verbose_name_plural = "bank receiving entries"
+        # TODO: Needed? in base class
         ordering = ['date', 'id']
 
     def __unicode__(self):
@@ -627,7 +662,8 @@ class Transaction(CachingMixin, models.Model):
     bankspend_entry = models.ForeignKey(BankSpendingEntry, blank=True, null=True)
     bankreceive_entry = models.ForeignKey(BankReceivingEntry, blank=True, null=True)
     account = models.ForeignKey(Account, on_delete=models.PROTECT)
-    detail = models.CharField(max_length=50, help_text="Short description", blank=True)
+    detail = models.CharField(max_length=50, help_text="Short description of "
+                              "the charge", blank=True)
     balance_delta = models.DecimalField(help_text="Positive balance is a credit, negative is a debit",
                                         max_digits=19, decimal_places=4)
     event = models.ForeignKey('Event', blank=True, null=True)
@@ -657,6 +693,7 @@ class Transaction(CachingMixin, models.Model):
     def get_final_account_balance(self):
         """Returns Account balance after transaction has occured."""
         acct_balance = self.account.balance
+        # TODO: Refactor query + newer_transactions into manager method
         query = (models.Q(date__gt=self.date) |
                 (models.Q(date=self.date) & models.Q(id__gt=self.id)))
         newer_transactions = self.account.transaction_set.filter(
@@ -673,6 +710,7 @@ class Transaction(CachingMixin, models.Model):
         else:
             return final - self.balance_delta
 
+# TODO: Cache this
     def get_journal_entry(self):
         if self.journal_entry:
             return self.journal_entry
@@ -697,6 +735,7 @@ class Event(models.Model):
     number = models.PositiveIntegerField()
     date = models.DateField()
     city = models.CharField(max_length=50)
+    # TODO: Deprecated in either Django 1.6 or 1.7
     state = USStateField()
 
     class Meta:
@@ -715,11 +754,11 @@ class FiscalYear(CachingMixin, models.Model):
     A model for storing data about the Company's Past and Present Fiscal Years.
 
     The Current Fiscal Year is used for generating Account balance's and
-    Archiving :class:`Account` instances into :class:`HistoricalAccount`.
+    Archiving :class:`Account` instances into :class:`HistoricalAccounts<HistoricalAccount>`.
 
     .. seealso::
 
-        View :func:`add_fiscal_year`
+        View :func:`accounts.views.add_fiscal_year`
             This view processes all actions required for starting a New Fiscal
             Year.
 
@@ -752,6 +791,8 @@ class FiscalYear(CachingMixin, models.Model):
     year = models.PositiveIntegerField()
     end_month = models.PositiveSmallIntegerField(choices=MONTH_CHOICES)
     period = models.PositiveIntegerField(choices=PERIOD_CHOICES)
+    # TODO: Turn either year/month or the date into a function, maybe
+    # seemlessly by making them properties.
     date = models.DateField(editable=False, blank=True)
 
     objects = FiscalYearManager()

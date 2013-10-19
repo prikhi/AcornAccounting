@@ -5,6 +5,7 @@ from django.dispatch.dispatcher import receiver
 from .models import Header, Account, Transaction
 
 
+# TODO: Next 2 should be in __save__ methods, pre before super call, post after
 @receiver(pre_save, sender=Header)
 def header_presave(sender, instance, **kwargs):
     '''Inherit the root Header's type'''

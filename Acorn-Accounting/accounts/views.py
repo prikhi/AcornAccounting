@@ -17,6 +17,9 @@ from .forms import (JournalEntryForm, TransferFormSet, TransactionFormSet,
 from .models import (Header, Account, JournalEntry, BankReceivingEntry,
         BankSpendingEntry, Transaction, Event, HistoricalAccount, FiscalYear)
 
+# TODO: Globally - Replace render_to_response with render
+
+# TODO: Use .get() for dictionary access
 
 def quick_account_search(request):
     '''Processes search for quick_account tag'''
@@ -73,16 +76,19 @@ def show_account_detail(request, account_slug,
     The ``startdate`` and ``stopdate`` variables default to the first day of
     the month and the current date.
 
-    The view will provide ``startbalance``, ``endbalance``, ``debit_total``,
-    ``credit_total`` and ``net_change`` context variables. The
+    The view will provide ``startbalance``, ``endbalance``, ``transactions``,
+    ``debit_total``, ``credit_total`` and ``net_change`` context variables. The
     :class:`Transactions<Transaction>` in the context variable ``transactions``
     will have the running balance added to the instance through the
     ``final_balance`` attribute.
 
     If the provided ``startdate`` is before the start of the current
     :class:`FiscalYear`, the running balance and
-    :class:`Transactions<Transaction>` ``final_balance`` will not be
+    :class:`Transaction's<Transaction>` ``final_balance`` will not be
     calculated.
+
+    If there are no :class:`Transactions<Transaction>` the ``startbalance`` and
+    ``endbalance`` will both be set to the balance on the ``startdate``
 
     :param account_slug: The :attr:`Account.slug` of the :class:`Account` to \
             retrieve.
@@ -93,6 +99,8 @@ def show_account_detail(request, account_slug,
             balance counters.
     :rtype: HttpResponse
     '''
+    # TODO: Rename variables, startdate -> start_date, stopdate -> stop_date
+    # fiscal_start -> current_fiscal_start_date, etc.
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug)
     query = (Q(date__lte=stopdate) & Q(date__gte=startdate))
@@ -103,6 +111,7 @@ def show_account_detail(request, account_slug,
     if transactions.exists() and show_balance:
         startbalance = transactions[0].get_initial_account_balance()
         endbalance = startbalance
+        # TODO: Use .get_totals() instead of looping through each
         for transaction in transactions:
             if account.flip_balance():
                 endbalance += -1 * transaction.balance_delta
@@ -146,6 +155,8 @@ def show_account_history(request, month=None, year=None, template_name="accounts
     :rtype: HttpResponse
     :raises Http404: if an invalid ``month`` or ``year`` is specified.
     '''
+    # TODO: Display "No Account History For This Date." Instead of redirecting
+    # or disable the next/previous buttons if there are none
     if 'next' in request.GET:
         datemod = datetime.timedelta(days=31)
     elif 'previous' in request.GET:
@@ -154,6 +165,8 @@ def show_account_history(request, month=None, year=None, template_name="accounts
         datemod = datetime.timedelta(0)
 
     if month is None and year is None:
+        # TODO: Refactor "today" into "today" and "this_month_last_year"
+        # variables
         today = (datetime.date.today() -
                  datetime.timedelta(datetime.date.today().day - 1))
         accounts = HistoricalAccount.objects.filter(date__month=today.month,
@@ -166,6 +179,7 @@ def show_account_history(request, month=None, year=None, template_name="accounts
             month = max_date.month
             year = max_date.year
         else:
+            # TODO: No Account History Exists
             return render_to_response(template_name, {'accounts': ''},
                                       context_instance=RequestContext(request))
 
@@ -189,6 +203,7 @@ def show_account_history(request, month=None, year=None, template_name="accounts
                                             kwargs={'month': month,
                                                     'year': year}))
     else:
+        # TODO: No Account History Exists
         return render_to_response(template_name, {'accounts': '',
                                                   'date': date},
                                   context_instance=RequestContext(request))
@@ -201,10 +216,12 @@ def show_event_detail(request, event_id, template_name="accounts/event_detail.ht
                               context_instance=RequestContext(request))
 
 
+# TODO: improve variable names, use underscores between words
 def journal_ledger(request, template_name="accounts/journal_ledger.html"):
     form, startdate, stopdate = process_date_range_form(request)
-    journal_entries = JournalEntry.objects.all().order_by('date').filter(date__lte=stopdate,
-                                                                          date__gte=startdate)
+    journal_entries = JournalEntry.objects.filter(date__lte=stopdate,
+                                                  date__gte=startdate
+                                                  ).order_by('date')
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
@@ -212,6 +229,7 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
 def bank_register(request, account_slug, template_name="accounts/bank_register.html"):
     form, startdate, stopdate = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
+    # TODO: Refactor into Account manager method, get_bank_entries_by_date()
     transactions = Transaction.objects.filter(account=account).filter(
             (Q(bankspendingentry__isnull=False) | Q(bankreceivingentry__isnull=False)) &
             (Q(date__lte=stopdate) & Q(date__gte=startdate)))
@@ -219,15 +237,19 @@ def bank_register(request, account_slug, template_name="accounts/bank_register.h
                               context_instance=RequestContext(request))
 
 
+# TODO: Refacotr Parameter journal_id to entry_id
 def show_journal_entry(request, journal_id, template_name="accounts/entry_detail.html"):
     journal_entry = get_object_or_404(JournalEntry, pk=journal_id)
-    updated = journal_entry.created_at.date() != journal_entry.updated_at.date()
+    # TODO: Refactor into Journal Entry method?
+    updated = (journal_entry.created_at.date() !=
+               journal_entry.updated_at.date())
     transactions = journal_entry.transaction_set.all()
     debit_total, credit_total = journal_entry.transaction_set.get_totals()
     return render_to_response(template_name, locals(),
                               context_instance=RequestContext(request))
 
 
+# TODO: Refacotr Parameter journal_id to entry_id
 def show_bank_entry(request, journal_id, journal_type):
     entry_types = {'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
     templates = {'CR': 'accounts/entry_bankreceive_detail.html', 'CD': 'accounts/entry_bankspend_detail.html'}
@@ -241,6 +263,7 @@ def show_bank_entry(request, journal_id, journal_type):
                               context_instance=RequestContext(request))
 
 
+# TODO: Consistent parameter ordering
 def add_journal_entry(request, template_name="accounts/entry_add.html", journal_id=None):
     try:
         entry = JournalEntry.objects.get(id=journal_id)
@@ -248,6 +271,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
             raise Http404
         entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
+            # TODO: Do this in the form instead
             if transaction.balance_delta < 0:
                 transaction.debit = -1 * transaction.balance_delta
             elif transaction.balance_delta > 0:
@@ -257,6 +281,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
         entry.date = datetime.date.today
 
     if request.method == 'POST':
+    # TODO: Use "if request.POST.get('subbtn') in ("Submit", ... etc. ):"
         if 'subbtn' in request.POST and (request.POST['subbtn'] == 'Submit' or request.POST['subbtn'] == 'Submit & Add More'):
             entry_form = JournalEntryForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = TransactionFormSet(request.POST, prefix='transaction', instance=entry)
@@ -268,8 +293,10 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                     transaction_formset.save(commit=False)
                     for form in transaction_formset.forms:
                         if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
+                        # TODO: Why work on the instance instead of modelform
                             if transaction_formset.instance is TransactionFormSet:
                                 form.instance.journal_entry = entry
+                            # TODO: Remove, not needed for JournalEntries
                             elif transaction_formset.instance is BankReceivingTransactionFormSet:
                                 form.instance.bankspend_entry = entry
                             elif transaction_formset.instance is BankReceivingTransactionFormSet:
@@ -280,6 +307,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                         return HttpResponseRedirect(reverse('accounts.views.add_journal_entry'))
                     return HttpResponseRedirect(reverse('accounts.views.show_journal_entry',
                                                         kwargs={'journal_id': entry.id}))
+        # TODO: request.POST.get() ==
         elif 'delete' in request.POST and request.POST['delete'] == 'Delete':
             if entry.pk:
                 entry.delete()
@@ -291,6 +319,7 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transaction_formset = TransactionFormSet(prefix='transaction', instance=entry)
+        # TODO: Do these in the form instead
         if entry_form.instance.pk:
             entry_form.initial['date'] = entry_form.instance.date.strftime('%m/%d/%Y')
         else:
@@ -308,10 +337,13 @@ def add_journal_entry(request, template_name="accounts/entry_add.html", journal_
                               context_instance=RequestContext(request))
 
 
+# TODO: journal_id -> entry_id
 def add_bank_entry(request, journal_id=None, journal_type='', template_name="accounts/entry_add.html"):
+    # TODO: Better variable names, key_to_value for dicts
     entry_types = {'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
     form_types = {'CR': BankReceivingForm, 'CD': BankSpendingForm}
     formset_types = {'CR': BankReceivingTransactionFormSet, 'CD': BankSpendingTransactionFormSet}
+    # TODO: Check for invalid journal_type. Use .get() and test for None
     entry_type = entry_types[journal_type]
     EntryTypeForm = form_types[journal_type]
     InlineFormSet = formset_types[journal_type]
@@ -321,11 +353,13 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
             raise Http404
         entry.updated_at = timezone.now()
         for transaction in entry.transaction_set.all():
+            # TODO: Do this in the form
             transaction.amount = abs(transaction.balance_delta)
     except entry_type.DoesNotExist:
         entry = entry_type()
         entry.date = datetime.date.today
     if request.method == 'POST':
+        # TODO: Refactor using "in ('Submit', 'Submit  & Add More')"
         if 'subbtn' in request.POST and (request.POST['subbtn'] == 'Submit' or request.POST['subbtn'] == 'Submit & Add More'):
             entry_form = EntryTypeForm(request.POST, prefix='entry', instance=entry)
             transaction_formset = InlineFormSet(request.POST, prefix='transaction', instance=entry)
@@ -335,7 +369,10 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
                     entry_form.save()
                     transaction_formset.save(commit=False)
                     for form in transaction_formset.forms:
+                        # TODO: Look over this, is there a cleaner way?
                         if form.is_valid() and form.has_changed() and form not in transaction_formset.deleted_forms:
+                            # TODO: Is there a better way? at least do this in
+                            # the form?
                             if EntryTypeForm is BankSpendingForm:
                                 form.instance.bankspend_entry = entry
                                 form.instance.balance_delta = -1 * form.cleaned_data['balance_delta']
@@ -364,6 +401,7 @@ def add_bank_entry(request, journal_id=None, journal_type='', template_name="acc
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
         transaction_formset = InlineFormSet(prefix='transaction', instance=entry)
         if entry.pk:
+            # TODO: Look into moving this to the Form's __init__ method
             entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
             entry_form.initial['account'] = entry.main_transaction.account
             entry_form.initial['amount'] = abs(entry.main_transaction.balance_delta)
@@ -395,6 +433,7 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
                 for form in transfer_formset.forms:
                     if (form.is_valid() and form.has_changed() and
                             form not in transfer_formset.deleted_forms):
+                        # TODO: Move to form's save method
                         debit = Transaction(journal_entry=entry, account=form.cleaned_data['source'],
                                             detail=form.cleaned_data['detail'],
                                             balance_delta=(-1 * form.cleaned_data['amount']))
@@ -408,6 +447,7 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transfer_formset = TransferFormSet(prefix='transfer')
+        # TODO: DO this in the forms init method?
         if entry.pk:
             entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
         else:
@@ -427,9 +467,11 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
     else:
         reconciled_balance = 0
     if request.method == 'POST':
+        # TODO: Use .get() ==
         if 'submit' in request.POST and request.POST['submit'] == 'Get Transactions':
             account_form = AccountReconcileForm(request.POST, prefix='account', instance=account)
             if account_form.is_valid():
+                # TODO: Better variable names
                 startdate = last_reconciled
                 stopdate = account_form.cleaned_data['statement_date']
                 queryset = account.transaction_set.filter(reconciled=False).filter(date__lte=stopdate)
@@ -440,6 +482,7 @@ def reconcile_account(request, account_slug, template_name="accounts/account_rec
                                                           'account_form': account_form,
                                                           'transaction_formset': transaction_formset},
                                           context_instance=RequestContext(request))
+        # TODO: Use .get() ==
         elif 'submit' in request.POST and request.POST['submit'] == 'Reconcile Transactions':
             account_form = AccountReconcileForm(request.POST, prefix='account', instance=account)
             transaction_formset = ReconcileTransactionFormSet(request.POST)
@@ -491,6 +534,7 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
             successful POST is sent.
     :rtype: HttpResponse or HttpResponseRedirect
     '''
+    # TODO: Refactor this into FiscalYear.objects.get_latest_or_none()
     try:
         previous_year = FiscalYear.objects.latest()
     except FiscalYear.DoesNotExist:
@@ -504,11 +548,17 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
             # Create HistoricalAccounts
             stopdate = previous_year.date
             startdate = FiscalYear.objects.current_start()
+            # TODO: Refactor into FiscalYear.objects.current_years_months()
             for month in rrule.rrule(rrule.MONTHLY, dtstart=startdate,
                     until=stopdate):
                 last_day_of_month = month.replace(
                         day=calendar.monthrange(month.year, month.month)[1]
                 ).date()
+                # TODO: Use bulk_create() instead of creating and saving each
+                # object, instantiate into a list or create a dictionary with
+                # the data instead
+                # Maybe use list comprehension + helper functions to generate
+                # objects?
                 for account in Account.objects.filter(type__in=(1, 2, 3)):
                     # Amount is end of month balance
                     amount = account.get_balance_by_date(
@@ -533,6 +583,8 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
                             amount=amount
                     )
             # Create Transaction exclusion list
+            # TODO: Make excluded_accounts a `set` then use set.intersection
+            # to check for inclusion
             excluded_accounts = list()
             for form in accounts_formset:
                 if form.cleaned_data.get('exclude'):
@@ -543,6 +595,7 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
             historical_year_end = previous_year.date.replace(day=
                         calendar.monthrange(previous_year.year,
                             previous_year.end_month)[1])
+            # TODO: turn into list comprehension + select related
             general = JournalEntry.objects.filter(
                     date__lte=historical_year_end)
             receiving = BankReceivingEntry.objects.filter(
@@ -552,6 +605,8 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
             for entries in (general, receiving, spending):
                 for entry in entries:
                     skip = False
+                    # TODO: make transaction a `set` and check for inclusion
+                    # using excluded_accounts.intersection
                     for transaction in entry.transaction_set.all():
                         if transaction in excluded_transactions:
                             skip = True
@@ -565,6 +620,7 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
                             entry.main_transaction.delete()
                         entry.delete()
             # Set new Account Balances
+            # TODO: See if there is a way to do bulk updates for these
             for account in Account.objects.filter(type__in=(1, 2, 3)):
                 # Balances will build upon last years
                 hist_acct = account.historicalaccount_set.latest()
@@ -581,6 +637,7 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
                 account.balance = (new_year_sum.get('balance_delta__sum') or 0)
                 account.save()
             # Move balance of Current Year Earnings to Retained Earnings
+            # TODO: Refactor out into end_of_year_earnings_transfer()
             current_earnings = Account.objects.get(
                     name='Current Year Earnings')
             retained_earnings = Account.objects.get(name='Retained Earnings')

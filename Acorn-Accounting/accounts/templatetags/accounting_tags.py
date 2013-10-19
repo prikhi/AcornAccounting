@@ -7,6 +7,7 @@ from ..accounting import process_quick_bank_form, \
 register = template.Library()
 
 
+#TODO: Abstract this out one level...
 @register.inclusion_tag("tags/quick_search.html")
 def quick_search(GET):
     account_form = process_quick_account_form(GET)

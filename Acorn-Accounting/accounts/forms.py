@@ -8,11 +8,17 @@ from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory, modelformset_factory, BaseModelFormSet
 from parsley.decorators import parsleyfy
 
+# TODO: use parenthesis instead of escaping newline
 from .models import Account, JournalEntry, Transaction, BankSpendingEntry, \
                     BankReceivingEntry, Event, FiscalYear
 
 
 class RequiredInlineFormSet(forms.models.BaseFormSet):
+    # TODO: Fix bug where empty formset passes if first form is marked DELETE
+    # Move Check to the clean method?
+    # TODO: Rename or change parent of this class, it uses BaseFormSet instead
+    # of InlineFormset, there should be a class that uses Base and one that
+    # uses Inline.
     def __init__(self, *args, **kwargs):
         super(RequiredInlineFormSet, self).__init__(*args, **kwargs)
         self.forms[0].empty_permitted = False
@@ -20,10 +26,12 @@ class RequiredInlineFormSet(forms.models.BaseFormSet):
 
 @parsleyfy
 class DateRangeForm(forms.Form):
+    # TODO: Add American Date validation w/ Parsley
     startdate = forms.DateField(label="Start Date")
     stopdate = forms.DateField(label="Stop Date")
 
 
+# TODO: Figure out: Are empty labels necessary here?
 class QuickAccountForm(forms.Form):
     account = forms.ModelChoiceField(queryset=Account.objects.all(),
                                      widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
@@ -51,7 +59,9 @@ class JournalEntryForm(forms.ModelForm):
 
     def clean_date(self):
         '''The date must be in the Current :class:`FiscalYear`.'''
+        # TODO: Refactor out into subclass from this and BaseBankForm
         date = self.cleaned_data.get('date')
+        # TODO: Better var name
         start = FiscalYear.objects.current_start()
         if start is not None and date < start:
             raise forms.ValidationError("The date must be in the current "
@@ -75,9 +85,12 @@ class TransactionForm(forms.ModelForm):
 
     def clean(self):
         '''Make sure only a credit or debit is entered'''
+        # TODO: Better Error Messages, maybe a single file for error messages.
         super(TransactionForm, self).clean()
         if any(self.errors):
+            # TODO: Is this OK? pythonic?
             return self.cleaned_data
+        # TODO: Use .get to fetch from cleaned_data
         debit = self.cleaned_data['debit']
         credit = self.cleaned_data['credit']
         if credit and debit:
@@ -88,16 +101,20 @@ class TransactionForm(forms.ModelForm):
             self.cleaned_data['balance_delta'] = -1 * debit
         else:
             raise forms.ValidationError("Enter a credit or debit")
+        # TODO: Standardize whether to copy cleaned_data or modify it inplace
         return self.cleaned_data
 
 
 class BaseTransactionFormSet(forms.models.BaseInlineFormSet):
     def __init__(self, *args, **kwargs):
+        # TODO: Just inherit from RequiredInlineFormSet instead (only after the
+        # name/inheritance problem is fixed
         super(BaseTransactionFormSet, self).__init__(*args, **kwargs)
         self.forms[0].empty_permitted = False
 
     def clean(self):
         '''Checks that debits and credits balance out'''
+        # TODO: Better Error Messages
         super(BaseTransactionFormSet, self).clean()
         if any(self.errors):
             return
@@ -125,6 +142,7 @@ class TransferForm(forms.Form):
             widget=forms.Select(attrs={'class': 'source'}))
     destination = forms.ModelChoiceField(queryset=Account.objects.all(),
             widget=forms.Select(attrs={'class': 'destination'}))
+    # TODO: This is repeated in BaseBankForm & AccountReconcileForm and ugly
     amount = forms.DecimalField(max_digits=19,
             decimal_places=4,
             min_value=Decimal("0.01"),
@@ -135,6 +153,7 @@ class TransferForm(forms.Form):
 
     def clean(self):
         '''Check that source and destination are not the same'''
+        # TODO: Better Error Messages and use .get for dictionary accessing
         super(TransferForm, self).clean()
         if any(self.errors):
             return
@@ -144,6 +163,7 @@ class TransferForm(forms.Form):
         return cleaned_data
 
 
+# TODO: Should be RequiredBaseFormSet
 TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True,
                                   formset=RequiredInlineFormSet)
 
@@ -167,15 +187,20 @@ class BaseBankForm(forms.ModelForm):
 
     def clean(self):
         '''
-        Cleaning the :class:`BaseBankForm` will update or create the
+        Cleaning the :class:`BaseBankForm` will modify or create the
         :attr:`BankSpendingEntry.main_transaction` or
         :attr:`BankReceivingEntry.main_transaction`.
+
+        The ``main_transaction`` will not be saved until this form's save
+        method is called.
         '''
         super(BaseBankForm, self).clean()
         if any(self.errors):
             return self.cleaned_data
         cleaned_data = self.cleaned_data
+        # TODO: Factor out following into a update_main_transaction() method
         try:
+            # TODO: Use "if hasattr(...):"?
             self.instance.main_transaction.account = cleaned_data['account']
             self.instance.main_transaction.balance_delta = cleaned_data['amount']
             self.instance.main_transaction.detail = cleaned_data['memo']
@@ -197,6 +222,7 @@ class BaseBankForm(forms.ModelForm):
         :attr:`BankSpendingEntry.main_transaction` or
         :attr:`BankReceivingEntry.main_transaction`.
         '''
+        # TODO: If save returns a copy we can combine these 2 lines
         self.cleaned_data['main_transaction'].save()
         self.instance.main_transaction = self.cleaned_data['main_transaction']
         super(BaseBankForm, self).save(*args, **kwargs)
@@ -208,6 +234,7 @@ class BankSpendingForm(BaseBankForm):
         model = BankSpendingEntry
         fields = ('account', 'date', 'check_number', 'ach_payment', 'payee',
                   'amount', 'memo', 'comments')
+        # TODO: Move to basebankform?
         widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
                    'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
 
@@ -238,10 +265,12 @@ class BankTransactionForm(forms.ModelForm):
         widgets = {'account': forms.Select(attrs={'class': 'account'})}
 
     def clean(self):
+        # TODO: Use .get() for dict access
         super(BankTransactionForm, self).clean()
         if any(self.errors):
             return self.cleaned_data
         cleaned_data = self.cleaned_data
+        # TODO: Can we use balance_delta instead of also creating an amount?
         cleaned_data['balance_delta'] = cleaned_data['amount']
         return cleaned_data
 
@@ -249,6 +278,7 @@ class BankTransactionForm(forms.ModelForm):
 class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
     def clean(self):
         '''Checks that Transaction amounts balance Entry amount'''
+        # TODO: Better Error Messages
         super(BaseBankTransactionFormSet, self).clean()
         if any(self.errors):
             return
@@ -256,6 +286,7 @@ class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
         for form in self.forms:
             if form.cleaned_data.get('DELETE'):
                 continue
+            # TODO: Use `-=` instead
             balance += -1 * abs(form.cleaned_data.get('amount', 0))
         if balance != 0:
             raise forms.ValidationError("Transactions are out of balance.")
@@ -281,10 +312,12 @@ class AccountReconcileForm(forms.ModelForm):
     def clean_statement_balance(self):
         balance = self.cleaned_data['statement_balance']
         if self.instance.flip_balance():
+            # TODO: Use `*= -1` instead
             balance = -1 * balance
         return balance
 
     def clean_statement_date(self):
+        # TODO: Better Errror Messages + use .get() + improve var names
         date = self.cleaned_data['statement_date']
         if (self.instance.last_reconciled is not None and
                 date < self.instance.last_reconciled):
@@ -299,12 +332,14 @@ class BaseReconcileTransactionFormSet(BaseModelFormSet):
 
     def clean(self):
         '''Checks that Reconciled Transaction credits/debits balance Statement amount'''
+        # TODO: Better Error Messages
         super(BaseReconcileTransactionFormSet, self).clean()
         if any(self.errors):
             return
         balance = self.account_form.cleaned_data['statement_balance'] - self.reconciled_balance
         for form in self.forms:
             if form.cleaned_data['reconciled']:
+                # TODO: Use `-=` instead
                 balance += -1 * form.instance.balance_delta
         if balance != 0:
             raise forms.ValidationError("Reconciled Transactions and Bank Statement are out of balance.")
@@ -342,7 +377,9 @@ class FiscalYearForm(forms.ModelForm):
         Validates that the entered ``Year`` value is greater than or equal to
         any previously entered ``Year``.
         '''
+        # TODO: Better Var names,
         year = self.cleaned_data['year']
+        # TODO: Use FiscalYear.objects.latest() instead
         max_year = FiscalYear.objects.aggregate(Max('year'))['year__max'] or 0
         if year < max_year:
             raise forms.ValidationError("The Year cannot be before the "
@@ -369,6 +406,7 @@ class FiscalYearForm(forms.ModelForm):
         cleaned_data = self.cleaned_data
         if FiscalYear.objects.count() > 0:
             try:
+                # TODO: Ditch Try-Except, use filter().exists() & if statement
                 Account.objects.get(name="Retained Earnings", type=3)
                 Account.objects.get(name="Current Year Earnings", type=3)
             except Account.DoesNotExist:
