@@ -10,7 +10,7 @@ def get_random_account():
 
 
 def get_random_bank():
-    return Account.banks.all()[random.randint(0, 1)]
+    return Account.objects.get_banks()[random.randint(0, 1)]
 
 
 class Command(BaseCommand):

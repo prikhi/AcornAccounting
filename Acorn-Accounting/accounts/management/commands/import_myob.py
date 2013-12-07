@@ -1,4 +1,4 @@
-'''
+"""
 Django Accounting Command to import MYOB Accounts and Transactions
 
 Requires all child accounts for a header to be directly underneath the header,
@@ -7,7 +7,7 @@ coming before any child headers.
 Creates Accounts based on MYOB data, then all Entries/Transactions.
 
 Export Account and Journal entries in MYOB and place in root folder of project.
-'''
+"""
 from datetime import date
 from decimal import Decimal
 from time import strptime
@@ -31,11 +31,11 @@ def strip_cur_format(inputstr):
 
 class Command(BaseCommand):
     args = ''
-    help = '''\
+    help = """\
     Will created Accounts, Entries and Transactions based on MYOB data.
     ACCOUNTS.TXT and JOURNAL.TXT must in your current working directory.
     All Headers should already be created.
-    '''
+    """
 
     def handle(self, *args, **options):
         # fill this dictionary with MYOB acct number => django pk for use in

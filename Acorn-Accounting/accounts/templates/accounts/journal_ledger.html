@@ -9,7 +9,7 @@
 <script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 
 <h2>General Ledger</h2>
-<h3>{{ startdate }} - {{ stopdate }}</h3>
+<h3>{{ start_date }} - {{ stop_date }}</h3>
 <form data-validate="parsley" action="." method="GET">
     <table>
         {{ form.as_table }}
@@ -49,6 +49,6 @@
         </tr>
     {% endfor %}
     </tbody>
-{% endfor %} 
+{% endfor %}
 </table><br /><br />
 {% endblock %}

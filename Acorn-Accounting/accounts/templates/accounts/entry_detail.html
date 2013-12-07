@@ -7,7 +7,7 @@
 {% block content %}
 <h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ journal_entry.memo|capwords }}</h1>
 <h2>{{ journal_entry.get_number }}</h2><br/>
-<b>Created:</b> {{ journal_entry.created_at|date:"m/d/Y" }} {% if updated %}<b>Updated:</b> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
+<b>Created:</b> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<b>Updated:</b> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
 {% if journal_entry.in_fiscal_year %}
 <a href="{{ journal_entry.get_edit_url }}">Edit</a>
 {% endif %}

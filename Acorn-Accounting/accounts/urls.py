@@ -20,12 +20,12 @@ urlpatterns = patterns('accounts.views',
     (r'^add/transfer/$', 'add_transfer_entry'),
     (r'^add/fiscal_year/$', 'add_fiscal_year'),
 
-    (r'^edit/GJ/(?P<journal_id>\d+)/$', 'add_journal_entry',),
-    (r'^edit/(?P<journal_type>C[DR])/(?P<journal_id>\d+)/$', 'add_bank_entry'),
+    (r'^edit/GJ/(?P<entry_id>\d+)/$', 'add_journal_entry',),
+    (r'^edit/(?P<journal_type>C[DR])/(?P<entry_id>\d+)/$', 'add_bank_entry'),
 
-    (r'^GJ/(?P<journal_id>\d+)/$', 'show_journal_entry',
+    (r'^GJ/(?P<entry_id>\d+)/$', 'show_journal_entry',
         {'template_name': 'accounts/entry_detail.html'}, 'show_journal_entry'),
-    (r'^(?P<journal_type>C[DR])/(?P<journal_id>\d+)/$', 'show_bank_entry'),
+    (r'^(?P<journal_type>C[DR])/(?P<entry_id>\d+)/$', 'show_bank_entry'),
 
     (r'^event/(?P<event_id>\d+)/$', 'show_event_detail', {'template_name': 'accounts/event_detail.html'},
         'show_event_detail'),
