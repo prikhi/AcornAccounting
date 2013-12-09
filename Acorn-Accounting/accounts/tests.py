@@ -1602,22 +1602,58 @@ class AccountReconcileViewTests(TestCase):
         A `GET` to the `reconcile_account` view with an `account_slug` should
         return an AccountReconcile Form for that Account.
         """
-        response = self.client.get(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.bank_account.slug}))
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
 
         self.assertEqual(response.status_code, 200)
-        self.failUnless(isinstance(response.context['account_form'], AccountReconcileForm))
+        self.failUnless(isinstance(response.context['account_form'],
+                                   AccountReconcileForm))
         self.assertNotIn('transaction_formset', response.context)
         self.assertTemplateUsed(response, 'accounts/account_reconcile.html')
         self.assertEqual(response.context['account'], self.bank_account)
-        self.assertEqual(response.context['last_reconciled'], self.bank_account.last_reconciled)
+        self.assertEqual(response.context['last_reconciled'],
+                         self.bank_account.last_reconciled)
         self.assertEqual(response.context['reconciled_balance'], 0)
 
+    def test_reconcile_account_initial_statement_balance_no_reconciled(self):
+        """
+        The initial view will display a Statement Balance of 0 if no reconciled
+        Transactions exist.
+        """
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
+
+        account_form = response.context['account_form']
+        self.assertEqual(account_form.initial['statement_balance'], 0)
+
+    def test_reconcile_account_initial_statement_balance_reconciled(self):
+        """
+        The initial view will display a Statement Balance of the reconciled
+        amount if previously reconciled Transactions exist.
+        """
+        entry = create_entry(datetime.date.today(), 'test memo')
+        trans1 = create_transaction(entry, self.bank_account, 50)
+        trans2 = create_transaction(entry, self.bank_account, 50)
+        trans3 = create_transaction(entry, self.bank_account, -275)
+        for trans in (trans1, trans2, trans3):
+            trans.reconciled = True
+            trans.save()
+
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
+
+        account_form = response.context['account_form']
+        self.assertEqual(account_form.initial['statement_balance'], 175)
+
     def test_reconcile_account_view_initial_account_slug_fail(self):
-        """
-        A `GET` to the `reconcile_account` view with an invalid `account_slug`
-        should return a 404.
-        """
-        response = self.client.get(reverse('accounts.views.reconcile_account', kwargs={'account_slug': 'I-dont-exist'}))
+        """ A `GET` to the `reconcile_account` view with an invalid
+        `account_slug` should return a 404.  """
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': 'I-dont-exist'}))
         self.assertEqual(response.status_code, 404)
 
     def test_reconcile_account_view_initial_post_account_slug_fail(self):

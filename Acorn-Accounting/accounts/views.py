@@ -531,11 +531,12 @@ def reconcile_account(request, account_slug,
         else:
             raise Http404
     else:
-        account_form = AccountReconcileForm(prefix='account',
-                                            instance=account,
-                                            initial={'statement_date':
-                                                     american_today()})
         reconciled_balance *= (-1 if account.flip_balance() else 1)
+        account_form = AccountReconcileForm(
+            prefix='account',
+            instance=account,
+            initial={'statement_date': american_today(),
+                     'statement_balance': reconciled_balance})
     return render(request, template_name, locals())
 
 
