@@ -153,10 +153,13 @@
         if ( {{ account.flip_balance|lower }} ) {
             statement_balance = -1 * parseFloat(statement_balance);
         }
-        if(net_change > statement_balance) {
-            $('#out_of_balance').text('($' + (net_change - statement_balance).toFixed(2) + ')');
-        } else if (statement_balance > net_change) {
-            $('#out_of_balance').text('$' + (statement_balance - net_change).toFixed(2));
+
+        var reconciled_balance = {{ reconciled_balance }};
+
+        if(net_change > (reconciled_balance - statement_balance)) {
+            $('#out_of_balance').text('($' + (reconciled_balance + net_change - statement_balance).toFixed(2) + ')');
+        } else if ((reconciled_balance - statement_balance) > net_change) {
+            $('#out_of_balance').text('$' + (reconciled_balance + statement_balance - net_change).toFixed(2));
         } else {
             $('#out_of_balance').text('$0.00');
         }
