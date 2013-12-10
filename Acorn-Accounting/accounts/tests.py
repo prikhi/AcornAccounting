@@ -817,16 +817,72 @@ class BankSpendingEntryModelTests(TestCase):
         entry = BankSpendingEntry.objects.create(check_number="23", memo='change date',
                                   main_transaction=main_transaction, date=datetime.date.today())
         tran = Transaction.objects.create(bankspend_entry=entry, account=self.account, balance_delta=15)
+
         main_transaction = Transaction.objects.get(id=main_transaction.id)
         tran = Transaction.objects.get(id=tran.id)
+
         self.assertEqual(tran.date, datetime.date.today())
         self.assertEqual(main_transaction.date, datetime.date.today())
+
         entry.date = date
         entry.save()
+
         main_transaction = Transaction.objects.get(id=main_transaction.id)
         tran = Transaction.objects.get(id=tran.id)
+
         self.assertEqual(main_transaction.date, date)
         self.assertEqual(tran.date, date)
+
+    def test_save_new_void_entry(self):
+        """A void Entry should be able to be created."""
+        main_transaction = Transaction.objects.create(account=self.account,
+                                                      balance_delta=0)
+        entry = BankSpendingEntry.objects.create(
+            check_number="23", memo='Entry', main_transaction=main_transaction,
+            date=datetime.date.today())
+        entry.void = True
+        entry.save()
+
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+
+    def test_save_make_void_with_transactions(self):
+        """
+        Making an Entry void should delete it's Transactions, zero it's
+        main_transaction and append VOID to the memo.
+        """
+        main_transaction = Transaction.objects.create(account=self.account,
+                                                      balance_delta=25)
+        entry = BankSpendingEntry.objects.create(
+            check_number="23", memo='Entry', main_transaction=main_transaction,
+            date=datetime.date.today())
+        Transaction.objects.create(bankspend_entry=entry, account=self.account,
+                                   balance_delta=15)
+
+        entry.void = True
+        entry.save()
+
+        self.assertEqual(Transaction.objects.count(), 1)
+        main_transaction = Transaction.objects.get()
+        self.assertEqual(main_transaction.balance_delta, 0)
+        entry = BankSpendingEntry.objects.get()
+        self.assertIn("VOID", entry.memo)
+        self.assertEqual(entry.transaction_set.count(), 0)
+
+    def test_save_unvoid_and_add_transactions(self):
+        """
+        Void Entries must be unvoided to add transactions.
+        """
+        self.test_save_make_void_with_transactions()
+
+        entry = BankSpendingEntry.objects.get()
+        entry.void = False
+        entry.save()
+
+        Transaction.objects.create(bankspend_entry=entry, account=self.account,
+                                   balance_delta=15)
+
+        self.assertEqual(Transaction.objects.count(), 2)
+
 
     def test_unique_check_number_per_account(self):
         """
@@ -1095,7 +1151,8 @@ class TransactionModelTests(TestCase):
         header = create_header('Account Change')
         source = create_account('Source', header, 0)
         entry = create_entry(date, 'test entry')
-        trans = Transaction(journal_entry=entry, account=source, balance_delta=20)
+        trans = Transaction(journal_entry=entry, account=source,
+                            balance_delta=20)
         trans.save(pull_date=False)
         self.assertEqual(trans.date, None)
         trans.date = datetime.date.today()
@@ -1103,6 +1160,25 @@ class TransactionModelTests(TestCase):
         self.assertEqual(trans.date, datetime.date.today())
         trans.save(pull_date=True)
         self.assertEqual(trans.date, date)
+
+    def test_transaction_clean_void_fail(self):
+        """It is not possible to belong to a void BankSpendingEntry."""
+        header = create_header('Header')
+        account = create_account('Account', header, 0)
+        main_transaction = Transaction.objects.create(account=account,
+                                                      balance_delta=25)
+        entry = BankSpendingEntry.objects.create(
+            check_number="23", memo='Entry', main_transaction=main_transaction,
+            date=datetime.date.today())
+        entry.void = True
+        entry.save()
+        entry = BankSpendingEntry.objects.get()
+
+        trans = Transaction(bankspend_entry=entry, account=account,
+                            balance_delta=15)
+
+        self.assertRaises(ValidationError, trans.save)
+
 
 
 class AccountManagerTests(TestCase):

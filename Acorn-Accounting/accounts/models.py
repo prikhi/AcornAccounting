@@ -617,8 +617,15 @@ class BankSpendingEntry(BaseJournalEntry):
                                'journal_type': 'CD'})
 
     def save(self, *args, **kwargs):
+        """Delete Transactions if void, update Transaction dates."""
         # TODO: Should we move this to the base class?
         self.full_clean()
+        if self.void:
+            [transaction.delete()
+             for transaction in self.transaction_set.all()]
+            self.main_transaction.balance_delta = 0
+            if "VOID" not in self.memo:
+                self.memo += " VOID"
         self.main_transaction.date = self.date
         self.main_transaction.save(pull_date=False)
         super(BankSpendingEntry, self).save(*args, **kwargs)
@@ -727,6 +734,11 @@ class Transaction(CachingMixin, models.Model):
         if self.get_journal_entry() and pull_date:
             self.date = self.get_journal_entry().date
         super(Transaction, self).save(*args, **kwargs)
+
+    def clean(self):
+        if self.bankspend_entry and self.bankspend_entry.void:
+            raise ValidationError("You may not add new Transactions to a void "
+                                  "Entry.")
 
     def get_absolute_url(self):
         return self.get_journal_entry().get_absolute_url()
