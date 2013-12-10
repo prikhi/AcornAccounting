@@ -2379,6 +2379,44 @@ class AccountReconcileViewTests(TestCase):
         self.assertEqual(Account.objects.get(bank=True).last_reconciled, datetime.date.today() + datetime.timedelta(days=5))
         self.assertEqual(response.context['reconciled_balance'], -175)
 
+    def test_reconciled_balance_after_new_fiscal_year(self):
+        """
+        The Reconciled Balance should not be changed after creating a new
+        Fiscal Year using the add_fiscal_year view.
+
+        See Redmine Issue #194.
+
+        """
+        today = datetime.date.today()
+        FiscalYear.objects.create(year=today.year+1, end_month=12, period=12)
+        equity_header = create_header('Equity', cat_type=3)
+        create_account('Retained Earnings', equity_header,
+                                          0, 3)
+        create_account('Current Year Earnings',
+                                          equity_header, 0, 3)
+        self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
+
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.context['reconciled_balance'], 275)
+
+        response = self.client.post(reverse('accounts.views.add_fiscal_year'),
+                                    data={'year': today.year + 2,
+                                          'end_month': 12,
+                                          'period': 12,
+                                          'form-TOTAL_FORMS': 0,
+                                          'form-INITIAL_FORMS': 0,
+                                          'form-MAX_NUM_FORMS': 0,
+                                          'submit': 'Start New Year'})
+
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.context['reconciled_balance'], 275)
+
 
 class AccountDetailViewTests(TestCase):
     """

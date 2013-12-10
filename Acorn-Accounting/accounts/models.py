@@ -213,11 +213,15 @@ class Header(BaseAccountModel):
 
 
 class Account(BaseAccountModel):
-    """ Holds information on Accounts."""
+    """Holds information on Accounts."""
     balance = models.DecimalField(help_text="The balance is the credit/debit "
                                   "balance, not the value balance.",
                                   max_digits=19, decimal_places=4,
                                   default="0.00", editable=False)
+    reconciled_balance = models.DecimalField(
+        help_text="The Account's currently reconciled balance.",
+        max_digits=19, decimal_places=4, default="0.00", editable=False)
+
     parent = models.ForeignKey(Header)
     active = models.BooleanField(default=True)
     bank = models.BooleanField(default=False, help_text="Mark as a Bank.")

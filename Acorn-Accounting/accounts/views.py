@@ -486,14 +486,31 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
 
 def reconcile_account(request, account_slug,
                       template_name="accounts/account_reconcile.html"):
+    """Reconcile an Account against a Statement.
+
+    This view presents a form to the user, allowing them to enter a ``Statement
+    Balance`` and ``Statement Date``. Upon a ``GET`` request with valid data,
+    the view will display all unreconciled :class:`Transactions<Transaction>`
+    from before the entered ``Statement Date``.
+
+    The user will then select which :class:`Transactions<Transaction>` to
+    reconcile. If a balanced form is submit, the view will mark each
+    marked :class:`Transaction` as reconciled. The user will then be redirected
+    to the :class:`Account's<Account>` :func:`show_account_detail` view.
+
+    :param account_slug: The slug of the :class:`Account` to reconcile.
+    :type account_slug: str
+    :param template_name: The template to use.
+    :type template_name: str
+    :returns: HTTP response containing :class:`AccountReconcileForm`,   \
+            :class:`~accounts.forms.ReconcileTransactionFormSet`, the   \
+            :class:`Account`, and the Reconciled Balance and Last       \
+            Reconciled Date as context. Redirects if successful POST is sent.
+    :rtype: HttpResponse or HttpResponseRedirect
+    """
     account = get_object_or_404(Account, slug=account_slug)
     last_reconciled = account.last_reconciled
-    reconciled_transactions = account.transaction_set.filter(reconciled=True)
-    if reconciled_transactions.exists():
-        reconciled_balance = reconciled_transactions.aggregate(
-            Sum('balance_delta'))['balance_delta__sum']
-    else:
-        reconciled_balance = 0
+    reconciled_balance = account.reconciled_balance
     if request.method == 'POST':
         if request.POST.get('submit') == 'Get Transactions':
             account_form = AccountReconcileForm(request.POST,
@@ -524,6 +541,8 @@ def reconcile_account(request, account_slug,
                     transaction_formset.save()
                     account.last_reconciled = account_form.cleaned_data.get(
                         'statement_date')
+                    account.reconciled_balance = account_form.cleaned_data.get(
+                        'statement_balance')
                     account.save()
                     return HttpResponseRedirect(
                         reverse('accounts.views.show_account_detail',
@@ -533,8 +552,7 @@ def reconcile_account(request, account_slug,
     else:
         reconciled_balance *= (-1 if account.flip_balance() else 1)
         account_form = AccountReconcileForm(
-            prefix='account',
-            instance=account,
+            prefix='account', instance=account,
             initial={'statement_date': american_today(),
                      'statement_balance': reconciled_balance})
     return render(request, template_name, locals())
