@@ -1107,11 +1107,6 @@ class TransactionModelTests(TestCase):
 
 class AccountManagerTests(TestCase):
     """Test the manager class for the Account object."""
-    def test_banks_no_bank(self):
-        """The method should return an empty list if no banks exist."""
-        result = Account.objects.get_banks()
-        self.assertSequenceEqual([], result)
-
     def test_banks(self):
         """The method should return all banks if any exist."""
         header = create_header('Initial')
@@ -1122,6 +1117,36 @@ class AccountManagerTests(TestCase):
         result = Account.objects.get_banks()
 
         self.assertSequenceEqual([bank1, bank2], result)
+
+    def test_banks_no_bank(self):
+        """The method should return an empty list if no banks exist."""
+        result = Account.objects.get_banks()
+        self.assertSequenceEqual([], result)
+
+    def test_active(self):
+        """The method should all Accounts marked active."""
+        header = create_header('Initial')
+        active1 = create_account('Active 1', header, 0)
+        active2 = create_account('Active 2', header, 0)
+        inactive = create_account('Inactive', header, 0)
+        inactive.active = False
+        inactive.save()
+
+        active = Account.objects.active()
+
+        self.assertSequenceEqual([active1, active2], active)
+
+    def test_active_none_active(self):
+        """The method should return an empty list if no accounts are active."""
+        header = create_header('Initial')
+        inactive = create_account('Inactive', header, 0)
+        inactive.active = False
+        inactive.save()
+
+        active = Account.objects.active()
+
+        self.assertSequenceEqual([], active)
+
 
 
 class FiscalYearManagerTests(TestCase):
@@ -1633,20 +1658,14 @@ class AccountReconcileViewTests(TestCase):
         The initial view will display a Statement Balance of the reconciled
         amount if previously reconciled Transactions exist.
         """
-        entry = create_entry(datetime.date.today(), 'test memo')
-        trans1 = create_transaction(entry, self.bank_account, 50)
-        trans2 = create_transaction(entry, self.bank_account, 50)
-        trans3 = create_transaction(entry, self.bank_account, -275)
-        for trans in (trans1, trans2, trans3):
-            trans.reconciled = True
-            trans.save()
+        self.test_reconcile_account_view_flip_success_pos_statement_zero_reconciled()
 
         response = self.client.get(
             reverse('accounts.views.reconcile_account',
                     kwargs={'account_slug': self.bank_account.slug}))
 
         account_form = response.context['account_form']
-        self.assertEqual(account_form.initial['statement_balance'], 175)
+        self.assertEqual(account_form.initial['statement_balance'], 275)
 
     def test_reconcile_account_view_initial_account_slug_fail(self):
         """ A `GET` to the `reconcile_account` view with an invalid

@@ -41,7 +41,7 @@ class DateRangeForm(forms.Form):
 
 
 class QuickAccountForm(forms.Form):
-    account = forms.ModelChoiceField(queryset=Account.objects.all(),
+    account = forms.ModelChoiceField(queryset=Account.objects.active(),
                                      widget=forms.Select(attrs={
                                          'onchange': 'this.form.submit();'}),
                                      label='',
@@ -49,10 +49,10 @@ class QuickAccountForm(forms.Form):
 
 
 class QuickBankForm(forms.Form):
-    bank = forms.ModelChoiceField(queryset=Account.objects.filter(bank=True),
-                                  widget=forms.Select(attrs={
-                                      'onchange': 'this.form.submit();'}),
-                                  label='', empty_label='Jump to a Register')
+    bank = forms.ModelChoiceField(
+        queryset=Account.objects.active().filter(bank=True),
+        widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
+        label='', empty_label='Jump to a Register')
 
 
 class QuickEventForm(forms.Form):
@@ -95,6 +95,10 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
         widgets = {'account': forms.Select(attrs={'class': 'account'})}
+
+    def __init__(self, *args, **kwargs):
+        super(TransactionForm, self).__init__(*args, **kwargs)
+        self.fields['account'].queryset = Account.objects.active()
 
     def clean(self):
         """Make sure only a credit or debit is entered."""
@@ -143,10 +147,10 @@ TransactionFormSet = inlineformset_factory(JournalEntry, Transaction,
 
 @parsleyfy
 class TransferForm(forms.Form):
-    source = forms.ModelChoiceField(queryset=Account.objects.all(),
+    source = forms.ModelChoiceField(queryset=Account.objects.active(),
                                     widget=forms.Select(
                                         attrs={'class': 'source'}))
-    destination = forms.ModelChoiceField(queryset=Account.objects.all(),
+    destination = forms.ModelChoiceField(queryset=Account.objects.active(),
                                          widget=forms.Select(
                                              attrs={'class': 'destination'}))
     # TODO: This is repeated in BaseBankForm & AccountReconcileForm and ugly
@@ -273,6 +277,10 @@ class BankTransactionForm(forms.ModelForm):
         model = Transaction
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {'account': forms.Select(attrs={'class': 'account'})}
+
+    def __init__(self, *args, **kwargs):
+        super(BankTransactionForm, self).__init__(*args, **kwargs)
+        self.fields['account'].queryset = Account.objects.active()
 
     def clean(self):
         super(BankTransactionForm, self).clean()
