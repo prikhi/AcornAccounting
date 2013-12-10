@@ -3291,6 +3291,42 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(Account.objects.get(name='asset').balance, 0)
         self.assertEqual(Account.objects.get(name='expense').balance, 0)
 
+    def test_add_journal_entry_view_fail_deleted_and_out_of_balance(self):
+        """
+        A `POST` to the `add_journal_entry` view with a deleted form and out of
+        balance total should not create a JournalEntry or Transactions and
+        displays an error message.
+
+        See Redmine Issue #123.
+        """
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': '4/20/2013',
+                                          'entry-memo': 'test bug regression',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-journal_entry': '',
+                                          'transaction-0-detail': 'test detail',
+                                          'transaction-0-credit': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-DELETE': 'on',
+                                          'transaction-1-id': '',
+                                          'transaction-1-journal_entry': '',
+                                          'transaction-1-detail': '',
+                                          'transaction-1-debit': 2,
+                                          'transaction-1-account': self.expense_account.id,
+                                          'subbtn': 'Submit',
+                                          })
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['transaction_formset'].is_valid())
+        self.assertEqual(response.context['transaction_formset'].non_form_errors(),
+                         ["The total amount of Credits must be equal to the total amount of Debits."])
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
     def test_add_journal_entry_view_fail_transactions_empty(self):
         """
         A `POST` to the `add_journal_entry` view with no Transaction data

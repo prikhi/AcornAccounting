@@ -103,7 +103,7 @@ class TransactionForm(forms.ModelForm):
     def clean(self):
         """Make sure only a credit or debit is entered."""
         super(TransactionForm, self).clean()
-        if any(self.errors):
+        if any(self.errors) or self.cleaned_data.get('DELETE', False):
             return self.cleaned_data
         cleaned_data = self.cleaned_data
         debit = cleaned_data.get('debit')
