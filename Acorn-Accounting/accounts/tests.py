@@ -3291,6 +3291,67 @@ class JournalEntryViewTests(TestCase):
         self.assertEqual(Account.objects.get(name='asset').balance, 0)
         self.assertEqual(Account.objects.get(name='expense').balance, 0)
 
+    def test_add_journal_entry_view_transactions_required_valid(self):
+        """
+        A `POST` to the `add_journal_entry` view should have at least one
+        Transaction. If not an Error should appear even if the deleted form is
+        valid.
+
+        See Redmine Issue #153.
+        """
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': '4/20/2013',
+                                          'entry-memo': 'test bug regression',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-id': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'trnasaction-0-credit': 12,
+                                          'transaction-0-DELETE': 'on',
+                                          'transaction-1-id': '',
+                                          'transaction-1-account': self.asset_account.id,
+                                          'trnasaction-1-debit': 12,
+                                          'subbtn': 'Submit',
+                                          })
+
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['transaction_formset'].is_valid())
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         "At least one Transaction is required to create an Entry.")
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+    def test_add_journal_entry_view_transactions_required_invalid(self):
+        """
+        A `POST` to the `add_journal_entry` view should have at least one
+        Transaction. If not an Error should appear even if the deleted form is
+        invalid.
+
+        See Redmine Issue #153.
+        """
+        response = self.client.post(reverse('accounts.views.add_journal_entry'),
+                                    data={'entry-date': '4/20/2013',
+                                          'entry-memo': 'test bug regression',
+                                          'transaction-TOTAL_FORMS': 20,
+                                          'transaction-INITIAL_FORMS': 0,
+                                          'transaction-MAX_NUM_FORMS': '',
+                                          'transaction-0-account': self.asset_account.id,
+                                          'transaction-0-DELETE': 'on',
+                                          'subbtn': 'Submit',
+                                          })
+
+        self.assertEqual(response.status_code, 200)
+        self.failIf(response.context['transaction_formset'].is_valid())
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         "At least one Transaction is required to create an Entry.")
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertEqual(Account.objects.get(name='asset').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
     def test_add_journal_entry_view_fail_deleted_and_out_of_balance(self):
         """
         A `POST` to the `add_journal_entry` view with a deleted form and out of
@@ -3976,12 +4037,8 @@ class TransferEntryViewTests(TestCase):
                                           'transfer-0-amount': '',
                                           'subbtn': 'Submit'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['transaction_formset'].forms[0].errors['amount'],
-                         ['This field is required.'])
-        self.assertEqual(response.context['transaction_formset'].forms[0].errors['destination'],
-                         ['This field is required.'])
-        self.assertEqual(response.context['transaction_formset'].forms[0].errors['source'],
-                         ['This field is required.'])
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+                         "At least one Transaction is required to create an Entry.")
         self.assertEqual(JournalEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
         self.assertEqual(Account.objects.all()[0].balance, 0)

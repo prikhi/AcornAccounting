@@ -12,20 +12,30 @@ from .models import (Account, JournalEntry, Transaction, BankSpendingEntry,
                      BankReceivingEntry, Event, FiscalYear)
 
 
-class RequiredBaseFormSet(forms.models.BaseFormSet):
-    # TODO: Fix bug where empty formset passes if first form is marked DELETE
-    # Move Check to the clean method?
-    def __init__(self, *args, **kwargs):
-        super(RequiredBaseFormSet, self).__init__(*args, **kwargs)
-        self.forms[0].empty_permitted = False
+class RequiredFormSetMixin(object):
+    """This class ensures at least one form in the formset is filled."""
+    def clean(self):
+        """Ensure that at least one filled form exists."""
+        super(RequiredFormSetMixin, self).clean()
+        count = 0
+        for form in self.forms:
+            if (hasattr(form, 'cleaned_data') and not
+                    form.cleaned_data.get('DELETE', True)):
+                count += 1
+                break
+
+        if count < 1:
+            raise forms.ValidationError("At least one Transaction is required "
+                                        "to create an Entry.")
 
 
-class RequiredBaseInlineFormSet(forms.models.BaseInlineFormSet):
-    # TODO: Fix bug where empty formset passes if first form is marked DELETE
-    # Move Check to the clean method?
-    def __init__(self, *args, **kwargs):
-        super(RequiredBaseInlineFormSet, self).__init__(*args, **kwargs)
-        self.forms[0].empty_permitted = False
+class RequiredBaseFormSet(RequiredFormSetMixin, forms.models.BaseFormSet):
+    """A BaseFormSet that requires at least one filled form."""
+
+
+class RequiredBaseInlineFormSet(RequiredFormSetMixin,
+                                forms.models.BaseInlineFormSet):
+    """A BaseInlineFormSet that requires at least one filled form."""
 
 
 @parsleyfy
