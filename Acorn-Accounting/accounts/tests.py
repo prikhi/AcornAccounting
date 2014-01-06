@@ -102,6 +102,62 @@ class BaseAccountModelTests(TestCase):
         self.assertEqual(oth_expense_acc.get_balance(), -20)
         self.assertEqual(oth_expense_header.get_account_balance(), -20)
 
+    def test_has_parent_changed_new(self):
+        """Test that new instances have had their parent changed."""
+        header = Header(name="header", slug="header", parent=None, type=2)
+        account = Account(name="account", slug="account", parent=header,
+                          balance=0)
+
+        self.assertTrue(header._has_parent_changed())
+        self.assertTrue(account._has_parent_changed())
+
+    def test_has_parent_changed_no_change(self):
+        """Tests that unchanged instances have not had their parent changed."""
+        header = create_header("header")
+        account = create_account("account", header, 0)
+
+        self.assertFalse(header._has_parent_changed())
+        self.assertFalse(account._has_parent_changed())
+
+    def test_has_parent_changed_parent_change(self):
+        """
+        The _has_parent_changed method should return True if the parent has
+        been changed.
+        """
+        header = create_header("header")
+        account = create_account("account", header, 0)
+        other_parent = create_header("other")
+
+        header.parent = other_parent
+        account.parent = other_parent
+
+        self.assertTrue(header._has_parent_changed())
+        self.assertTrue(account._has_parent_changed())
+
+    def test_has_parent_changed_other_change(self):
+        """
+        The _has_parent_changed method should return False values other than
+        the parent have been changed.
+        """
+        header = create_header("header")
+        account = create_account("account", header, 0)
+
+        header.active  = False
+        header.name = "this"
+        header.type = 1
+        header.description = "huh"
+        account.active  = False
+        account.name = "this"
+        account.type = 1
+        account.description = "huh"
+        account.balance = 2
+        account.bank = True
+        account.last_reconciled = datetime.date.today()
+
+
+        self.assertFalse(header._has_parent_changed())
+        self.assertFalse(account._has_parent_changed())
+
 
 class HeaderModelTests(TestCase):
     def test_get_account_balance(self):
@@ -136,7 +192,32 @@ class HeaderModelTests(TestCase):
         self.assertEqual(gchild_head.get_account_balance(), -20)
         self.assertEqual(gchild_sib_head.get_account_balance(), -20)
 
-    def test_save_sinherit_type(self):
+    def test_save_recalculate_full_number(self):
+        """
+        Tests that the save method recalculates new Numbers for the Old and New
+        Sibling Headers when a Header's parent is changed.
+        """
+        self.test_child_node_get_number()
+        asset_child = Header.objects.get(slug="asset-child")
+        asset_child2_child = Header.objects.get(slug="asset-child-2-child")
+        liability_child = Header.objects.get(slug="me-too")
+
+        asset_child2_child.parent = liability_child.parent
+        asset_child2_child.type = 2
+        asset_child2_child.save()
+        asset_child = Header.objects.get(slug="asset-child")
+        asset_child2_child = Header.objects.get(slug="asset-child-2-child")
+        liability_child = Header.objects.get(slug="me-too")
+
+        print asset_child.get_root().get_descendants()
+        self.assertEqual(asset_child.full_number,
+                         '{0}-0200'.format(asset_child.type))
+        self.assertEqual(liability_child.full_number,
+                         '{0}-0200'.format(liability_child.type))
+        self.assertEqual(asset_child2_child.full_number,
+                         '{0}-0100'.format(asset_child2_child.type))
+
+    def test_save_inherit_type(self):
         """
         Tests that child Headers inherit their root Header's type.
         """
@@ -175,13 +256,14 @@ class HeaderModelTests(TestCase):
         self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0200'.format(asset_child.type))
         asset_child2_child = Header.objects.create(name='I will steal spot 2 since I am a child of spot 1', slug='asset-child-2-child', parent=asset_child2)
         self.assertEqual(Header.objects.get(id=asset_child2.id).get_full_number(), '{0}-0100'.format(asset_child2.type))
-        self.assertEqual(Header.objects.get(id=asset_child2_child.id).get_full_number(), '{0}-0200'.format(asset_child2.type))
+        self.assertEqual(Header.objects.get(id=asset_child2_child.id).get_full_number(), '{0}-0200'.format(asset_child2_child.type))
         self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0300'.format(asset_child.type))
 
         liability = create_header('I am not in the asset tree!', None)
         liability_child = create_header('me too', liability)
         self.assertEqual(Header.objects.get(id=liability.id).get_full_number(), '{0}-0000'.format(liability.type))
         self.assertEqual(Header.objects.get(id=liability_child.id).get_full_number(), '{0}-0100'.format(liability_child.type))
+
 
 
 class AccountModelTests(TestCase):
@@ -201,13 +283,21 @@ class AccountModelTests(TestCase):
 
     def test_account_get_number(self):
         """
-        Tests that Accounts are numbered according to parent number and alphabetical
-        position in siblings list.
+        Tests that Accounts are numbered according to parent number and
+        alphabetical position in siblings list.
         """
-        self.assertEqual(self.child_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(self.child_acc.type, self.child_acc.parent.account_number(),
-                                                                                  self.child_acc.account_number()))
-        self.assertEqual(self.gchild_acc.get_full_number(), '{0}-{1:02d}{2:02d}'.format(self.gchild_acc.type, self.gchild_acc.parent.account_number(),
-                                                                                  self.gchild_acc.account_number()))
+        self.child_acc = Account.objects.get(name='child')
+        self.gchild_acc = Account.objects.get(name='gChild')
+        self.assertEqual(self.child_acc.get_full_number(),
+                         '{0}-{1:02d}{2:02d}'.format(
+                             self.child_acc.type,
+                             self.child_acc.parent.account_number(),
+                             self.child_acc.account_number()))
+        self.assertEqual(self.gchild_acc.get_full_number(),
+                         '{0}-{1:02d}{2:02d}'.format(
+                             self.gchild_acc.type,
+                             self.gchild_acc.parent.account_number(),
+                             self.gchild_acc.account_number()))
 
     def test_get_balance_by_date(self):
         """

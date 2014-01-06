@@ -60,7 +60,7 @@ def show_accounts_chart(request, header_slug=None,
         nodes = header.get_descendants(include_self=True)
     else:
         nodes = Header.objects.all()
-
+    nodes = nodes.order_by('full_number')
     return render(request, template_name, locals())
 
 

@@ -3,25 +3,37 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
-from caching.base import CachingManager, CachingMixin, cached_method
+from caching.base import (CachingManager, CachingMixin, cached_method,
+                          CachingQuerySet)
 from django.contrib.localflavor.us.models import USStateField
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from mptt.models import MPTTModel, TreeForeignKey
+from mptt.models import MPTTModel, TreeForeignKey, TreeManager
 
 
 # TODO: Move all managers to a separate manager.py
 
-class AccountManager(CachingManager):
+class CachingTreeManager(TreeManager):
+    """A :class:`~mptt.models.TreeManager` which uses caching.
+
+    This manager uses a :class:`~caching.base.CachingQuerySet` to cache queries
+    with django-cache-machine.
+
+    """
+    def get_query_set(self):
+        return CachingQuerySet(self.model, using=self._db).order_by(
+            self.tree_id_attr, self.left_attr)
+
+
+class AccountManager(CachingTreeManager):
     """
     A Custom Manager for the :class:`Account` Model.
 
-    Subclass of :class:`caching.base.CachingManager`
+    This class inherits from the :class:`CachingTreeManager`.
 
     """
-
     def get_banks(self):
         """This method will return a Queryset containing any Bank Accounts."""
         return self.filter(bank=True)
@@ -115,8 +127,13 @@ class FiscalYearManager(CachingManager):
             return None
 
 
-class BaseAccountModel(CachingMixin, MPTTModel):
-    """Abstract class storing common attributes of Headers and Accounts"""
+class BaseAccountModel(MPTTModel, CachingMixin):
+    """Abstract class storing common attributes of Headers and Accounts.
+
+    Subclasses must implement the ``_calculate_full_number`` and
+    ``_get_change_tree`` methods.
+
+    """
     # TODO: Move to constants.py
     ASSET = 1
     LIABILITY = 2
@@ -142,6 +159,8 @@ class BaseAccountModel(CachingMixin, MPTTModel):
     description = models.TextField(blank=True)
     slug = models.SlugField(help_text="Unique identifier used in URL naming",
                             unique=True)
+    full_number = models.CharField(max_length=7, blank=True, null=True,
+                                   editable=False)
 
     class Meta:
         abstract = True
@@ -157,6 +176,60 @@ class BaseAccountModel(CachingMixin, MPTTModel):
         else:
             return False
 
+    def clean(self):
+        """Set the ``type`` and calculate the ``full_number``.
+
+        The ``type`` attribute will be inherited from the ``parent`` and
+        the ``full_number`` will be calculated if the object has an ``id``.
+
+        """
+        if self.parent:
+            self.type = self.parent.type
+        if self.id:
+            self.full_number = self._calculate_full_number()
+        return super(BaseAccountModel, self).clean()
+
+    def save(self, *args, **kwargs):
+        """Resave Headers or Accounts if the ``parent`` has changed.
+
+        This method first checks to see if the ``parent`` attribute has
+        changed. If so, it will cause the object and all related objects(the
+        ``change_tree``) to be saved once the pending changes have been saved.
+
+        """
+        parent_has_changed = self._has_parent_changed()
+        if parent_has_changed:
+            items_to_change = self._get_change_tree()
+        self.full_clean()
+        super(BaseAccountModel, self).save(*args, **kwargs)
+        self.__class__.objects.rebuild()
+        if parent_has_changed:
+            items_to_change += self._get_change_tree()
+            self._resave_items_and_self(items_to_change)
+
+    def get_full_number(self):
+        """Retrieve the Full Number from the model field."""
+        return self.full_number
+    get_full_number.short_description = "Number"
+
+    def _has_parent_changed(self):
+        """Determine if the ``parent`` has changed."""
+        if self.id:
+            database_copy = self.__class__.objects.get(id=self.id)
+            parent_has_changed = (database_copy.parent != self.parent)
+        else:
+            parent_has_changed = True
+        return parent_has_changed
+
+    def _resave_items_and_self(self, items):
+        """Save each item then save this object's database copy."""
+        if self in items:
+            items.remove(self)
+        for item in items:
+            item.save()
+        database_copy = self.__class__.objects.get(id=self.id)
+        database_copy.save()
+
 
 class Header(BaseAccountModel):
     """Groups Accounts Together."""
@@ -164,7 +237,7 @@ class Header(BaseAccountModel):
     parent = TreeForeignKey('self', blank=True, null=True)
     active = models.BooleanField(default=True)
 
-    objects = CachingManager()
+    objects = CachingTreeManager()
 
     def __unicode__(self):
         return self.name
@@ -173,47 +246,41 @@ class Header(BaseAccountModel):
         return reverse('accounts.views.show_accounts_chart',
                        args=[str(self.slug)])
 
-    def save(self, *args, **kwargs):
-        """Inherit the root Header's type"""
-        self.full_clean()
-        if self.parent:
-            self.type = self.parent.type
-        super(Header, self).save(*args, **kwargs)
-
     def account_number(self):
-        tree = self.get_root().get_descendants()
-        number = list(tree).index(self) + 1
+        tree = self.get_root().get_descendants(include_self=True)
+        number = list(tree).index(self)
         return number
 
-    def get_full_number(self):
+    def get_account_balance(self):
+        """Traverse child Headers and Accounts to generate the current balance.
+
+        :returns: The Value Balance of all :class:`Accounts<Account>` and
+                :class:`Headers<Header>` under this Header.
+        :rtype: :class:`decimal.Decimal`
+        """
+        balance = Decimal("0.00")
+        child_headers = self.get_children()
+        for header in child_headers:
+            balance += header.get_account_balance()
+        for account in self.account_set.all():
+            balance += account.get_balance()
+        return balance
+
+    def _calculate_full_number(self):
         """Use type and tree position to generate full account number"""
-        # TODO: Cache this function, save in a field and refresh on save:
-        # could create save method with flag argument. Method would usually
-        # not regenerate full_number. If header changed and no flag, it would
-        # call save method for siblings and self with flag up. If flag on,
-        # would recalculate full_number and save (no recurse if header
-        # changed). Make Redmine ticket for this one.
         if self.parent:
             full_number = "{0}-{1:02d}00".format(self.type,
                                                  self.account_number())
         else:
             full_number = "{0}-0000".format(self.type)
         return full_number
-    get_full_number.short_description = "Number"
 
-    def get_account_balance(self):
-        """Traverses children to generate the current balance."""
-        balance = Decimal("0.00")
-        descendants = self.get_descendants()    # TODO: is this all or just
-                                                # 1-level deep? Should Test on
-                                                # 3-level deep header.
-        for header in descendants:
-            accounts = header.account_set.all()
-            for account in accounts:
-                balance += account.get_balance()
-        for account in self.account_set.all():
-            balance += account.get_balance()
-        return balance
+    def _get_change_tree(self):
+        """Get the entire Header Tree."""
+        if self.id:
+            return list(self.get_root().get_descendants())
+        else:
+            return list()
 
 
 class Account(BaseAccountModel):
@@ -240,24 +307,10 @@ class Account(BaseAccountModel):
         return reverse('accounts.views.show_account_detail',
                        args=[str(self.slug)])
 
-    def save(self, *args, **kwargs):
-        """Inherit the parent Header's type"""
-        self.type = self.parent.type
-        self.full_clean()
-        super(Account, self).save(*args, **kwargs)
-
     def account_number(self):
         siblings = self.get_siblings(include_self=True).order_by('name')
         number = list(siblings).index(self) + 1
         return number
-
-    def get_full_number(self):
-        """Use parent and sibling positions to generate full account number."""
-        # TODO: Cache or store + refresh this (see header method above)
-        full_number = (self.parent.get_full_number()[:-2] +
-                       "{0:02d}".format(self.account_number()))
-        return full_number
-    get_full_number.short_description = "Number"
 
 # TODO: get_value_balance()?
     def get_balance(self):
@@ -354,6 +407,19 @@ class Account(BaseAccountModel):
         if self.flip_balance():
             net_change *= -1
         return net_change
+
+    def _calculate_full_number(self):
+        """Use parent and sibling positions to generate full account number."""
+        full_number = (self.parent._calculate_full_number()[:-2] +
+                       "{0:02d}".format(self.account_number()))
+        return full_number
+
+    def _get_change_tree(self):
+        """Get this instance's siblings or an empty list."""
+        if self.id:
+            return list(self.get_siblings())
+        else:
+            return list()
 
 
 class HistoricalAccount(CachingMixin, models.Model):
