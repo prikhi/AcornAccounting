@@ -288,32 +288,27 @@ upstream repository:
 Preparing a Release
 --------------------
 
-We should talk about how to finish a release and merge into ``master``.
-
-See `Theano's How to Make a Release
-<http://deeplearning.net/software/theano/internal/how_to_release.html>`_ for
-ideas.
-
 Quick overview(will be expanded and solidified before v1.0.0 release):
 
-#. Fork release off of develop branch:
+#. Fork release off of the ``develop`` branch:
 
    .. code-block:: bash
 
        $ git checkout -b release-1.0.0 develop
 
-#. Branch, Fix and Merge any bug fixes.
-#. Bump version number and year in ``setup.py`` and ``docs/conf.py``
-#. Commit version changes
+#. Branch, Fix and Merge any bugs.
+#. Bump version number and year in ``setup.py`` and ``docs/source/conf.py``.
+#. Commit version changes.
 #. Merge into master and push upstream:
 
    .. code-block:: bash
 
        $ git checkout master
        $ git merge release-1.2.0
-       $ git tag -s -a 1.2.0
+       $ git tag -s -a v1.2.0
        $ git branch -d release-1.2.0
        $ git push origin master
+       $ git push --tags origin master
 
 
 Version Numbers
