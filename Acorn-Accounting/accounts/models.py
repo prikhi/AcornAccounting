@@ -312,7 +312,7 @@ class Account(BaseAccountModel):
         number = list(siblings).index(self) + 1
         return number
 
-# TODO: get_value_balance()?
+    # TODO: get_value_balance()?
     def get_balance(self):
         """
         Returns the value balance for the :class:`Account`.
@@ -560,7 +560,7 @@ class HistoricalAccount(CachingMixin, models.Model):
 
 class BaseJournalEntry(CachingMixin, models.Model):
     """ Groups a series of Transactions together."""
-    date = models.DateField()
+    date = models.DateField(db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
     memo = models.CharField(max_length=60)
@@ -779,10 +779,11 @@ class Transaction(CachingMixin, models.Model):
                               "the charge", blank=True)
     balance_delta = models.DecimalField(help_text="Positive balance is a "
                                         "credit, negative is a debit",
-                                        max_digits=19, decimal_places=4)
+                                        max_digits=19, decimal_places=4,
+                                        db_index=True)
     event = models.ForeignKey('Event', blank=True, null=True)
     reconciled = models.BooleanField(default=False)
-    date = models.DateField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True, db_index=True)
 
     objects = TransactionManager()
 
@@ -836,16 +837,18 @@ class Transaction(CachingMixin, models.Model):
             return self.bankspend_entry
         elif self.bankreceive_entry:
             return self.bankreceive_entry
-        elif hasattr(self, 'bankreceivingentry'):
+        elif (hasattr(self, 'bankreceivingentry') and
+              self.bankreceivingentry is not None):
             return self.bankreceivingentry
-        elif hasattr(self, 'bankspendingentry'):
+        elif (hasattr(self, 'bankspendingentry') and
+              self.bankspendingentry is not None):
             return self.bankspendingentry
 
     def get_memo(self):
         return self.get_journal_entry().memo
 
 
-class Event(models.Model):
+class Event(CachingMixin, models.Model):
     """Hold information about Events."""
     name = models.CharField(max_length=150)
     number = models.PositiveIntegerField()
@@ -853,6 +856,8 @@ class Event(models.Model):
     city = models.CharField(max_length=50)
     # TODO: Deprecated in either Django 1.6 or 1.7
     state = USStateField()
+
+    objects = CachingManager()
 
     class Meta:
         ordering = ['date']

@@ -21,7 +21,7 @@
     </tr>
     </thead>
     <tbody>
-{% for transaction in event.transaction_set.all %}
+{% for transaction in event.transaction_set.all.select_related %}
     <tr class="{% cycle 'main' 'alt' %} clickable">
         <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
         <td>{{ transaction.date|date:"m/d/Y" }}</td>

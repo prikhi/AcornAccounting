@@ -43,7 +43,7 @@
         {% endif %}
         <td></td>
     </tr>
-    {% for account_transaction in transaction.get_journal_entry.transaction_set.all %}
+    {% for account_transaction in transaction.get_journal_entry.transaction_set.all.select_related %}
         <tr class="{% cycle 'main' 'alt' %} clickable">
             <td></td>
             <td><a href="{{ account_transaction.account.get_absolute_url }}">{{ account_transaction.account }}</a></td>

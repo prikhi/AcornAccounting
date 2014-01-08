@@ -107,7 +107,10 @@ def show_account_detail(request, account_slug,
     date_range_query = (Q(date__lte=stop_date) & Q(date__gte=start_date))
     debit_total, credit_total, net_change = account.transaction_set.get_totals(
         query=date_range_query, net_change=True)
-    transactions = account.transaction_set.filter(date_range_query)
+    transactions = account.transaction_set.filter(
+        date_range_query).select_related(
+            'journal_entry', 'bankspendingentry', 'bankspend_entry',
+            'bankreceivingentry', 'bankreceive_entry')
     current_fiscal_start_date = FiscalYear.objects.current_start()
     show_balance = (current_fiscal_start_date is None or
                     current_fiscal_start_date <= start_date)
@@ -232,7 +235,10 @@ def bank_register(request, account_slug,
     in_range_bank_query = ((Q(bankspendingentry__isnull=False) |
                             Q(bankreceivingentry__isnull=False)) &
                            (Q(date__lte=stop_date) & Q(date__gte=start_date)))
-    transactions = account.transaction_set.filter(in_range_bank_query)
+    transactions = account.transaction_set.filter(
+        in_range_bank_query).select_related(
+            'journal_entry', 'bankspendingentry', 'bankspend_entry',
+            'bankreceivingentry', 'bankreceive_entry')
     return render(request, template_name, locals())
 
 
