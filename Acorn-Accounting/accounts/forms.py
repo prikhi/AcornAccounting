@@ -119,8 +119,8 @@ class TransactionForm(forms.ModelForm):
         debit = cleaned_data.get('debit')
         credit = cleaned_data.get('credit')
         if credit and debit:
-            raise forms.ValidationError("Please enter only a debit or a "
-                                        "credit.")
+            raise forms.ValidationError("Please enter only one debit or "
+                                        "credit per line.")
         elif credit:
             cleaned_data['balance_delta'] = credit
         elif debit:
@@ -179,7 +179,7 @@ class TransferForm(forms.Form):
         cleaned_data = self.cleaned_data
         if cleaned_data.get('source') == cleaned_data.get('destination'):
             raise forms.ValidationError("The Source and Destination Accounts "
-                                        "must differ.")
+                                        "must be different.")
         return cleaned_data
 
 

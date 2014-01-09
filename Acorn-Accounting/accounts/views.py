@@ -1,6 +1,6 @@
 import calendar
 import datetime
-from dateutil import rrule
+from dateutil import relativedelta, rrule
 
 from django.db.models import Q, Sum, Max
 from django.core.urlresolvers import reverse
@@ -31,11 +31,11 @@ def quick_account_search(request):
 
 
 def quick_bank_search(request):
-    """Processes search for bank registers"""
+    """Processes search for bank journals"""
     if 'bank' in request.GET:
         account = get_object_or_404(Account, pk=request.GET.get('bank'),
                                     bank=True)
-        return HttpResponseRedirect(reverse('bank_register',
+        return HttpResponseRedirect(reverse('bank_journal',
                                             kwargs={'account_slug':
                                                     account.slug}))
     else:
@@ -57,10 +57,11 @@ def show_accounts_chart(request, header_slug=None,
     """Retrieves self and descendant Headers or all Headers"""
     if header_slug:
         header = get_object_or_404(Header, slug=header_slug)
-        nodes = header.get_descendants(include_self=True)
+        root_nodes = [header]
     else:
-        nodes = Header.objects.all()
-    nodes = nodes.order_by('full_number')
+        root_nodes = Header.objects.filter(parent=None).order_by('type')
+    for root_node in root_nodes:
+        root_node.descendants = root_node.get_descendants(include_self=True)
     return render(request, template_name, locals())
 
 
@@ -193,15 +194,27 @@ def show_account_history(request, month=None, year=None,
         raise Http404
     accounts = HistoricalAccount.objects.filter(date__month=date.month,
                                                 date__year=date.year)
+
+    next_month = date + relativedelta.relativedelta(months=1)
+    previous_month = date - relativedelta.relativedelta(months=1)
+    has_next = HistoricalAccount.objects.filter(
+        date__month=next_month.month,
+        date__year=next_month.year).exists()
+    has_previous = HistoricalAccount.objects.filter(
+        date__month=previous_month.month,
+        date__year=previous_month.year).exists()
+
     date_change = bool('next' in request.GET or 'previous' in request.GET)
     exists = accounts.exists()
+
     if date_change and exists:
         return HttpResponseRedirect(
             reverse('accounts.views.show_account_history',
                     kwargs={'month': date.month, 'year': date.year}))
     elif exists:
-        return render(request, template_name, {'accounts': accounts,
-                                               'date': date})
+        return render(request, template_name,
+                      {'accounts': accounts, 'date': date,
+                       'has_next': has_next, 'has_previous': has_previous})
     elif date_change:
         return HttpResponseRedirect(
             reverse('accounts.views.show_account_history',
@@ -227,8 +240,8 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
     return render(request, template_name, locals())
 
 
-def bank_register(request, account_slug,
-                  template_name="accounts/bank_register.html"):
+def bank_journal(request, account_slug,
+                  template_name="accounts/bank_journal.html"):
     form, start_date, stop_date = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
     # TODO: Refactor into Account method, get_bank_transactions_by_date()
@@ -414,7 +427,7 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                 entry.main_transaction.delete()
                 entry.delete()
                 return HttpResponseRedirect(
-                    reverse('accounts.views.bank_register',
+                    reverse('accounts.views.bank_journal',
                             kwargs={'account_slug': bank_account.slug}))
             else:
                 raise Http404
@@ -487,7 +500,8 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
             entry_form.initial['date'] = american_today()
     return render(request, template_name,
                   {'entry_form': entry_form,
-                   'transaction_formset': transfer_formset})
+                   'transaction_formset': transfer_formset,
+                   'journal_type': "Transfer"})
 
 
 def reconcile_account(request, account_slug,

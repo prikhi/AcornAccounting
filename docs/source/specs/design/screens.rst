@@ -68,7 +68,7 @@ The navigation will contain multiple dropdown-menus and autocomplete inputs:
 * An :ref:`Entry Sub-menu <Entry Submenu Design>`
 * A :ref:`Reports Sub-menu <Reports Submenu Design>`
 * An :ref:`Accounts Autocomplete Input <Autocomplete Inputs>`
-* A :ref:`Bank Registers Autocomplete Input <Autocomplete Inputs>`
+* A :ref:`Bank Journals Autocomplete Input <Autocomplete Inputs>`
 * A :ref:`Admin Sub-menu <Admin Submenu Design>`
 
 .. figure:: _images/wireframes/navigation_base.png
@@ -92,7 +92,7 @@ The ``Accounts`` Sub-Menu will contain the following Items and Links:
   Accounts Page <Chart of Accounts Page Design>`
 * Member Deposited Assets - Linking to the ``Member's Deposited Assets``
   :ref:`Chart of Accounts Page <Chart of Accounts Page Design>`
-* :ref:`Historical Accounts <Account History Page>`
+* :ref:`Account History Page`
 
 .. figure:: _images/wireframes/navigation_accounts.png
     :alt: The Accounts Sub-Menu.
@@ -171,8 +171,8 @@ Upon item selection, the application will redirect the user to a specific page:
 
 * The item's :ref:`Account Detail Page <Account Detail Page Design>` for the
   ``Accounts`` Autocomplete Input
-* The item's :ref:`Bank Register Page <Bank Register Page Design>` for the
-  ``Bank Registers`` Autocomplete Input
+* The item's :ref:`Bank Journal Page <Bank Journal Page Design>` for the
+  ``Bank Journal`` Autocomplete Input
 
 For a working example of this functionality, see the `Select2 Widget`_.
 
@@ -308,9 +308,9 @@ the mouse from a row should revert the effect.
 *Case 2*
 
 If the screen is accessed recursively by a Header row hyperlink, the screen
-will emulate *Case 1* except tabs will not be displayed, and instead of all
-Headers and Accounts, only the children of the selected Header will be
-displayed.
+will emulate *Case 1* except the tabs will be replaced with breadcrumb links up
+the Header's ancestor tree. Instead of showing all Headers and Accounts, only
+the children of the selected Header will be displayed.
 
 **Intermediate Conditions**
 
@@ -406,8 +406,8 @@ a specific event.
 
 The Event Detail page may be reached from the :ref:`Events Report Page <Event
 Report Page Design>` by clicking a row in the table or from the :ref:`General
-Ledger Page <General Ledger Page Design>`, :ref:`Bank Register Page <Bank
-Register Page Design>` or the :ref:`Account Detail Page <Account Detail Page
+Ledger Page <General Ledger Page Design>`, :ref:`Bank Journal Page <Bank
+Journal Page Design>` or the :ref:`Account Detail Page <Account Detail Page
 Design>` by clicking on an Event in the Page's table's ``Event`` column.
 
 **Initial Conditions**
@@ -569,7 +569,7 @@ Bank Receiving Entry
 **Entry Conditions**
 
 The Bank Receiving Entry page will be accessible by clicking an Entry on the
-:ref:`Bank Register Page <Bank Register Page Design>` or by clicking a
+:ref:`Bank Journal Page <Bank Journal Page Design>` or by clicking a
 Transaction on the :ref:`Account Detail Page <Account Detail Page Design>` or
 :ref:`Event Detail Page <Event Detail Page Design>`.
 
@@ -615,7 +615,7 @@ Bank Spending Entry
 **Entry Conditions**
 
 The Bank Spending Entry page will be accessible by clicking an Entry on the
-:ref:`Bank Register Page <Bank Register Page Design>` or by clicking a
+:ref:`Bank Journal Page <Bank Journal Page Design>` or by clicking a
 Transaction on the :ref:`Account Detail Page <Account Detail Page Design>` or
 :ref:`Event Detail Page <Event Detail Page Design>`.
 
@@ -705,12 +705,12 @@ Account. Clicking on an Event in the table will direct the user to that Event's
 
     A Sample General Ledger Page, showing two General Journal Entries.
 
-.. _Bank Register Page Design:
+.. _Bank Journal Page Design:
 
-Bank Register Page
+Bank Journal Page
 -------------------
 
-The Bank Register page will be used to display a Bank Account's Bank Spending
+The Bank Journal page will be used to display a Bank Account's Bank Spending
 and Bank Receiving Entries within a user-specified date range.
 
 .. note::
@@ -719,10 +719,10 @@ and Bank Receiving Entries within a user-specified date range.
 
 **Entry Conditions**
 
-The Bank Register page will be accessed through the :ref:`Bank Register
+The Bank Journal page will be accessed through the :ref:`Bank Journal
 Autocomplete Input <Autocomplete Inputs>` in the :ref:`Navigation Menu <Site
 Navigation Design>`. Submitting a valid Bank Account will direct the user to
-the Bank Register page for that Account.
+the Bank Journal page for that Account.
 
 **Initial Conditions**
 
@@ -734,7 +734,7 @@ The Date Range form will have 2 Text Input Widgets, labeled ``Start Date:`` and
 shown. The ``Start Date`` will default to the first day of the current month
 while the ``End Date`` will default to the current date.
 
-The Heading will display the Account's Name, ``Register`` and the current date
+The Heading will display the Account's Name, ``Journal`` and the current date
 range.
 
 The table will be populated with Bank Spending and Receiving Entries within the
@@ -756,12 +756,12 @@ Design>`. Clicking on an Account row in the table will direct the user to the
 Account. Clicking on an Event in the table will direct the user to that Event's
 :ref:`Detail Page <Event Detail Page Design>`.
 
-.. figure:: _images/wireframes/bank_register.png
-    :alt: A Sample Bank Register Page.
+.. figure:: _images/wireframes/bank_journal.png
+    :alt: A Sample Bank Journal Page.
     :width: 700px
     :align: center
 
-    A Sample Bank Register Page, showing both Bank Spending and Bank Receiving
+    A Sample Bank Journal Page, showing both Bank Spending and Bank Receiving
     Entries.
 
 .. _Event Report Page Design:
@@ -927,7 +927,7 @@ validating new Entries and Transactions.
         -->[true] if "Delete?" then
             -l->[yes] "Delete Entry"
             if "Bank Entry?" then
-                -->[yes] "Redirect to Bank Register"
+                -->[yes] "Redirect to Bank Journal"
                 --> (*)
             else
                 -->[no] "Redirect to General Ledger"
@@ -1132,7 +1132,7 @@ refresh with a blank form.
 
 Submitting the form via the ``Delete`` button will remove the Bank Receiving
 Entry and it's Transactions, refunding each Account's balance. The User will
-be redirected to the :ref:`Bank Account's Register <Bank Register Page Design>`.
+be redirected to the :ref:`Bank Account's Journal <Bank Journal Page Design>`.
 
 .. figure:: _images/wireframes/add_receiving_entry.png
     :alt: A Sample Bank Receiving Entry
@@ -1201,7 +1201,7 @@ refresh with a blank form.
 
 Submitting the form via the ``Delete`` button will remove the Bank Spending
 Entry and it's Transactions, refunding each Account's balance. The User will
-be redirected to the :ref:`Bank Account's Register <Bank Register Page Design>`.
+be redirected to the :ref:`Bank Account's Journal <Bank Journal Page Design>`.
 
 .. figure:: _images/wireframes/add_spending_entry.png
     :alt: A Sample Bank Receiving Entry

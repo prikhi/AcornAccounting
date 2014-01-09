@@ -1620,7 +1620,7 @@ class FiscalYearAccountsFormSetTests(TestCase):
 class QuickSearchViewTests(TestCase):
     """
     Test views for redirecting dropdowns to Account details or a Bank Account's
-    register
+    journal
     """
     def setUp(self):
         """
@@ -1668,12 +1668,12 @@ class QuickSearchViewTests(TestCase):
     def test_quick_bank_success(self):
         """
         A `GET` to the `quick_bank_search` view with a `bank` should
-        redirect to the Account's register page.
+        redirect to the Account's journal page.
         """
         response = self.client.get(reverse('accounts.views.quick_bank_search'),
                                    data={'bank': self.bank_account.id})
 
-        self.assertRedirects(response, reverse('accounts.views.bank_register', args=[self.bank_account.slug]))
+        self.assertRedirects(response, reverse('accounts.views.bank_journal', args=[self.bank_account.slug]))
 
     def test_quick_bank_fail_not_bank(self):
         """
@@ -1749,8 +1749,12 @@ class AccountChartViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/account_charts.html')
         self.assertNotIn('header', response.context)
-        self.assertItemsEqual(response.context['nodes'],
-                              Header.objects.order_by('id'))
+        self.assertSequenceEqual(response.context['root_nodes'],
+                              [ self.asset_header, self.expense_header])
+        self.assertSequenceEqual(response.context['root_nodes'][0].descendants,
+                              [ self.asset_header, self.asset_child_header ])
+        self.assertSequenceEqual(response.context['root_nodes'][1].descendants,
+                                 [ self.expense_header, self.expense_child_header ])
 
     def test_show_chart_header_success(self):
         """
@@ -1762,8 +1766,12 @@ class AccountChartViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['header'], self.asset_header)
-        self.assertItemsEqual(response.context['nodes'],
-                              [self.asset_header, self.asset_child_header])
+        self.assertSequenceEqual(response.context['root_nodes'],
+                              [ self.asset_header ])
+        self.assertEqual(len(response.context['root_nodes']), 1)
+        self.assertSequenceEqual(response.context['root_nodes'][0].descendants,
+                              [ self.asset_header, self.asset_child_header ])
+
 
     def test_show_chart_header_fail(self):
         """
@@ -4027,7 +4035,7 @@ class TransferEntryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'accounts/entry_add.html')
         self.failUnless(isinstance(response.context['entry_form'], JournalEntryForm))
-        self.assertNotIn('journal_type', response.context)
+        self.assertEqual(response.context['journal_type'], "Transfer")
         self.failUnless(isinstance(response.context['transaction_formset'], TransferFormSet))
 
     def test_transfer_add_view_success(self):
@@ -4296,7 +4304,7 @@ class BankEntryViewTests(TestCase):
                                                     'journal_type': 'CR'}),
                                     data={'delete': 'Delete'})
 
-        self.assertRedirects(response, reverse('accounts.views.bank_register',
+        self.assertRedirects(response, reverse('accounts.views.bank_journal',
                                                kwargs={'account_slug': self.bank_account.slug}))
         self.assertEqual(BankReceivingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
@@ -4735,7 +4743,7 @@ class BankEntryViewTests(TestCase):
                                                     'journal_type': 'CD'}),
                                     data={'delete': 'Delete'})
 
-        self.assertRedirects(response, reverse('accounts.views.bank_register',
+        self.assertRedirects(response, reverse('accounts.views.bank_journal',
                                                kwargs={'account_slug': self.bank_account.slug}))
         self.assertEqual(BankSpendingEntry.objects.count(), 0)
         self.assertEqual(Transaction.objects.count(), 0)
@@ -5095,9 +5103,9 @@ class JournalLedgerViewTests(TestCase):
         self.assertFormError(response, 'form', 'stopdate', 'Enter a valid date.')
 
 
-class BankRegisterViewTests(TestCase):
+class BankJournalViewTests(TestCase):
     """
-    Test view for showing Bank Entry register for a Bank Account
+    Test view for showing Bank Entry journal for a Bank Account
     """
 
     def setUp(self):
@@ -5109,9 +5117,9 @@ class BankRegisterViewTests(TestCase):
         self.bank_account = create_account('bank', self.asset_header, 0, 1, True)
         self.liability_account = create_account('liability', self.liability_header, 0, 2)
 
-    def test_bank_register_view_initial(self):
+    def test_bank_journal_view_initial(self):
         """
-        A `GET` to the `show_bank_register` view should return a list of
+        A `GET` to the `show_bank_journal` view should return a list of
         BankSpendingEntries and BankReceivingEntries associated with the bank
         account, from the beginning of this month to today
         """
@@ -5125,10 +5133,10 @@ class BankRegisterViewTests(TestCase):
         spend = BankSpendingEntry.objects.create(main_transaction=main_spend, date=datetime.date.today(), memo='spend entry',
                                   ach_payment=True, payee='test payee')
         Transaction.objects.create(bankspend_entry=spend, account=self.liability_account, balance_delta=-50, detail='acc spend')
-        response = self.client.get(reverse('accounts.views.bank_register',
+        response = self.client.get(reverse('accounts.views.bank_journal',
                                    kwargs={'account_slug': self.bank_account.slug}))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'accounts/bank_register.html')
+        self.assertTemplateUsed(response, 'accounts/bank_journal.html')
         self.failUnless(isinstance(response.context['form'], DateRangeForm))
         self.assertItemsEqual(response.context['transactions'],
                               Transaction.objects.filter(account=self.bank_account))
@@ -5136,9 +5144,9 @@ class BankRegisterViewTests(TestCase):
         self.assertEqual(response.context['start_date'], datetime.date(today.year, today.month, 1))
         self.assertEqual(response.context['stop_date'], today)
 
-    def test_bank_register_view_date_filter(self):
+    def test_bank_journal_view_date_filter(self):
         """
-        A `GET` to the `show_bank_register` view submitted with a `start_date`
+        A `GET` to the `show_bank_journal` view submitted with a `start_date`
         and `stop_date` returns the Bank Entries for the account during the time
         period
         """
@@ -5167,7 +5175,7 @@ class BankRegisterViewTests(TestCase):
                                                      ach_payment=True, payee='test payee')
         Transaction.objects.create(bankspend_entry=out_spend, account=self.liability_account, balance_delta=-50)
 
-        response = self.client.get(reverse('accounts.views.bank_register', args=[self.bank_account.slug]),
+        response = self.client.get(reverse('accounts.views.bank_journal', args=[self.bank_account.slug]),
                                    data={'startdate': date_range[0],
                                          'stopdate': date_range[1]})
 

@@ -5,50 +5,67 @@
 {% block title %}General Ledger{% endblock %}
 
 {% block content %}
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 
-<h2>General Ledger</h2>
-<h3>{{ start_date }} - {{ stop_date }}</h3>
+<div class="page-header">
+  <h1>General Ledger <small>{{ start_date }} - {{ stop_date }}</small></h1>
+</div>
+
+<!-- Date Range Form -->
 <form data-validate="parsley" action="." method="GET">
     <table>
         {{ form.as_table }}
-        <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
+        <tr><th></th><td><input type="submit" value="Submit" class="btn btn-primary"></td></tr>
     </table>
 </form>
+
 <br />
-<table summary="General Ledger" id="accounts_chart">
-{% for entry in journal_entries %}
+
+<!-- Entry/Transaction Table -->
+<table summary="General Ledger" id="accounts_chart" class="table table-hover table-condensed">
+  <thead>
+    <tr>
+      <th>Number</th>
+      <th>Date</th>
+      <th colspan="4" class="">Memo</th>
+    </tr>
+  </thead>
+  {% for entry in journal_entries %}
     <tbody>
-    <tr class="header clickable">
+      <tr class="header clickable">
         <td><a href="{{ entry.get_absolute_url }}">{{ entry.get_number }}</a></td>
         <td>{{ entry.date|date:"m/d/Y" }}</td>
-        <td colspan="4" class="center">{{ entry.memo|capwords }}</td>
-    </tr>
-    <tr>
+        <td colspan="4" class="">{{ entry.memo|capwords }}</td>
+      </tr>
+      <tr>
         <td></td>
         <td>Account</td>
         <td>Detail</td>
-        <td class="right">Debit</td>
-        <td class="right">Credit</td>
-        <td class="right">Event</td>
-    </tr>
-    {% for transaction in entry.transaction_set.all %}
+        <td class="text-right">Debit</td>
+        <td class="text-right">Credit</td>
+        <td class="text-right">Event</td>
+      </tr>
+      {% for transaction in entry.transaction_set.all.select_related %}
         <tr class="{% cycle 'main' 'alt' %} clickable">
-            <td></td>
-            <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
-            <td>{{ transaction.detail }}</td>
-            {% if transaction.balance_delta < 0 %}
-                <td class="right">{{ transaction.balance_delta|currency }}</td>
-                <td class="right"></td>
-            {% else %}
-                <td class="right"></td>
-                <td class="right">{{ transaction.balance_delta|currency }}</td>
-            {% endif %}
-            <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
+          <td></td>
+          <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
+          <td>{{ transaction.detail }}</td>
+          {% if transaction.balance_delta < 0 %}
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"></td>
+          {% else %}
+            <td class="text-right"></td>
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+          {% endif %}
+          <td class="text-right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
         </tr>
-    {% endfor %}
+      {% endfor %}
+      <tr><td colspan="6">&nbsp;</td></tr>
     </tbody>
-{% endfor %}
-</table><br /><br />
+  {% endfor %}
+</table>
+
+<br /><br />
+
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 {% endblock %}

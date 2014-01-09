@@ -2,37 +2,75 @@
 
 {% load accounting_filters %}
 
+
 {% block title %}Account History - {{ date|date:"m/Y" }}{% endblock %}
 
+
 {% block content %}
-<h1>Account History - {{ date|date:"m/Y" }}</h1>
-<br />
-<h2></h2>
-<a href=".?previous=" class="fl">Previous</a><a href=".?next=" class="fr">Next</a>
-<div class="cb"></div>
+
+<div class="page-header">
+    <h1>Account History <small>{{ date|date:"m/Y" }}</small></h1>
+</div>
+
+<ul class="pager">
+    <li class="previous {% if not has_previous %}disabled{% endif %}">
+      <a href="{% if has_previous %}.?previous={% endif %}">Previous</a>
+    </li>
+    <li class="next {% if not has_next %}disabled{% endif %}">
+      <a href="{% if has_next %}.?next={% endif %}">Next</a>
+    </li>
+</ul>
+
 {% if accounts %}
-<table id="accounts_chart">
-    <thead>
-    <tr>
-        <th scope="col">Number</th>
-        <th scope="col">Name</th>
-        <th scope="col" class="right">Amount</th>
-    </tr>
-    </thead>
-    <tbody>
-{% for account in accounts %}
-    <tr class="{% cycle 'main' 'alt' %}">
-        <td>{{ account.number }}</a></td>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs">
+    <li><a href="#balance" data-toggle="tab">Balances</a></li>
+    <li><a href="#profit-loss" data-toggle="tab">Profit & Loss</a></li>
+  </ul>
+
+  <!-- Panes -->
+  <div class="tab-content">
+    {% for account in accounts %}
+      {% ifchanged account.type %}
+      <!-- Pane and Table setup/closing -->
+        {% if account.type == 1 %}
+          <div class="tab-pane fade active in" id="balance">
+        {% endif %}
+        {% if account.type == 4 %}
+          </tbody>
+          </table>
+          </div>
+          <div class="tab-pane fade" id="profit-loss">
+        {% endif %}
+        {% if account.type == 1 or account.type == 4 %}
+          <table class="table table-hover table-condensed">
+            <thead>
+              <tr>
+                <th scope="col">Number</th>
+                <th scope="col">Name</th>
+                <th scope="col" class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+        {% endif %}
+      {% endifchanged %}
+      <!-- Historical Account rows -->
+      <tr class="{% cycle 'main' 'alt' %}">
+        <td>{{ account.number }}</td>
         <td>{{ account.name }}</td>
-        <td class="right">{{ account.get_amount|currency }}</td>
-    </tr>
-{% endfor %}
-    </tbody>
-</table>
+        <td class="text-right">{{ account.get_amount|currency }}</td>
+      </tr>
+      {% if forloop.last %}
+        </tbody>
+        </table>
+        </div>
+      {% endif %}
+    {% endfor %}
+</div>
 {% else %}
-<br />
-No Account History found for this Month.
-Account History is available after completing a Financial Year.
+  <p>No Account History found. Account History is available after completing a Financial Year.</p>
 {% endif %}
 <br /><br />
+
 {% endblock %}

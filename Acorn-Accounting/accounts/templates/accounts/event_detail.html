@@ -5,62 +5,70 @@
 {% block title %}{{ account.name|capwords }} Details{% endblock %}
 
 {% block content %}
-<h1>#{{ event.number }} {{ event.name|capwords }}</h1>
-<h3>{{ event.city|capwords }}, {{ event.state }} - {{ event.date|date:"m/d/Y" }}</h3>
+<div class="page-header">
+  <h1>#{{ event.number }} {{ event.name|capwords }} <small>{{ event.city|capwords }}, {{ event.state }} - {{ event.date|date:"m/d/Y" }}</small></h1>
+</div>
+
+
+<a href="{% url admin:accounts_event_change event.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
 <br /><br />
-<table summary="{{ event.name }} Details" id="accounts_chart">
-    <thead>
+
+<table summary="{{ event.name }} Details" class="table table-hover table-condensed">
+  <thead>
     <tr>
-        <th scope="col">Number</th>
-        <th scope="col">Date</th>
-        <th scope="col">Account</th>
-        <th scope="col">Memo</th>
-        <th scope="col">Detail</th>
-        <th scope="col" class="right">Debit</th>
-        <th scope="col" class="right">Credit</th>
+      <th scope="col">Number</th>
+      <th scope="col">Date</th>
+      <th scope="col">Account</th>
+      <th scope="col">Memo</th>
+      <th scope="col">Detail</th>
+      <th scope="col" class="text-right">Debit</th>
+      <th scope="col" class="text-right">Credit</th>
     </tr>
-    </thead>
-    <tbody>
-{% for transaction in event.transaction_set.all.select_related %}
-    <tr class="{% cycle 'main' 'alt' %} clickable">
+  </thead>
+  <tbody>
+    <!-- Transaction Table -->
+    {% for transaction in event.transaction_set.all.select_related %}
+      <tr class="{% cycle 'main' 'alt' %} clickable">
         <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
         <td>{{ transaction.date|date:"m/d/Y" }}</td>
         <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account|capwords }}</a></td>
         <td>{{ transaction.get_memo|capwords }}</td>
         <td>{{ transaction.detail|capwords }}</td>
         {% if transaction.balance_delta < 0 %}
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
-            <td class="right"></td>
+          <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+          <td class="text-right"></td>
         {% else %}
-            <td class="right"></td>
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
+          <td class="text-right"></td>
+          <td class="text-right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
-    </tr>
-{% endfor %}
-    </tbody>
-    <tfoot>
+      </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <!-- Total/Change Counters -->
     <tr><td colspan="7">&nbsp;</td></tr>
     <tr>
-        <td colspan="5" class="right">Totals:</td>
-        <td class="right">{{ debit_total|currency }}</td>
-        <td class="right">{{ credit_total|currency }}</td>
+      <td colspan="5" class="text-right"><strong>Totals:</strong></td>
+      <td class="text-right">{{ debit_total|currency }}</td>
+      <td class="text-right">{{ credit_total|currency }}</td>
     </tr>
     <tr>
-        <td colspan="5" class="right">Net Change:</td>
-            {% if net_change < 0 %}
-                <td class="right">{{ net_change|currency }}</td>
-                <td class="right"></td>
-            {% else %}
-                {% if net_change > 0 %}
-                    <td class="right"></td>
-                    <td class="right">{{ net_change|currency }}</td>
-                {% else %}
-                    <td class="right">$0.00</td>
-                    <td class="right">$0.00</td>
-                {% endif %}
-            {% endif %}
+      <td colspan="5" class="text-right"><strong>Net Change:</strong></td>
+      {% if net_change < 0 %}
+        <td class="text-right">{{ net_change|currency }}</td>
+        <td class="text-right"></td>
+      {% else %}
+        {% if net_change > 0 %}
+          <td class="text-right"></td>
+          <td class="text-right">{{ net_change|currency }}</td>
+        {% else %}
+          <td class="text-right">$0.00</td>
+          <td class="text-right">$0.00</td>
+        {% endif %}
+      {% endif %}
     </tr>
-    </tfoot>
+  </tfoot>
 </table>
 <br /><br />
+
 {% endblock %}

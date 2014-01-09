@@ -1,0 +1,73 @@
+{% extends "site.html" %}
+
+{% load accounting_filters %}
+
+
+{% block title %}{{ account.name|capwords }} Journal{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Bank Journal - {{ account.name|capwords }} <small>{{ start_date }} - {{ stop_date }}</small></h1>
+</div>
+<form data-validate="parsley" action="." method="GET">
+    <table>
+        {{ form.as_table }}
+        <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
+    </table>
+</form><br />
+
+<table summary="Bank Journal for {{ account.name }}" class="table table-hover table-condensed">
+  <thead>
+    <tr>
+      <th scope="col"></th>
+      <th scope="col">Account</th>
+      <th scope="col">Detail</th>
+      <th scope="col" class="text-right">Debit</th>
+      <th scope="col" class="text-right">Credit</th>
+      <th scope="col" class="text-right">Event</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for transaction in transactions %}
+      <tr class="header clickable">
+        <td><a href="{{ transaction.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
+        <td>{{ transaction.date|date:"m/d/Y" }}</td>
+        <td>{{ transaction.get_memo|capwords }}</td>
+        {% if transaction.balance_delta < 0 %}
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"></td>
+        {% else %}
+            <td class="text-right"></td>
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+        {% endif %}
+        <td></td>
+      </tr>
+      {% for account_transaction in transaction.get_journal_entry.transaction_set.all.select_related %}
+        <tr class="{% cycle 'main' 'alt' %} clickable">
+          <td></td>
+          <td><a href="{{ account_transaction.account.get_absolute_url }}">{{ account_transaction.account }}</a></td>
+          <td>{{ account_transaction.detail }}</td>
+          {% if account_transaction.balance_delta < 0 %}
+            <td class="text-right">{{ account_transaction.balance_delta|currency }}</td>
+            <td class="text-right"></td>
+          {% else %}
+            <td class="text-right"></td>
+            <td class="text-right">{{ account_transaction.balance_delta|currency }}</td>
+          {% endif %}
+          <td class="text-right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      <tr><td colspan="6">&nbsp;</td></tr>
+    {% endfor %}
+  </tbody>
+</table><br /><br />
+
+{% endblock %}
+
+
+{% block javascript %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+{% endblock %}

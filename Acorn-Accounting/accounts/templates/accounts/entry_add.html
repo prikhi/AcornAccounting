@@ -1,142 +1,225 @@
 {% extends 'site.html' %}
 
+
 {% block title %}
-{% if journal_type == 'CR' %}Add Bank Receiving Entry
-{% else %}{% if journal_type == 'CD' %}Add Bank Spending Entry
-{% else %}Add Journal Entry
-{% endif %}{% endif %}{% endblock %}
+
+{% if entry_form.instance.id %}
+  Edit a
+{% else %}
+  Add a
+{% endif %}
+
+{% if journal_type == 'CR' %}
+  Bank Receiving Entry
+{% else %}
+  {% if journal_type == 'CD' %}
+    Bank Spending Entry
+  {% else %}
+    {% if journal_type == 'Transfer' %}
+      Transfer Entry
+    {% else %}
+      Journal Entry
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+{% endblock %}
+
 
 {% block content %}
-<script type="text/javascript" src="{{ STATIC_URL }}jquery.formset.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
+
+<div class="page-header">
+  <h1>
+    {% if entry_form.instance.id %}
+      Edit a
+    {% else %}
+      Add a
+    {% endif %}
+
+    {% if journal_type == 'CR' %}
+      Bank Receiving Entry
+    {% else %}
+      {% if journal_type == 'CD' %}
+        Bank Spending Entry
+      {% else %}
+        {% if journal_type == 'Transfer' %}
+          Transfer Entry
+        {% else %}
+          Journal Entry
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </h1>
+</div>
+
+<form data-validate="parsley" action="." method="POST" id="entry_form">
+  {% csrf_token %}
+  <table id="entry" class="table table-condensed">
+      {{entry_form}}
+  </table>
+
+  <!-- Formset Error Alert -->
+  {% if transaction_formset.errors%}
+    <br />
+    <div class="alert alert-danger">
+      <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong> Please correct the following issues before continuing:
+      <ul>
+        {% for error in transaction_formset.non_form_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+        {% for form in transaction_formset %}
+          {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- Transaction Table -->
+  <table class="table table-condensed" id="transaction-table">
+    {{ transaction_formset.management_form }}
+    {% for form in transaction_formset %}
+      {% if forloop.first %}
+        <thead>
+          <tr>
+            {% for field in form.visible_fields %}
+              <th {% if forloop.last %}class="text-center"{% endif %}>{{ field.label|capfirst }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+      {% endif %}
+
+      <tr class="{% cycle main,alt %}">
+        {% for field in form.visible_fields %}
+          <td {% if forloop.last %}class="text-center"{% endif %}>
+            {% if forloop.first %}
+              {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+              {% endfor %}
+            {% endif %}
+            {{ field.errors.as_ul }}
+            {{ field }}
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+    <!-- Total and Out of Balance Counters -->
+    {% if journal_type == 'GJ' %}
+      <tr class="summary">
+        <td></td>
+        <td class="text-right"><strong>Total:</strong></td>
+        <td id="debit_total"></td>
+        <td id="credit_total"></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr class="out_of_balance">
+        <td></td>
+        <td class="text-right"><strong>Out of Balance:</strong></td>
+        <td id="debit_oob"></td>
+        <td id="credit_oob"></td>
+        <td></td>
+        <td></td>
+      </tr>
+    {% else %}
+      {% if journal_type == 'CR' or journal_type == 'CD' %}
+        <tr class="summary">
+          <td></td>
+          <td class="text-right"><strong>Total:</strong></td>
+          <td id="amount_total"></td>
+          <td ></td>
+          <td></td>
+        </tr>
+        <tr class="out_of_balance">
+          <td></td>
+          <td class="text-right"><strong>Out of Balance:</strong></td>
+          <td id="amount_oob"></td>
+          <td></td>
+          <td></td>
+        </tr>
+      {% endif %}
+    {% endif %}
+    </tfoot>
+  </table>
+  <br />
+
+  <!-- Buttons -->
+  <button type="submit" name="subbtn" value="Submit" accesskey="s" class="btn btn-default"><span class="glyphicon glyphicon-ok"></span> Submit</button>
+  <button type="submit" name="subbtn" value="Submit & Add More" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit & Add More</button>
+
+  {% if entry_form.instance.pk %}
+    <button class="btn btn-danger pull-right" data-target="#deleteConfirmModal" data-toggle="modal" type="submit"><span class="glyphicon glyphicon-remove"></span> Delete</button>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title" id="deleteConfirmModalLabel">Confirm Entry and Transaction Deletion</h4>
+          </div>
+          <div class="modal-body">
+            <p>This Entry and it's Transactions will be permanently deleted and
+            cannot be recovered. Are you sure you wish to continue?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger" value="Delete" id="delete" name="delete">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</form>
+<br /><br />
+
+{% endblock %}
+
+
+{% block javascript %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.formset.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 <script type="text/javascript">
     /*
     Add extra Transaction rows using jQuery-Formsets
     */
     $(function() {
-        $('#accounts_chart tbody tr').formset({
+        $('#transaction-table tbody tr').formset({
             prefix: '{{ transaction_formset.prefix }}',
             extraClasses: ['main','alt'],
-            deleteText: '<input data-group="delete" type="checkbox" align="middle">',
+            deleteText: '<div class="text-center"><span class="glyphicon glyphicon-remove"></span></div>',
             deleteCssClass: 'delete-row',
             added: addActions,
             removed: removeRow});
     });
     /*
-    Pressing `Enter` on a Select or Text input in the `accounts_chart` table
+    Pressing `Enter` on a Select or Text input in the `transaction-table` table
     should move the cursor to the next row.
     */
     $(document).ready(function() {
-        $('input, select', $('#accounts_chart')).each(function() {
+        $('input, select', $('#transaction-table')).each(function() {
             var that = this;
             $(this).keypress(function(e) {
-			    if (e.which == 13) {
-			        $(that).closest('tr').next().find('.account').focus();
-			        e.preventDefault();
+                if (e.which == 13) {
+                    {% if journal_type == "Transfer" %}
+                        $(that).closest('tr').next().find('.source').focus();
+                    {% else %}
+                        $(that).closest('tr').next().find('.account').focus();
+                    {% endif %}
+                    e.preventDefault();
                 }
             });
         });
     });
-</script>
-<h1>Add a Journal Entry</h1>
-
-<form data-validate="parsley" action="." method="POST" id="entry_form">
-{% csrf_token %}
-<div id="add_entry">
-<table id="entry">
-    {{entry_form}}
-</table>
-<ul class="errorlist">
-{% for error in transaction_formset.non_form_errors %}
-    <li>{{ error }}</li>
-{% endfor %}
-</ul><!-- 
-{% for dict in transaction_formset.errors %}
-    <ul class="errorlist">
-    {% for error in dict.values %}
-        <li>{{ error }}</li>
-    {% endfor %}
-    </ul>
-{% endfor %} -->
-<table id="accounts_chart">
-{{ transaction_formset.management_form }}
-{% for form in transaction_formset %}
-    {% if forloop.first %}
-    <thead><tr>
-        {% for field in form.visible_fields %}
-            <th>{{ field.label|capfirst }}</th>
-        {% endfor %}
-    </tr></thead>
-    {% endif %}
-    <tr class="{% cycle main,alt %}">
-    {% for field in form.visible_fields %}
-        <td>
-        {# Include the hidden fields in the form #}
-        {% if forloop.first %}
-            {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-            {% endfor %}
-        {% endif %}
-        {{ field.errors.as_ul }}
-        {{ field }}
-        </td>
-    {% endfor %}
-    </tr>
-{% endfor %}
-    <tfoot>
-    {% if journal_type == 'GJ' %}
-        <tr class="summary">
-            <td></td>
-            <td class="right">Total:</td>
-            <td id="debit_total"></td>
-            <td id="credit_total"></td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr class="out_of_balance">
-            <td></td>
-            <td class="right">Out of Balance:</td>
-            <td id="debit_oob"></td>
-            <td id="credit_oob"></td>
-            <td></td>
-            <td></td>
-        </tr>
-    {% else %}
-    {% if journal_type == 'CR' or journal_type == 'CD' %}
-        <tr class="summary">
-            <td></td>
-            <td class="right">Total:</td>
-            <td id="amount_total"></td>
-            <td ></td>
-            <td></td>
-        </tr>
-        <tr class="out_of_balance">
-            <td></td>
-            <td class="right">Out of Balance:</td>
-            <td id="amount_oob"></td>
-            <td></td>
-            <td></td>
-        </tr>
-    {% endif %}
-    {% endif %}
-    </tfoot>
-</table>
-<br />
-<input type="submit" name="subbtn" value="Submit" accesskey="s"/>
-<input type="submit" name="subbtn" value="Submit & Add More" accesskey="a" />
-
-{% if entry_form.instance.pk %}
-<input type="hidden" name="delete" id="delete" />
-<input class="delete" type="submit" name="delbtn" value="Delete" id="delbtn" />
-{% endif %}
-
-<br />
-</div>
-</form>
 
 {% if journal_type == 'GJ' %}
-    <script type="text/javascript">
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         newSum();
@@ -214,10 +297,8 @@
         $('#entry_form').parsley('removeItem', $acct);
         newSum();
     }
-    </script>
 {% else %}
 {% if journal_type == 'CR' or journal_type == 'CD' %}
-    <script type="text/javascript">
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         newSum();
@@ -284,12 +365,8 @@
         $('#entry_form').parsley('removeItem', $amount);
         newSum();
     }
-    </script>
 {% else %}
-{% comment %}
-Transfer Entries
-{% endcomment %}
-    <script type="text/javascript">
+    {# Transfer Entries #}
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         addActions();
@@ -343,41 +420,9 @@ Transfer Entries
         $('#entry_form').parsley('removeItem', $destination);
         $('#entry_form').parsley('removeItem', $amount);
     }
+
+{% endif %}
+{% endif %}
     </script>
 
-{% endif %}
-{% endif %}
-
-{% if entry_form.instance.pk %}
-<div id="dialog-confirm" title="Delete Entry?">
-<span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0;"></span>This Entry and it's Transactions will be permanently deleted and cannot be recovered. Are you sure?
-</div>
-<script type="text/javascript">
-/* Delete button confirmation using jquery-ui */
-    var currentForm;
-    $("#dialog-confirm").dialog({
-        resizable: false,
-        width: 350,
-        modal: true,
-        autoOpen: false,
-        closeOnEscape: true,
-        buttons: {
-            'Delete': function() {
-                document.getElementById('delete').value = 'Delete';
-                currentForm.submit();
-            },
-            'Cancel': function() {
-                $(this).dialog('close');
-                return false;
-            }
-        }
-    });
-    $(".delete").click(function() {
-      currentForm = $('#entry_form');
-      $("#dialog-confirm").dialog('open');
-      return false;
-    });
-
-</script>
- {% endif %}
 {% endblock %}

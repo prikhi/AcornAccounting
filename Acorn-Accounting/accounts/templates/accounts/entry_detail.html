@@ -2,30 +2,40 @@
 
 {% load accounting_filters %}
 
+
 {% block title %}{{ journal_entry.memo|capwords }}{% endblock %}
 
+
 {% block content %}
-<h1>{{ journal_entry.date|date:"m/d/Y" }} - {{ journal_entry.memo|capwords }}</h1>
-<h2>{{ journal_entry.get_number }}</h2><br/>
-<b>Created:</b> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<b>Updated:</b> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
-{% if journal_entry.in_fiscal_year %}
-<a href="{{ journal_entry.get_edit_url }}">Edit</a>
-{% endif %}
-<br /><br />
+
+<div class="page-header">
+    <h1>{{ journal_entry.get_number }} - {{ journal_entry.memo|capwords }} <small>{{ journal_entry.date|date:"m/d/Y" }}</small></h1>
+</div>
+
+<strong>Created:</strong> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<strong>Updated:</strong> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
+<br />
+
 {% if journal_entry.comments %}
-<b>Comments:</b><br />
-{{ journal_entry.comments }}
-<br /><br />
+  <strong>Comments:</strong><br />
+  <p>{{ journal_entry.comments }}</p>
 {% endif %}
-<table summary="{{ account.name }} Details" id="accounts_chart">
+
+<br />
+
+{% if journal_entry.in_fiscal_year %}
+  <a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-edit"></span> Edit</a>
+{% endif %}
+<br /><br />
+
+<table summary="{{ account.name }} Details" class="table table-hover table-condensed">
     <thead>
-    <tr>
+      <tr>
         <th scope="col">Account</th>
         <th scope="col">Detail</th>
-        <th scope="col" class="right">Debit</th>
-        <th scope="col" class="right">Credit</th>
-        <th scope="col" class="right">Event</th>
-    </tr>
+        <th scope="col" class="text-right">Debit</th>
+        <th scope="col" class="text-right">Credit</th>
+        <th scope="col" class="text-right">Event</th>
+      </tr>
     </thead>
     <tbody>
 {% for transaction in transactions %}
@@ -33,22 +43,22 @@
         <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
         <td>{{ transaction.detail|capwords }}</td>
         {% if transaction.balance_delta < 0 %}
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
-            <td class="right"></td>
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"></td>
         {% else %}
-            <td class="right"></td>
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"></td>
+            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
         {% endif %}
-        <td class="right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
+        <td class="text-right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
     </tr>
 {% endfor %}
     </tbody>
     <tfoot>
     <tr><td colspan="5">&nbsp;</td></tr>
     <tr>
-        <td colspan="2" class="right">Totals:</td>
-        <td class="right">{{ debit_total|currency }}</td>
-        <td class="right">{{ credit_total|currency }}</td>
+        <td colspan="2" class="text-right"><strong>Totals:</strong></td>
+        <td class="text-right">{{ debit_total|currency }}</td>
+        <td class="text-right">{{ credit_total|currency }}</td>
         <td></td>
     </tr>
     </tfoot>

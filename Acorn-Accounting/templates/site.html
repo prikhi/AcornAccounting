@@ -3,47 +3,17 @@
 {% load accounting_tags %}
 
 {% block site_wrapper %}
-    <div id="main">
-    <a href="#content" class="skip_link">Skip to main content</a>
-        <noscript>
-            <div id="noscript">Some parts of {{ site_name }} require Javascript</div>
-            <div id="noscript_padder"></div>
-        </noscript>
-        <div id="banner">
-            <div class="bannerIEPadder">
-                 <div class="cart_box">
-                     <a href="{% url admin:index %}">admin</a>
-                 </div>
-                Acorn Community
-            </div>
-        </div>
-        <div id="navigation">
-            <div class="navIEPadder">
-            {% include 'tags/navigation.html' %}
-            </div>
-        </div>
-        <div id="middle">
-            <div id="sidebar">
-                <div class="sidebarIEPadder">
-                    {% block sidebar %}{% include 'tags/sidebar_links.html' %}{% endblock sidebar %}
-                    {% quick_search request.GET %}
-                </div>
-            </div>
-            <div id="content">
-            <a name="content"></a>
-                <div class="contentIEPadder">
-                    {% block content %}{% endblock %}
-                </div>
-            </div>
-        </div>
-        <div id="footer">
-            <div class="footerIEPadder">
-            {% comment %}
-                {% footer_links %}
-            {% endcomment %}     
-                Footer Links           
-                <div class="cb"></div>
-            </div>
-        </div>
+  <div id="main">
+    <a href="#content" class="sr-only">Skip to main content</a>
+    <noscript>
+      <div id="noscript">Some parts of {{ site_name }} require Javascript</div>
+      <div id="noscript_padder"></div>
+    </noscript>
+
+    {% include 'tags/navigation.html' %}
+
+    <div id="content" class="container">
+      {% block content %}{% endblock %}
     </div>
+  </div>
 {% endblock %}

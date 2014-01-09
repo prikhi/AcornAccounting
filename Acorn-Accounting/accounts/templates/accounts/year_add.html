@@ -3,24 +3,21 @@
 {% block title %}New Fiscal Year{% endblock title %}
 
 {% block content %}
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
 
-
-<h1>Start a New Fiscal Year</h1>
-
-<div class="alert alert-error alert-block">
-    <strong>Warning!</strong> Starting a new Fiscal Year will cause mass
-    deletion of Journal Entries and Transactions.
-    <br />
-    Please backup your data before proceeding.
-    <br /><br />
-    After starting a new Year, you will not be able to edit or create Journal
-    Entries in the current Year.
+<div class="page-header">
+  <h1>Start a New Fiscal Year</h1>
 </div>
-<br />
-Starting a new Fiscal Year involves:
-<br />
-<ol>
+
+<div class="alert alert-danger">
+    <p><span class="glyphicon glyphicon-warning-sign"></span><strong> Danger!</strong> Starting a new Fiscal Year will cause mass
+    deletion of Journal Entries and Transactions. Please backup your data before proceeding.</p>
+
+    <p>After starting a new Year, you will not be able to edit or create Journal
+    Entries in the current Year.</p>
+</div>
+
+<p>Starting a new Fiscal Year involves:</p>
+  <ol>
     <li>Creating Account Histories for every month in the current Fiscal
     Year.</li>
     <li>Deleting all Journal Entries in the current Year that do not have
@@ -29,99 +26,139 @@ Starting a new Fiscal Year involves:
     Income and Other Expense Accounts.</li>
     <li>Moving the current Year's balance of the Current Year Earnings
     Equity Account into the Retained Earnings Equity Account.</li>
-</ol>
-<br /><br />
-If this is your first Fiscal Year, no Journal Entries will be purged and no
-Historical Accounts will be created. The warnings and benefits only apply to
-subsequent Fiscal Years.
-<br /><br />
-You can start a short Fiscal Year by changing the ending month of the new Year.
-<br /><br />
-It is always possible to switch from a 12 month period to a 13 month period.
-However, if switching from a 13 month period to a 12 month period, there
-must be no Transactions in the 13th month of the current Year.
-<br />
+  </ol>
 
-<form data-validate="parsley" action="." method="POST" id="fiscal_year_form"
+<p>If this is your first Fiscal Year, no Journal Entries will be purged and no
+Historical Accounts will be created. The warnings and benefits only apply to
+subsequent Fiscal Years.</p>
+
+<p>You can start a short Fiscal Year by changing the ending month of the new
+Year.</p>
+
+<p>It is always possible to switch from a 12 month period to a 13 month period.
+However, if switching from a 13 month period to a 12 month period, there
+must be no Transactions in the 13th month of the current Year.</p>
+
+<!-- Error Alert -->
+{% if fiscal_year_form.non_field_errors %}
+  <br />
+  <div class="alert alert-danger">
+      <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong> Please correct the following issues before continuing:
+    <ul>
+      {% for error in fiscal_year_form.non_field_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<form data-validate="parsley" action="." method="POST" id="fiscal-year-form"
     name="fiscal_year_form">
   {% csrf_token %}
-  <table id="fiscal_year">
-      {% if previous_year %}
-      <ul class="errorlist">
-      {% for error in fiscal_year_form.non_form_errors %}
-          <li>{{ error }}</li>
-      {% endfor %}
-      </ul>
+  <table class="table table-condensed">
+    {% if previous_year %}
       <thead>
-          <tr>
-              <th></th>
-              <th>Current Year</th>
-              <th>New Year</th>
-          </tr>
+        <tr>
+          <th></th>
+          <th>Current Year</th>
+          <th>New Year</th>
+        </tr>
       </thead>
       <tbody>
-          <tr>
-              <th><label for="id_year">Year:</label></th>
-              <td>{{ previous_year.year }}</td>
-              <td>{{ fiscal_year_form.year }}{{ fiscal_year_form.year.errors }}</td>
-          </tr>
-          <tr>
-              <th><label for="id_end_month">End month:</label></th>
-              <td>{{ previous_year.get_end_month_display }}</td>
-              <td>{{ fiscal_year_form.end_month }}{{ fiscal_year_form.end_month.errors }}</td>
-          </tr>
-          <tr>
-              <th><label for="id_period">Period:</label></th>
-              <td>{{ previous_year.get_period_display }}</td>
-              <td>{{ fiscal_year_form.period }}{{ fiscal_year_form.period.errors }}</td>
-          </tr>
+        <tr>
+          <th><label for="id_year">Year:</label></th>
+          <td>{{ previous_year.year }}</td>
+          <td>{{ fiscal_year_form.year }}{{ fiscal_year_form.year.errors }}</td>
+        </tr>
+        <tr>
+          <th><label for="id_end_month">End month:</label></th>
+          <td>{{ previous_year.get_end_month_display }}</td>
+          <td>{{ fiscal_year_form.end_month }}{{ fiscal_year_form.end_month.errors }}</td>
+        </tr>
+        <tr>
+          <th><label for="id_period">Period:</label></th>
+          <td>{{ previous_year.get_period_display }}</td>
+          <td>{{ fiscal_year_form.period }}{{ fiscal_year_form.period.errors }}</td>
+        </tr>
       </tbody>
-      {% else %}
+    {% else %}
       {{ fiscal_year_form }}
-      {% endif %}
+    {% endif %}
   </table>
   <br />
-  <br />
+  <p>
   Select the Accounts you reconcile regularly to prevent deletion of their
-  unreconciled Transactions. Accounts that have been reconciled are selected
-  by default.
-  <br />
+  unreconciled Transactions. Accounts that have been previously reconciled are
+  selected by default.
+  </p>
   <br />
   {{ accounts_formset.management_form }}
-  <table id="accounts_chart">
-    <thead>
-      <tr>
-        <th>Exclude</th>
-        <th>Account</th>
-        <th>Last Reconciled</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for form in accounts_formset %}
-      <tr class="{% cycle 'main' 'alt' %}">
-        {% for hidden in form.hidden_fields %}
-        {{ hidden }}
+  <div id="fiscal-year-accounts">
+    <table class="table table-condensed table-hover">
+      <thead>
+        <tr>
+          <th>Exclude</th>
+          <th>Account</th>
+          <th>Last Reconciled</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for form in accounts_formset %}
+          <tr class="{% cycle 'main' 'alt' %}">
+            {% for hidden in form.hidden_fields %}
+              {{ hidden }}
+            {% endfor %}
+            <td>{{ form.visible_fields.0 }}</td>
+            <td>{{ form.instance.name }}</td>
+            <td>{{ form.instance.last_reconciled|date:"m/d/y"|default_if_none:"" }}</td>
+          </tr>
         {% endfor %}
-        <td>{{ form.visible_fields.0 }}</td>
-        <td>{{ form.instance.name }}</td>
-        <td>{{ form.instance.last_reconciled|date:"m/d/y"|default_if_none:"" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <br \>
-  <input type="hidden" name="confirm" id="confirm" />
-  <input type="submit" class="submit" name="submit" value="Start New Year" />
-</form>
+      </tbody>
+    </table>
+  </div>
+  <br \><br \>
+  <button type="submit" id="submit-button" name="submit" value="Start New Year" data-target="#confirmModal" class="btn btn-danger">Start New Year&hellip;</button>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="confirmModalLabel">Confirm Fiscal Year Creation and Transaction Purging</h4>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to start a new Fiscal Year? Closing the
+        current Year will delete all its Journal Entries and prevent creation
+        of new Entries.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button type="submit" id="confirm-button" class="btn btn-danger">Start New Year</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</form>
+<br \>
+{% endblock content %}
+
+
+{% block javascript %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
 <script type="text/javascript">
-    /* Submission confirmation */
-    $(function() {
-        $('#fiscal_year_form').submit(function(e) {
-            return confirm("Are you sure you want to start a new Fiscal Year? " +
-                "Closing the current Year will delete all its Journal Entries " +
-                "and prevent creation of new Entries.");
+    $(document).ready( function() {
+        /* Close Modal if invalid form */
+        $( '#submit-button' ).click( function(el) {
+            el.preventDefault();
+
+            if ($( '#fiscal-year-form' ).parsley( 'isValid' )) {
+                $( '#confirmModal' ).modal( 'show' );
+            } else {
+                $( '#fiscal-year-form' ).parsley( 'validate' )
+            }
         });
     });
 </script>
-{% endblock content %}
+{% endblock %}

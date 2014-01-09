@@ -33,7 +33,7 @@ def process_quick_account_form(GET):
 
 def process_quick_bank_form(GET):
     """
-    Returns a quick bank register dropdown select form and an Account id
+    Returns a quick bank journal dropdown select form and an Account id
     """
     form = QuickBankForm()
     account_id = None

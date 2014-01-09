@@ -3,39 +3,70 @@
 {% load mptt_tags %}
 {% load accounting_filters %}
 
+
 {% block title %}
-{% if header %}{{ header.name|capwords }}
-{% else %}Chart of Accounts{% endif %}
+Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
 {% endblock %}
 
+
 {% block content %}
-<table summary="Chart of Accounts" id="accounts_chart">
-    <caption>Chart of Accounts</caption>
-    <thead>
-    <tr>
-        <th scope="col">Number</th>
-        <th scope="col">Name</th>
-        <th scope="col">Description</th>
-        <th scope="col">Balance</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for node in nodes %}
-	    <tr class="header clickable">
-	        <td><a href="{{ node.get_absolute_url }}">{{ node.get_full_number }}</a></td>
-	        <td>{{ node.level|int_to_tabs}}{{ node.name|capwords }}</td>
-            <td>{{ node.description }}</td>
-	        <td class="right">{{ node.get_account_balance|currency }}</td>
-	    </tr>
-        {% for account in node.account_set.all %}
-        <tr class="{% cycle 'main' 'alt' %} clickable">
-            <td><a href="{{ account.get_absolute_url }}">{{ account.get_full_number }}</a></td>
-            <td >{{ account.level|int_to_tabs}}{{ account.name|capwords }}</td>
-            <td >{{ account.description }}</td>
-            <td class="right">{{ account.get_balance|currency}}</td>
-        </tr>
-        {% endfor %}
+<div class="page-header">
+  <h1>Chart of Accounts <small>{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
+</div>
+
+{% if not header %}
+  <!-- Tabs -->
+  <ul class="nav nav-tabs">
+    {% for root_node in root_nodes %}
+      <li><a href="#{{ root_node.slug }}" data-toggle="tab">{{ root_node.name|capwords }}</a></li>
     {% endfor %}
-    </tbody>
-</table>
+  </ul>
+{% else %}
+  <!-- Breadcrumbs -->
+  <ol class="breadcrumb">
+    <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
+    {% for ancestor in header.get_ancestors %}
+      <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
+    {% endfor %}
+    <li class="active">{{ header.name|capwords }}</li>
+  </ol>
+{% endif %}
+
+
+<!-- Panes -->
+<div class="tab-content">
+  {% for root_node in root_nodes %}
+    <div class="tab-pane fade {% if forloop.first %}active in{% endif %}" id="{{ root_node.slug }}">
+      <table summary="Chart of Accounts" id="accounts_chart" class="table table-hover table-condensed">
+        <thead>
+        <tr>
+          <th scope="col">Number</th>
+          <th scope="col">Name</th>
+          <th scope="col">Description</th>
+          <th scope="col" class="text-right">Balance</th>
+        </tr>
+        </thead>
+          <tbody>
+          {% for node in root_node.descendants %}
+            <tr class="header clickable">
+              <td><a href="{{ node.get_absolute_url }}">{{ node.get_full_number }}</a></td>
+              <td>{{ node.level|int_to_tabs}}{{ node.name|capwords }}</td>
+              <td>{{ node.description }}</td>
+              <td class="text-right">{{ node.get_account_balance|currency }}</td>
+            </tr>
+            {% for account in node.account_set.all %}
+              <tr class="{% cycle 'main' 'alt' %} clickable">
+                <td><a href="{{ account.get_absolute_url }}">{{ account.get_full_number }}</a></td>
+                <td >{{ account.level|int_to_tabs}}{{ account.name|capwords }}</td>
+                <td >{{ account.description }}</td>
+                <td class="text-right">{{ account.get_balance|currency}}</td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+          </tbody>
+      </table>
+  </div>
+  {% endfor %}
+</div>
+
 {% endblock %}

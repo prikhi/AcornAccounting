@@ -1,32 +1,33 @@
-<!DOCTYPE html 
-     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml"
     dir="ltr"
     xml:lang="{% firstof LANGUGE_CODE 'en' %}"
     lang="{% firstof LANGUGE_CODE 'en' %}">
     <head>
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}jquery-ui.min.css" />
-        <script type="text/javascript" src="{{ STATIC_URL }}jquery.min.js"></script>
-        <script type="text/javascript" src="{{ STATIC_URL }}jquery-ui.min.js"></script>
-        <script type="text/javascript"> 
+        <meta name="viewport" content="width-device-width, initial-scale=1.0" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap.min.css" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap-theme.min.css" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/custom.css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>{% block title %}{% endblock %} - Acorn Community</title>
+    </head>
+
+    <body>
+        {% block site_wrapper %}{% endblock %}
+        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
+        <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+        <script type="text/javascript">
             $(document).ready(function() {
-                $('#accounts_chart tr').click(function() {
+                $('tr.clickable').click(function() {
                     var href = $(this).find("a").attr("href");
                     if(href) {
                         window.location = href;
                         $(this).addClass("clickable");
                     }
-                }); 
+                });
             });
         </script>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <title>{% block title %}{% endblock %} - Acorn Community</title>
-    </head>
-    
-    <body>
-        {% block site_wrapper %}{% endblock %}
+        {% block javascript %}{% endblock %}
     </body>
 </html>

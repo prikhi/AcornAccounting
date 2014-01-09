@@ -676,7 +676,7 @@ class BankSpendingEntry(BaseJournalEntry):
 
     def get_absolute_url(self):
         return reverse('accounts.views.show_bank_entry',
-                       kwargs={'journal_id': str(self.id),
+                       kwargs={'entry_id': str(self.id),
                                'journal_type': 'CD'})
 
     def save(self, *args, **kwargs):
@@ -744,7 +744,7 @@ class BankReceivingEntry(BaseJournalEntry):
 
     def get_absolute_url(self):
         return reverse('accounts.views.show_bank_entry',
-                       kwargs={'journal_id': str(self.id),
+                       kwargs={'entry_id': str(self.id),
                                'journal_type': 'CR'})
 
     def save(self, *args, **kwargs):

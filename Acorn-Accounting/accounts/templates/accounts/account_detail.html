@@ -2,110 +2,136 @@
 
 {% load accounting_filters %}
 
+
 {% block title %}{{ account.name|capwords }} Details{% endblock %}
 
-{% block content %}
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}parsley.extend.js"></script>
 
-<form data-validate="parsley" action="." method="GET">
-    <table>
-        {{ form.as_table }}
-        <tr><th></th><td><input type="submit" value="Submit" ></td></tr>
-    </table>
-</form>
-<h1>#{{ account.get_full_number }} {{ account.name|capwords }} - {{ account.get_balance|currency }}</h1>
-<a href="{% url accounts.views.reconcile_account account_slug=account.slug %}">Reconcile</a>
+{% block content %}
+
+<div class="page-header">
+  <h1>#{{ account.get_full_number }} {{ account.name|capwords }} <small>{{ account.get_balance|currency }}</small></h1>
+</div>
+
+<!-- Breadcrumbs -->
+<ol class="breadcrumb">
+    <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
+    {% for ancestor in account.parent.get_ancestors %}
+      <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
+    {% endfor %}
+    <li><a href="{{ account.parent.get_absolute_url }}">{{ account.parent.name|capwords }}</a></li>
+    <li class="active">{{ account.name|capwords }}</li>
+  </ol>
+
+{% if account.bank %}<a href="{% url accounts.views.bank_journal account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-list"></span> Bank Journal</a>{% endif %}
+<a href="{% url accounts.views.reconcile_account account_slug=account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-book"></span> Reconcile</a>
+<a href="{% url admin:accounts_account_change account.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
+
 <br /><br />
+
 {% if not show_balance %}
-<div class="alert alert-info">
-    <strong>Warning!</strong> The running balance and start/end counters are
+  <div class="alert alert-info alert-dismissable">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+    <strong>FYI:</strong> The Balance counters are
     only available when the Start Date is in the current Fiscal Year (after
     {{ current_fiscal_start_date|date:"m/d/Y" }}).
-</div>
-<br />
+  </div>
 {% endif %}
-<table summary="{{ account.name }} Details" id="accounts_chart">
-    <thead>
+
+<!-- Date Range Form -->
+<form data-validate="parsley" action="." method="GET" role="form" >
+    <table>
+        {{ form.as_table }}
+        <tr><th></th><td><input type="submit" value="Submit" class="btn btn-primary btn-sm"></td></tr>
+    </table>
+</form>
+
+<br />
+
+<table summary="{{ account.name }} Details" id="accounts_chart" class="table table-hover table-condensed">
+  <thead>
     <tr>
         <th scope="col">Number</th>
         <th scope="col">Date</th>
         <th scope="col">Memo</th>
         <th scope="col">Detail</th>
-        <th scope="col" class="right">Debit</th>
-        <th scope="col" class="right">Credit</th>
-        <th scope="col" class="right">Event</th>
+        <th scope="col" class="text-right">Debit</th>
+        <th scope="col" class="text-right">Credit</th>
+        <th scope="col" class="text-right">Event</th>
         {% if show_balance %}
-            <th scope="col" class="right">Balance</th>
+            <th scope="col" class="text-right">Balance</th>
         {% endif %}
     </tr>
-    </thead>
-    <tbody>
-{% for transaction in transactions %}
-    <tr class="{% cycle 'main' 'alt' %} clickable">
-        <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
-        <td>{{ transaction.date|date:"m/d/Y" }}</td>
-        <td>{{ transaction.get_memo|capwords }}</td>
-        <td>{{ transaction.detail|capwords }}</td>
-        {% if transaction.balance_delta < 0 %}
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
-            <td class="right"></td>
-        {% else %}
-            <td class="right"></td>
-            <td class="right">{{ transaction.balance_delta|currency }}</td>
+  </thead>
+  <!-- Transactions Table -->
+  <tbody>
+    {% for transaction in transactions %}
+      <tr class="{% cycle 'main' 'alt' %} clickable">
+      <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
+      <td>{{ transaction.date|date:"m/d/Y" }}</td>
+      <td>{{ transaction.get_memo|capwords }}</td>
+      <td>{{ transaction.detail|capwords }}</td>
+      {% if transaction.balance_delta < 0 %}
+        <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+        <td class="text-right"></td>
+      {% else %}
+        <td class="text-right"></td>
+        <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+      {% endif %}
+      <td class="text-right">
+        {% if transaction.event %}
+        <a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>
         {% endif %}
-        <td class="right">
-            {% if transaction.event %}
-            <a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>
-            {% endif %}
-        </td>
-        {% if show_balance %}
-            <td class="right">{{ transaction.final_balance|currency }}</td>
-        {% endif %}
-    </tr>
-{% endfor %}
-    </tbody>
-    <tfoot>
+      </td>
+      {% if show_balance %}
+        <td class="text-right">{{ transaction.final_balance|currency }}</td>
+      {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+  <!-- Balance and Change Counter -->
+  <tfoot>
     <tr><td colspan="{% if show_balance %}8{% else %}7{% endif %}">&nbsp;</td></tr>
     <tr>
-        {% if show_balance %}
-            <td class="right" colspan="2">Start Balance:</td>
-            <td>{{ start_balance|currency }}</td>
-        {% else %}
-            <td colspan="3"></td>
-        {% endif %}
-        <td class="right">Totals:</td>
-        <td class="right">{{ debit_total|currency }}</td>
-        <td class="right">{{ credit_total|currency }}</td>
-        <td colspan="2"></td>
+      {% if show_balance %}
+        <td class="text-right" colspan="2"><strong>Start Balance:</strong></td>
+        <td>{{ start_balance|currency }}</td>
+      {% else %}
+          <td colspan="3"></td>
+      {% endif %}
+      <td class="text-right"><strong>Totals:</strong></td>
+      <td class="text-right">{{ debit_total|currency }}</td>
+      <td class="text-right">{{ credit_total|currency }}</td>
+      <td colspan="2"></td>
     </tr>
     <tr>
-        {% if show_balance %}
-            <td class="right" colspan="2">End Balance:</td>
-            <td>{{ end_balance|currency }}</td>
-        {% else %}
-            <td colspan="3"></td>
-        {% endif %}
-        <td class="right">Net Change:</td>
+      {% if show_balance %}
+        <td class="text-right" colspan="2"><strong>End Balance:</strong></td>
+          <td>{{ end_balance|currency }}</td>
+      {% else %}
+          <td colspan="3"></td>
+      {% endif %}
+        <td class="text-right"><strong>Net Change:</strong></td>
         {% if net_change < 0 %}
-            <td class="right">{{ net_change|currency }}</td>
-            <td class="right"></td>
+          <td class="text-right">{{ net_change|currency }}</td>
+          <td class="text-right"></td>
         {% else %}
-            {% if net_change > 0 %}
-                <td class="right"></td>
-                <td class="right">{{ net_change|currency }}</td>
-            {% else %}
-                <td class="right">$0.00</td>
-                <td class="right">$0.00</td>
-            {% endif %}
+          {% if net_change > 0 %}
+            <td class="text-right"></td>
+            <td class="text-right">{{ net_change|currency }}</td>
+          {% else %}
+            <td class="text-right">$0.00</td>
+            <td class="text-right">$0.00</td>
+          {% endif %}
         {% endif %}
         <td></td>
         {% if show_balance %}
-            <td></td>
+          <td></td>
         {% endif %}
     </tr>
-    </tfoot>
+  </tfoot>
 </table>
 <br /><br />
 
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 {% endblock %}

@@ -1,0 +1,27 @@
+/* Chart of Accounts */
+.header, .header a {
+  color: White;
+  background-color: #333333;
+}
+.header:hover, .header:hover a {
+  color: #333333;
+  background-color: #bbeebb;
+  text-decoration: none;
+}
+
+/* Table Striping */
+.main a, .alt a { color: #333333; }
+.main a:hover, .alt a:hover { text-decoration: none; }
+.alt { background-color: #F9F9F9; }
+
+/* Make Table Scrollable */
+#fiscal-year-accounts {
+  height: 500px;
+  overflow: auto;
+}
+
+/* Fix Bootstrap3 navbar spacing */
+body { padding-top: 30px; }
+
+
+.clickable{ cursor: pointer; }

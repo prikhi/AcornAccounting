@@ -1,6 +1,56 @@
-<ul>
-    <li><a href="/accounts/">Accounts</a></li> 
-    <li><a href="">Banking</a></li>
-    <li><a href="">Reports</a></li>
-</ul>
-<div class="cb"></div>
+<header class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type=button class="navbar-toggle" data-toggle="collapse" data-target="#header-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="{% url accounts.views.show_accounts_chart %}">Acorn Accounting</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="header-navbar-collapse-1">
+      <ul class="nav navbar-nav navbar-left">
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Accounts <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
+            <li><a href="{% url accounts.views.journal_ledger %}">General Ledger</a></li>
+            <li><a href="#">Budgeted Accounts</a></li>
+            <li><a href="{% url accounts.views.show_accounts_chart 'stipends-payable' %}">Member Stipends</a></li>
+            <li><a href="{% url accounts.views.show_accounts_chart 'members-deposited-assets' %}">Member Deposited Assets</a></li>
+            <li><a href="{% url accounts.views.show_account_history %}">Account History</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Entry <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url accounts.views.add_journal_entry %}">General Journal</a></li>
+            <li><a href="{% url accounts.views.add_transfer_entry %}">Transfer</a></li>
+            <li><a href="{% url accounts.views.add_bank_entry journal_type='CD' %}">Bank Spending</a></li>
+            <li><a href="{% url accounts.views.add_bank_entry journal_type='CR' %}">Bank Receiving</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reports <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li><a href="#">Events</a></li>
+            <li><a href="#">Profit & Loss</a></li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown navbar-right">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Admin <b class="caret"></b></a>
+          <ul class="dropdown-menu text-right">
+            <li><a href="{% url admin:accounts_header_add %}">Add Header</a></li>
+            <li><a href="{% url admin:accounts_account_add %}">Add Account</a></li>
+            <li><a href="{% url admin:accounts_event_add %}">Add Event</a></li>
+            <li><a href="{% url accounts.views.add_fiscal_year %}">New Fiscal Year</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
