@@ -42,25 +42,28 @@ class RequiredBaseInlineFormSet(RequiredFormSetMixin,
 class DateRangeForm(forms.Form):
     startdate = forms.DateField(label="Start Date",
                                 widget=forms.DateInput(
-                                    attrs={'data-americandate': True})
+                                    attrs={'data-americandate': True,
+                                           'size': 8,
+                                           'class': 'form-control'})
                                 )
     stopdate = forms.DateField(label="Stop Date",
                                widget=forms.DateInput(
-                                   attrs={'data-americandate': True})
+                                   attrs={'data-americandate': True,
+                                          'size': 8,
+                                          'class': 'form-control'})
                                )
 
 
 class QuickAccountForm(forms.Form):
-    account = forms.ModelChoiceField(queryset=Account.objects.active(),
-                                     widget=forms.Select(attrs={
-                                         'onchange': 'this.form.submit();'}),
-                                     label='',
-                                     empty_label='Jump to an Account')
+    account = forms.ModelChoiceField(
+        queryset=Account.objects.active().order_by('name'),
+        widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
+        label='', empty_label='Jump to an Account')
 
 
 class QuickBankForm(forms.Form):
     bank = forms.ModelChoiceField(
-        queryset=Account.objects.active().filter(bank=True),
+        queryset=Account.objects.active().order_by('name').filter(bank=True),
         widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
         label='', empty_label='Jump to a Register')
 
@@ -76,8 +79,13 @@ class QuickEventForm(forms.Form):
 class JournalEntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
-                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
+        widgets = {
+            'date': forms.DateInput(attrs={'data-americandate': True,
+                                           'class': 'form-control'}),
+            'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50,
+                                              'class': 'form-control'}),
+            'memo': forms.TextInput(attrs={'class': 'form-control'})
+        }
 
     def clean_date(self):
         """The date must be in the Current :class:`FiscalYear`."""
@@ -95,20 +103,25 @@ class TransactionForm(forms.ModelForm):
     credit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                 widget=forms.TextInput(
                                     attrs={'size': 10, 'maxlength': 10,
-                                           'class': 'credit'}))
+                                           'class': 'credit form-control'}))
     debit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                widget=forms.TextInput(
-                                   attrs={'size': 10, 'maxlength': 10, 'class':
-                                          'debit'}))
+                                   attrs={'size': 10, 'maxlength': 10,
+                                          'class': 'debit form-control'}))
 
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
-        widgets = {'account': forms.Select(attrs={'class': 'account'})}
+        widgets = {
+            'account': forms.Select(attrs={'class': 'account form-control'}),
+            'detail': forms.TextInput(attrs={'class': 'form-control'}),
+            'event': forms.Select(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.active()
+        self.fields['account'].queryset = Account.objects.active().order_by(
+            'name')
 
     def clean(self):
         """Make sure only a credit or debit is entered."""
@@ -157,19 +170,24 @@ TransactionFormSet = inlineformset_factory(JournalEntry, Transaction,
 
 @parsleyfy
 class TransferForm(forms.Form):
-    source = forms.ModelChoiceField(queryset=Account.objects.active(),
-                                    widget=forms.Select(
-                                        attrs={'class': 'source'}))
-    destination = forms.ModelChoiceField(queryset=Account.objects.active(),
-                                         widget=forms.Select(
-                                             attrs={'class': 'destination'}))
+    source = forms.ModelChoiceField(
+        queryset=Account.objects.active().order_by('name'),
+        widget=forms.Select(attrs={'class': 'source form-control'})
+    )
+    destination = forms.ModelChoiceField(
+        queryset=Account.objects.active().order_by('name'),
+        widget=forms.Select(attrs={'class': 'destination form-control'})
+    )
     # TODO: This is repeated in BaseBankForm & AccountReconcileForm and ugly
-    amount = forms.DecimalField(max_digits=19, decimal_places=4,
-                                min_value=Decimal("0.01"),
-                                widget=forms.TextInput(
-                                    attrs={'size': 10, 'maxlength': 10,
-                                           'class': 'amount'}))
-    detail = forms.CharField(max_length=50, required=False)
+    amount = forms.DecimalField(
+        max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
+        widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                      'class': 'amount form-control'})
+    )
+    detail = forms.CharField(
+        max_length=50, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     def clean(self):
         """Check that source and destination are not the same"""
@@ -188,11 +206,16 @@ TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True,
 
 
 class BaseBankForm(forms.ModelForm):
-    account = forms.ModelChoiceField(queryset=Account.objects.get_banks())
-    amount = forms.DecimalField(min_value=Decimal(".01"),
-                                widget=forms.TextInput(
-                                    attrs={'size': 10, 'maxlength': 10,
-                                           'id': 'entry_amount'}))
+    account = forms.ModelChoiceField(
+        queryset=Account.objects.get_banks(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    amount = forms.DecimalField(
+        min_value=Decimal(".01"),
+        widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                      'id': 'entry_amount',
+                                      'class': 'form-control'})
+    )
 
     def clean_date(self):
         """The date must be in the Current :class:`FiscalYear`."""
@@ -254,11 +277,20 @@ class BaseBankForm(forms.ModelForm):
 class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
-        fields = ('account', 'date', 'check_number', 'ach_payment', 'payee',
+        fields = ('account', 'date', 'ach_payment', 'check_number', 'payee',
                   'amount', 'memo', 'comments')
         # TODO: Move to basebankform?
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
-                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
+        widgets = {
+            'date': forms.DateInput(attrs={'data-americandate': True,
+                                           'class': 'form-control'}),
+            'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50,
+                                              'class': 'form-control'}),
+            'ach_payment': forms.CheckboxInput(attrs={'class':
+                                                      'form-control'}),
+            'check_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'memo': forms.TextInput(attrs={'class': 'form-control'}),
+            'payee': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
 
 @parsleyfy
@@ -266,8 +298,14 @@ class BankReceivingForm(BaseBankForm):
     class Meta:
         model = BankReceivingEntry
         fields = ('account', 'date', 'payor', 'amount', 'memo', 'comments')
-        widgets = {'date': forms.DateInput(attrs={'data-americandate': True}),
-                   'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50})}
+        widgets = {
+            'date': forms.DateInput(attrs={'data-americandate': True,
+                                           'class': 'form-control'}),
+            'comments': forms.Textarea(attrs={'rows': 2, 'cols': 50,
+                                              'class': 'form-control'}),
+            'memo': forms.TextInput(attrs={'class': 'form-control'}),
+            'payor': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
     def clean_amount(self):
         """Should be negative(debit) for receiving money."""
@@ -277,20 +315,25 @@ class BankReceivingForm(BaseBankForm):
 
 @parsleyfy
 class BankTransactionForm(forms.ModelForm):
-    amount = forms.DecimalField(max_digits=19, decimal_places=4,
-                                min_value=Decimal("0.01"),
-                                widget=forms.TextInput(
-                                    attrs={'size': 10, 'maxlength': 10,
-                                           'class': 'amount'}))
+    amount = forms.DecimalField(
+        max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
+        widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
+                                      'class': 'amount form-control'})
+    )
 
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'amount', 'event',)
-        widgets = {'account': forms.Select(attrs={'class': 'account'})}
+        widgets = {
+            'account': forms.Select(attrs={'class': 'account form-control'}),
+            'detail': forms.TextInput(attrs={'class': 'form-control'}),
+            'event': forms.Select(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super(BankTransactionForm, self).__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.active()
+        self.fields['account'].queryset = Account.objects.active().order_by(
+            'name')
 
     def clean(self):
         super(BankTransactionForm, self).clean()
@@ -329,8 +372,10 @@ BankReceivingTransactionFormSet = inlineformset_factory(
 @parsleyfy
 class AccountReconcileForm(forms.ModelForm):
     statement_date = forms.DateField(widget=forms.DateInput(
-        attrs={'data-americandate': True}))
-    statement_balance = forms.DecimalField()
+        attrs={'data-americandate': True,
+               'class': 'form-control'}))
+    statement_balance = forms.DecimalField(widget=forms.TextInput(
+        attrs={'class': 'form-control'}))
 
     class Meta:
         model = Account
@@ -354,6 +399,9 @@ class AccountReconcileForm(forms.ModelForm):
 class BaseReconcileTransactionFormSet(BaseModelFormSet):
     class Meta:
         model = Transaction
+        widgets = {
+            'reconciled': forms.CheckboxInput(attrs={'class': 'form-control'})
+        }
 
     def clean(self):
         """Checks that Reconciled amounts balance with the Statement amount."""
@@ -397,7 +445,12 @@ class FiscalYearForm(forms.ModelForm):
     """
     class Meta:
         model = FiscalYear
-        widgets = {'year': forms.TextInput(attrs={'maxlength': 4, 'size': 4})}
+        widgets = {
+            'year': forms.TextInput(attrs={'maxlength': 4, 'size': 4,
+                                           'class': 'form-control'}),
+            'end_month': forms.Select(attrs={'class': 'form-control'}),
+            'period': forms.Select(attrs={'class': 'form-control'}),
+        }
 
     def clean_year(self):
         """

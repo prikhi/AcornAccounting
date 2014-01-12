@@ -52,11 +52,25 @@
   </h1>
 </div>
 
-<form data-validate="parsley" action="." method="POST" id="entry_form">
+<form data-validate="parsley" action="." method="POST" id="entry_form" role="form">
   {% csrf_token %}
-  <table id="entry" class="table table-condensed">
-      {{entry_form}}
-  </table>
+  <div class="form-horizontal">
+  {% for field in entry_form %}
+    {% if not forloop.last %}
+      <div class ="form-group{% if field.errors %} has-error{% endif %}">
+        <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-2">{{ field.label }}:</label>
+        <div class="col-sm-4 col-md-3 controls">
+          {{ field }}
+        </div>
+        {% if field.errors %}
+          {% for error in field.errors %}
+            <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="help-block"><strong>{{ error }}</strong></p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+  </div>
 
   <!-- Formset Error Alert -->
   {% if transaction_formset.errors%}
@@ -93,16 +107,18 @@
         <tbody>
       {% endif %}
 
-      <tr class="{% cycle main,alt %}">
+      <tr class="{% cycle main,alt %}{% if form.errors %} danger{% endif %}">
         {% for field in form.visible_fields %}
-          <td {% if forloop.last %}class="text-center"{% endif %}>
+        <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error"{% endif %}{% endif %}>
             {% if forloop.first %}
               {% for hidden in form.hidden_fields %}
                 {{ hidden }}
               {% endfor %}
             {% endif %}
             {{ field.errors.as_ul }}
-            {{ field }}
+            <div class="controls">
+              {{ field }}
+            </div>
           </td>
         {% endfor %}
       </tr>
@@ -147,11 +163,28 @@
     {% endif %}
     </tfoot>
   </table>
-  <br />
+
+  <!-- Comments Input Box -->
+  {% with entry_form.comments as field %}
+    <div class ="form-group{% if field.errors %} has-error{% endif %}">
+      <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-1">{{ field.label }}:</label>
+      <div class="col-sm-8 col-md-6 controls">
+        {{ field }}
+      </div>
+      {% if field.errors %}
+        {% for error in field.errors %}
+          <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="help-block"><strong>{{ error }}</strong></p>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endwith %}
+  <br /><br /><br /><br /><br />
 
   <!-- Buttons -->
-  <button type="submit" name="subbtn" value="Submit" accesskey="s" class="btn btn-default"><span class="glyphicon glyphicon-ok"></span> Submit</button>
-  <button type="submit" name="subbtn" value="Submit & Add More" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit & Add More</button>
+  <div class="form-group">
+    <button type="submit" name="subbtn" value="Submit" accesskey="s" class="btn btn-default"><span class="glyphicon glyphicon-ok"></span> Submit</button>
+    <button type="submit" name="subbtn" value="Submit & Add More" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit & Add More</button>
+  </div>
 
   {% if entry_form.instance.pk %}
     <button class="btn btn-danger pull-right" data-target="#deleteConfirmModal" data-toggle="modal" type="submit"><span class="glyphicon glyphicon-remove"></span> Delete</button>
@@ -194,7 +227,7 @@
         $('#transaction-table tbody tr').formset({
             prefix: '{{ transaction_formset.prefix }}',
             extraClasses: ['main','alt'],
-            deleteText: '<div class="text-center"><span class="glyphicon glyphicon-remove"></span></div>',
+            deleteText: '<span class="glyphicon glyphicon-remove"></span>',
             deleteCssClass: 'delete-row',
             added: addActions,
             removed: removeRow});

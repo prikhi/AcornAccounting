@@ -53,7 +53,7 @@ must be no Transactions in the 13th month of the current Year.</p>
 {% endif %}
 
 <form data-validate="parsley" action="." method="POST" id="fiscal-year-form"
-    name="fiscal_year_form">
+    name="fiscal_year_form" role="form">
   {% csrf_token %}
   <table class="table table-condensed">
     {% if previous_year %}
@@ -68,21 +68,35 @@ must be no Transactions in the 13th month of the current Year.</p>
         <tr>
           <th><label for="id_year">Year:</label></th>
           <td>{{ previous_year.year }}</td>
-          <td>{{ fiscal_year_form.year }}{{ fiscal_year_form.year.errors }}</td>
+          <td><div class="controls">{{ fiscal_year_form.year }}{{ fiscal_year_form.year.errors }}</div></td>
         </tr>
         <tr>
           <th><label for="id_end_month">End month:</label></th>
           <td>{{ previous_year.get_end_month_display }}</td>
-          <td>{{ fiscal_year_form.end_month }}{{ fiscal_year_form.end_month.errors }}</td>
+          <td class="form-group{% if fiscal_year_form.end_month.errors %} has-error{% endif %}">{{ fiscal_year_form.end_month }}{{ fiscal_year_form.end_month.errors }}</td>
         </tr>
         <tr>
           <th><label for="id_period">Period:</label></th>
           <td>{{ previous_year.get_period_display }}</td>
-          <td>{{ fiscal_year_form.period }}{{ fiscal_year_form.period.errors }}</td>
+          <td class="form-group{% if fiscal_year_form.period.errors %} has-error{% endif %}">{{ fiscal_year_form.period }}{{ fiscal_year_form.period.errors }}</td>
         </tr>
       </tbody>
     {% else %}
-      {{ fiscal_year_form }}
+      <div class="form-horizontal">
+        {% for field in fiscal_year_form %}
+          <div class ="form-group{% if field.errors %} has-error{% endif %}">
+            <label for="{{ field.id_for_label }}" class="control-label col-sm-2">{{ field.label }}:</label>
+            <div class="col-sm-3 controls">
+              {{ field }}
+            </div>
+            {% if field.errors %}
+              {% for error in field.errors %}
+                <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="help-block"><strong>{{ error }}</strong></p>
+              {% endfor %}
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
   </table>
   <br />

@@ -1,0 +1,19 @@
+<form method="get" class="form-inline" data-validate="parsley" action=".">
+  {% for field in form %}
+    <div class ="form-group{% if field.errors %} has-error{% endif %}">
+      <label for="{{ field.id_for_label }}" class="control-label">{{ field.label }}:</label>
+      <div class="controls">
+        {{ field }}
+      </div>
+      {% if field.errors %}
+        {% for error in field.errors %}
+          <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="help-block"><strong>{{ error }}</strong></p>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+  <div class="form-group" style="vertical-align:bottom;">
+    <input type="submit" value="Submit" class="btn btn-primary">
+  </div>
+</form>
+<br />

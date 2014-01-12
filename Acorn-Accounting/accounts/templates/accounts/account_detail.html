@@ -1,6 +1,7 @@
 {% extends "site.html" %}
 
 {% load accounting_filters %}
+{% load accounting_tags %}
 
 
 {% block title %}{{ account.name|capwords }} Details{% endblock %}
@@ -38,12 +39,7 @@
 {% endif %}
 
 <!-- Date Range Form -->
-<form data-validate="parsley" action="." method="GET" role="form" >
-    <table>
-        {{ form.as_table }}
-        <tr><th></th><td><input type="submit" value="Submit" class="btn btn-primary btn-sm"></td></tr>
-    </table>
-</form>
+{% date_range_form form %}
 
 <br />
 

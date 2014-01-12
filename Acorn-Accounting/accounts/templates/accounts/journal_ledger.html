@@ -1,6 +1,7 @@
 {% extends "site.html" %}
 
 {% load accounting_filters %}
+{% load accounting_tags %}
 
 {% block title %}General Ledger{% endblock %}
 
@@ -11,14 +12,8 @@
 </div>
 
 <!-- Date Range Form -->
-<form data-validate="parsley" action="." method="GET">
-    <table>
-        {{ form.as_table }}
-        <tr><th></th><td><input type="submit" value="Submit" class="btn btn-primary"></td></tr>
-    </table>
-</form>
+{% date_range_form form %}
 
-<br />
 
 <!-- Entry/Transaction Table -->
 <table summary="General Ledger" id="accounts_chart" class="table table-hover table-condensed">
