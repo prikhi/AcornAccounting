@@ -352,8 +352,9 @@ Autocomplete Input <Autocomplete Inputs>`.
 
 **Initial Conditions**
 
-The page will contain a Date Range form, a Heading, several hyperlinks for
-administration and a table for displaying the Account's Transactions.
+The page will contain a Date Range form, a Heading and information, several
+buttons for administration and a table for displaying the Account's
+Transactions.
 
 The Date Range form will have 2 Text Input Widgets, labeled ``Start Date:`` and
 ``End Date:``. They will be used to control the date range of Transactions
@@ -361,10 +362,13 @@ shown. The ``Start Date`` will default to the first day of the current month
 while the ``End Date`` will default to the current date.
 
 The Heading will display the Account's Number, Name and Current Balance.
+Additional information should include the statement date of the last
+reconciliation, only if the Account was previously reconciled.
 
-There will be 2 hyperlinks for Accountants/Administrators, ``Edit`` for
+There will be 2 buttons for Accountants/Administrators, ``Edit`` for
 changing the Account's details(name, parent, balance, etc.) and ``Reconcile``
-for reconciling the Account against Bank Statements.
+for reconciling the Account against Bank Statements. If the Account is a Bank
+Account, there should also be a button linking to it's Bank Journal.
 
 The table will be populated with Transactions within the date range. The table
 will have headings for the Entry Number, Date, Memo, Transaction Detail,
@@ -456,17 +460,17 @@ month in previous Fiscal Years.
 This screen is accessible via the ``Account History`` link in the
 :ref:`Accounts Sub-Menu <Accounts Submenu Design>`. The default month displayed
 is the current month in the previous year. Other months may be accessed by
-``Next`` and ``Previous`` hyperlinks on this screen.
+``Next`` and ``Previous`` buttons on this screen.
 
 **Initial Conditions**
 
-The screen contains a Title Heading, hyperlinks for month navigation and tabs
+The screen contains a Title Heading, buttons for month navigation and tabs
 above a table.
 
 The Title Heading will contain ``Account History`` and the month/year being
 displayed, in ``MM/YYYY`` format.
 
-There will be ``Previous`` and ``Next`` hyperlinks, allowing the User to view
+There will be ``Previous`` and ``Next`` buttons, allowing the User to view
 the Account History for a different month.
 
 There will be 2 tabs, one labeled ``Balances`` and one labeled ``Profit &
@@ -486,7 +490,7 @@ Clicking on a tab will toggle which Historical Accounts are shown in the table.
 
 **Final Conditions**
 
-Clicking on the ``Next`` or ``Previous`` hyperlinks will direct the User to
+Clicking on the ``Next`` or ``Previous`` buttons will direct the User to
 the next or previous month's Account History.
 
 .. figure:: _images/wireframes/account_history.png
@@ -533,7 +537,7 @@ choose to add more Entries.
 
 **Initial Conditions**
 
-The page will contain Headings, administrative information/hyperlinks, and a
+The page will contain Headings, administrative information/buttons, and a
 table for displaying the Journal Entry's Transactions.
 
 The Heading will display the Entry's date, memo and number.
@@ -578,7 +582,7 @@ The User is redirected to this Page after submitting valid data on the
 
 **Initial Conditions**
 
-The page will contain Headings, administrative information/hyperlinks, and a
+The page will contain Headings, administrative information/buttons, and a
 table for displaying the Bank Receiving Entry's Transactions.
 
 The Headings will display the Entry's date, bank account, memo, entry number,
@@ -621,7 +625,7 @@ Transaction on the :ref:`Account Detail Page <Account Detail Page Design>` or
 
 **Initial Conditions**
 
-The page will contain Headings, administrative information/hyperlinks, and a
+The page will contain Headings, administrative information/buttons, and a
 table for displaying the Bank Spending Entry's Transactions.
 
 The Headings will display the Entry's Date, Bank Account, Memo, Number,
