@@ -10,6 +10,16 @@ Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
 
 {% block page_header %}
   <h1>Chart of Accounts <small>{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
+  <!-- Breadcrumbs -->
+  {% if header %}
+    <ol class="breadcrumb">
+      <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
+      {% for ancestor in header.get_ancestors %}
+        <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
+      {% endfor %}
+      <li class="active">{{ header.name|capwords }}</li>
+    </ol>
+  {% endif %}
 {% endblock %}
 
 
@@ -22,15 +32,6 @@ Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
       <li><a href="#{{ root_node.slug }}" data-toggle="tab">{{ root_node.name|capwords }}</a></li>
     {% endfor %}
   </ul>
-{% else %}
-  <!-- Breadcrumbs -->
-  <ol class="breadcrumb">
-    <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
-    {% for ancestor in header.get_ancestors %}
-      <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
-    {% endfor %}
-    <li class="active">{{ header.name|capwords }}</li>
-  </ol>
 {% endif %}
 
 
