@@ -6,12 +6,13 @@
 {% block title %}{{ journal_entry.memo|capwords }} - {{ main_transaction.account|capwords }}{% endblock %}
 
 
-{% block content %}
-<div class="page-header">
-    <h1>{{ journal_entry.get_number }} - {{ journal_entry.memo|capwords }} <small>{{ main_transaction.account }}</small></h1>
-</div>
+{% block page_header %}
+  <h1>{{ journal_entry.get_number }} - {{ journal_entry.memo|capwords }} <small>{{ main_transaction.account }}</small></h1>
+  <h3>{{ journal_entry.date|date:"m/d/Y" }} - Payor: {{ journal_entry.payor }} - Amount: {{ main_transaction.balance_delta|currency }}</h3>
+{% endblock %}
 
-<h3>{{ journal_entry.date|date:"m/d/Y" }} - Payor: {{ journal_entry.payor }} - Amount: {{ main_transaction.balance_delta|currency }}</h3>
+
+{% block content %}
 
 <strong>Created:</strong> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<strong>Updated:</strong> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
 <br />

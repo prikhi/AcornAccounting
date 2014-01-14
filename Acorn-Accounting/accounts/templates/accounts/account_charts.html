@@ -8,11 +8,12 @@
 Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
 {% endblock %}
 
+{% block page_header %}
+  <h1>Chart of Accounts <small>{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
+{% endblock %}
+
 
 {% block content %}
-<div class="page-header">
-  <h1>Chart of Accounts <small>{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
-</div>
 
 {% if not header %}
   <!-- Tabs -->

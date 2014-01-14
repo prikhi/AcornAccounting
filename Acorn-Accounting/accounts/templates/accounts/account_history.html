@@ -6,19 +6,20 @@
 {% block title %}Account History - {{ date|date:"m/Y" }}{% endblock %}
 
 
+{% block page_header %}
+  <h1>Account History <small>{{ date|date:"m/Y" }}</small></h1>
+{% endblock %}
+
+
 {% block content %}
 
-<div class="page-header">
-    <h1>Account History <small>{{ date|date:"m/Y" }}</small></h1>
-</div>
-
 <ul class="pager">
-    <li class="previous {% if not has_previous %}disabled{% endif %}">
-      <a href="{% if has_previous %}.?previous={% endif %}">Previous</a>
-    </li>
-    <li class="next {% if not has_next %}disabled{% endif %}">
-      <a href="{% if has_next %}.?next={% endif %}">Next</a>
-    </li>
+  <li class="previous {% if not has_previous %}disabled{% endif %}">
+    <a href="{% if has_previous %}.?previous={% endif %}">Previous</a>
+  </li>
+  <li class="next {% if not has_next %}disabled{% endif %}">
+    <a href="{% if has_next %}.?next={% endif %}">Next</a>
+  </li>
 </ul>
 
 {% if accounts %}

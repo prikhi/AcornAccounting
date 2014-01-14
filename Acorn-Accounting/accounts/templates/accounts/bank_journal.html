@@ -7,12 +7,14 @@
 {% block title %}{{ account.name|capwords }} Journal{% endblock %}
 
 
+{% block page_header %}
+  <h1>Bank Journal - {{ account.name|capwords }} <small>{{ start_date }} - {{ stop_date }}</small></h1>
+{% endblock %}
+
+
 {% block content %}
 
-<div class="page-header">
-  <h1>Bank Journal - {{ account.name|capwords }} <small>{{ start_date }} - {{ stop_date }}</small></h1>
-</div>
-
+<!-- Date Range Form -->
 {% date_range_form form %}
 
 <table summary="Bank Journal for {{ account.name }}" class="table table-hover table-condensed">
@@ -26,6 +28,7 @@
       <th scope="col" class="text-right">Event</th>
     </tr>
   </thead>
+  <!-- Entry/Transaction Table -->
   <tbody>
     {% for transaction in transactions %}
       <tr class="header clickable">

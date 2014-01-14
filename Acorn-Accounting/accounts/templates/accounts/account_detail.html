@@ -7,14 +7,11 @@
 {% block title %}{{ account.name|capwords }} Details{% endblock %}
 
 
-{% block content %}
-
-<div class="page-header">
+{% block page_header %}
   <h1>#{{ account.get_full_number }} {{ account.name|capwords }} <small>{{ account.get_balance|currency }}</small></h1>
-</div>
 
 <!-- Breadcrumbs -->
-<ol class="breadcrumb">
+  <ol class="breadcrumb">
     <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
     {% for ancestor in account.parent.get_ancestors %}
       <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
@@ -22,6 +19,10 @@
     <li><a href="{{ account.parent.get_absolute_url }}">{{ account.parent.name|capwords }}</a></li>
     <li class="active">{{ account.name|capwords }}</li>
   </ol>
+{% endblock %}
+
+
+{% block content %}
 
 <!-- Buttons -->
 <div>

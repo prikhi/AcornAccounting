@@ -3,6 +3,7 @@ import datetime
 from dateutil import relativedelta, rrule
 
 from django.db.models import Q, Sum, Max
+from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
@@ -293,9 +294,11 @@ def add_journal_entry(request, entry_id=None,
                 transaction.debit = -1 * transaction.balance_delta
             elif transaction.balance_delta > 0:
                 transaction.credit = transaction.balance_delta
+        is_new = False
     except JournalEntry.DoesNotExist:
         entry = JournalEntry()
         entry.date = datetime.date.today
+        is_new = True
 
     if request.method == 'POST':
         if request.POST.get("subbtn") in ("Submit", "Submit & Add More"):
@@ -319,6 +322,10 @@ def add_journal_entry(request, entry_id=None,
                             form.instance.balance_delta = form.cleaned_data.  \
                                 get('balance_delta')
                             form.instance.save()
+                    if is_new:
+                        messages.success(request, "A new entry was created.")
+                    else:
+                        messages.success(request, "The entry was modified.")
                     if request.POST.get('subbtn') == 'Submit & Add More':
                         return HttpResponseRedirect(
                             reverse('accounts.views.add_journal_entry'))
@@ -328,6 +335,8 @@ def add_journal_entry(request, entry_id=None,
         elif request.POST.get('delete') == 'Delete':
             if entry.pk:
                 entry.delete()
+                messages.success(request, "The entry and all related "
+                                 "transactions were deleted.")
                 return HttpResponseRedirect(
                     reverse('accounts.views.journal_ledger'))
             else:
@@ -375,9 +384,11 @@ def add_bank_entry(request, entry_id=None, journal_type='',
         for transaction in entry.transaction_set.all():
             # TODO: Do this in the form
             transaction.amount = abs(transaction.balance_delta)
+        is_new = False
     except entry_type.DoesNotExist:
         entry = entry_type()
         entry.date = datetime.date.today
+        is_new = True
     if request.method == 'POST':
         if request.POST.get("subbtn") in ("Submit", "Submit & Add More"):
             entry_form = EntryTypeForm(request.POST,
@@ -409,6 +420,10 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                                     form.cleaned_data.get('balance_delta')
                                 )
                             form.instance.save()
+                    if is_new:
+                        messages.success(request, "A new entry was created.")
+                    else:
+                        messages.success(request, "The entry was modified.")
                     if request.POST.get('subbtn') == 'Submit & Add More':
                         return HttpResponseRedirect(
                             reverse('accounts.views.add_bank_entry',
@@ -426,6 +441,8 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                 bank_account = entry.main_transaction.account
                 entry.main_transaction.delete()
                 entry.delete()
+                messages.success(request, "The entry and all related "
+                                 "transactions were deleted.")
                 return HttpResponseRedirect(
                     reverse('accounts.views.bank_journal',
                             kwargs={'account_slug': bank_account.slug}))
@@ -487,6 +504,11 @@ def add_transfer_entry(request, template_name="accounts/entry_add.html"):
                                              balance_delta=amount)
                         debit.save()
                         credit.save()
+
+                messages.success(request, "A new entry was created.")
+                if request.POST.get('subbtn') == 'Submit & Add More':
+                    return HttpResponseRedirect(
+                        reverse('accounts.views.add_transfer_entry'))
                 return HttpResponseRedirect(
                     reverse('accounts.views.show_journal_entry',
                             kwargs={'entry_id': entry.id}))
@@ -564,6 +586,7 @@ def reconcile_account(request, account_slug,
                     account.reconciled_balance = account_form.cleaned_data.get(
                         'statement_balance')
                     account.save()
+                    messages.success(request, "The account was reconciled.")
                     return HttpResponseRedirect(
                         reverse('accounts.views.show_account_detail',
                                 kwargs={'account_slug': account.slug}))
@@ -727,10 +750,12 @@ def add_fiscal_year(request, template_name="accounts/year_add.html"):
                                        account=retained_earnings,
                                        balance_delta=hist_current.amount)
             fiscal_year_form.save()
+            messages.success(request, "A new fiscal year has been started.")
             return HttpResponseRedirect(reverse(
                 'accounts.views.show_accounts_chart'))
         elif valid:
             fiscal_year_form.save()
+            messages.success(request, "A new fiscal year has been started.")
             return HttpResponseRedirect(reverse(
                 'accounts.views.show_accounts_chart'))
     else:

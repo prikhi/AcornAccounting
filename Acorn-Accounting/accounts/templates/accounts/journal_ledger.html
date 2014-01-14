@@ -1,15 +1,19 @@
 {% extends "site.html" %}
 
+
 {% load accounting_filters %}
 {% load accounting_tags %}
 
+
 {% block title %}General Ledger{% endblock %}
 
-{% block content %}
 
-<div class="page-header">
+{% block page_header %}
   <h1>General Ledger <small>{{ start_date }} - {{ stop_date }}</small></h1>
-</div>
+{% endblock %}
+
+
+{% block content %}
 
 <!-- Date Range Form -->
 {% date_range_form form %}

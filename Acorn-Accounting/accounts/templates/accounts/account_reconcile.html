@@ -6,11 +6,12 @@
 {% block title %}Reconcile {{ account }}{% endblock %}
 
 
-{% block content %}
-
-<div class="page-header">
+{% block page_header %}
   <h1>Reconcile {{ account }}</h1>
-</div>
+{% endblock %}
+
+
+{% block content %}
 
 <!-- Statement Form -->
 <form action="." method="POST" id="reconcile_form">

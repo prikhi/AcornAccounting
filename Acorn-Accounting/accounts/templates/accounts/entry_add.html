@@ -26,9 +26,7 @@
 {% endblock %}
 
 
-{% block content %}
-
-<div class="page-header">
+{% block page_header %}
   <h1>
     {% if entry_form.instance.id %}
       Edit a
@@ -50,7 +48,10 @@
       {% endif %}
     {% endif %}
   </h1>
-</div>
+{% endblock %}
+
+
+{% block content %}
 
 <form action="." method="POST" id="entry_form" role="form">
   {% csrf_token %}

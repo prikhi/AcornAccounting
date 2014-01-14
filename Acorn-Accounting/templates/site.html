@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% load accounting_filters %}
 {% load accounting_tags %}
 
 {% block site_wrapper %}
@@ -13,6 +14,19 @@
     {% include 'tags/navigation.html' %}
 
     <div id="content" class="container">
+      <div class="page-header">
+        {% block page_header %}{% endblock %}
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-dismissable alert-{{ message.tags }}">
+            <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+            <strong>{{ message.tags|capwords }}: </strong>{{message}}
+          </div>
+        {% endfor %}
+      {% endif %}
+
       {% block content %}{% endblock %}
     </div>
   </div>
