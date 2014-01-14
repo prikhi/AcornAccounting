@@ -52,7 +52,7 @@
   </h1>
 </div>
 
-<form data-validate="parsley" action="." method="POST" id="entry_form" role="form">
+<form action="." method="POST" id="entry_form" role="form">
   {% csrf_token %}
   <div class="form-horizontal">
   {% for field in entry_form %}
@@ -109,7 +109,7 @@
 
       <tr class="{% cycle main,alt %}{% if form.errors %} danger{% endif %}">
         {% for field in form.visible_fields %}
-        <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error"{% endif %}{% endif %}>
+        <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}{% endif %}>
             {% if forloop.first %}
               {% for hidden in form.hidden_fields %}
                 {{ hidden }}
@@ -231,6 +231,20 @@
             deleteCssClass: 'delete-row',
             added: addActions,
             removed: removeRow});
+    });
+    /* Integrate Parsley.JS validation with Bootstrap3 CSS classes */
+    $(document).ready( function () {
+        $('#entry_form').parsley({
+            successClass: 'has-success',
+            errorClass: 'has-error',
+            errors: {
+                classHandler: function (el) {
+                    return $(el).closest('.form-group');
+                },
+                errorsWrapper: '<ul></ul>',
+                errorElem: '<li></li>'
+            }
+        });
     });
     /*
     Pressing `Enter` on a `.enter-mod` input  in the `transaction-table` table

@@ -13,7 +13,7 @@
 </div>
 
 <!-- Statement Form -->
-<form data-validate="parsley" action="." method="POST" id="reconcile_form">
+<form action="." method="POST" id="reconcile_form">
 {% csrf_token %}
 
 <div class="form-horizontal">
@@ -140,6 +140,23 @@
 
 
 {% block javascript %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+<script type="text/javascript">
+    $(document).ready( function () {
+        $('#reconcile_form').parsley({
+            successClass: 'has-success',
+            errorClass: 'has-error',
+            errors: {
+                classHandler: function (el) {
+                    return $(el).closest('.form-group');
+                },
+                errorsWrapper: '<ul></ul>',
+                errorElem: '<li></li>'
+            }
+        });
+    });
+</script>
 
 {% if transaction_formset %}
   <script type="text/javascript">
@@ -211,8 +228,5 @@
       }
   </script>
 {% endif %}
-
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 
 {% endblock %}

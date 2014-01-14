@@ -1,4 +1,4 @@
-<form method="get" class="form-inline" data-validate="parsley" action=".">
+<form method="get" class="form-inline" action="." id="date_range_form">
   {% for field in form %}
     <div class ="form-group{% if field.errors %} has-error{% endif %}">
       <label for="{{ field.id_for_label }}" class="control-label">{{ field.label }}:</label>

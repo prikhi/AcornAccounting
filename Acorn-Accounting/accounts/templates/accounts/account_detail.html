@@ -135,6 +135,25 @@
 </table>
 <br /><br />
 
+{% endblock %}
+
+
+{% block javascript %}
 <script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+<script type="text/javascript">
+    $(document).ready( function () {
+        $('#date_range_form').parsley({
+            successClass: 'has-success',
+            errorClass: 'has-error',
+            errors: {
+                classHandler: function (el) {
+                    return $(el).closest('.form-group');
+                },
+                errorsWrapper: '<ul></ul>',
+                errorElem: '<li></li>'
+            }
+        });
+    });
+</script>
 {% endblock %}
