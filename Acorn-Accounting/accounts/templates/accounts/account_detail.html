@@ -8,7 +8,10 @@
 
 
 {% block page_header %}
-  <h1>#{{ account.get_full_number }} {{ account.name|capwords }} <small>{{ account.get_balance|currency }}</small></h1>
+  <h3 class="visible-print"></h3>
+  <h1><span class="hidden-print">#{{ account.get_full_number }} </span>{{ account.name|capwords }} <small>{{ account.get_balance|currency }}</small></h1>
+  <h4 class="visible-print">Account #{{ account.get_full_number }}<br />
+    {{ start_date }} to {{ stop_date }}</h4>
 
 <!-- Breadcrumbs -->
   <ol class="breadcrumb hidden-print">
@@ -43,16 +46,6 @@
 
   <!-- Date Range Form -->
   {% date_range_form form %}
-
-  <!-- Alert Box -->
-  {% if not show_balance %}
-    <div class="alert alert-info alert-dismissable">
-      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-      <strong><span class="glyphicon glyphicon-info-sign"></span> FYI:</strong> The Balance counters are
-      only available when the Start Date is in the current Fiscal Year (after
-      {{ current_fiscal_start_date|date:"m/d/Y" }}).
-    </div>
-  {% endif %}
 </div>
 
 

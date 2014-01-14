@@ -116,6 +116,11 @@ def show_account_detail(request, account_slug,
     current_fiscal_start_date = FiscalYear.objects.current_start()
     show_balance = (current_fiscal_start_date is None or
                     current_fiscal_start_date <= start_date)
+    if not show_balance:
+        messages.info(request, "The Balance counters are only available when "
+                      "the Start Date is in the current Fiscal Year (after "
+                      "{0})".format(current_fiscal_start_date.strftime(
+                          "%m/%d/%Y")))
     if transactions.exists() and show_balance:
         start_balance = transactions[0].get_initial_account_balance()
         end_balance = start_balance

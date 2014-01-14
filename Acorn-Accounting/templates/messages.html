@@ -3,7 +3,7 @@
 
 {% if messages %}
   {% for message in messages %}
-    <div class="alert alert-dismissable alert-{{ message.tags }}">
+    <div class="hidden-print alert alert-dismissable alert-{{ message.tags }}">
       <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
       <strong>
         {% if message.level == 25 %}
