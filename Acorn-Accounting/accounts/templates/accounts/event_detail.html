@@ -3,18 +3,21 @@
 {% load accounting_filters %}
 
 
-{% block title %}{{ account.name|capwords }} Details{% endblock %}
+{% block title %}{{ event.name|capwords }} Event Details{% endblock %}
 
 
 {% block page_header %}
-  <h1>#{{ event.number }} {{ event.name|capwords }} <small>{{ event.city|capwords }}, {{ event.state }} - {{ event.date|date:"m/d/Y" }}</small></h1>
+  <h1>#{{ event.number }} - {{ event.name|capwords }} <small>{{ event.city|capwords }}, {{ event.state }} - {{ event.date|date:"m/d/Y" }}</small></h1>
 {% endblock %}
 
 
 {% block content %}
 
-<a href="{% url admin:accounts_event_change event.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
-<br /><br />
+<div class="hidden-print">
+  <!-- Buttons -->
+  <a href="{% url admin:accounts_event_change event.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
+</div>
+<br />
 
 <table summary="{{ event.name }} Details" class="table table-hover table-condensed">
   <thead>

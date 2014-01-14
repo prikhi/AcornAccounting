@@ -1,6 +1,5 @@
 {% extends "site.html" %}
 
-{% load mptt_tags %}
 {% load accounting_filters %}
 
 
@@ -8,11 +7,16 @@
 Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
 {% endblock %}
 
+
 {% block page_header %}
-  <h1>Chart of Accounts <small>{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
+  <h1>Chart of Accounts <small class="hidden-print">{% if header %}{{ header.name|capwords }}{% endif %}</small></h1>
+  {% if header %}
+    <h4 class="visible-print">{{ header.name|capwords }}</h4>
+  {% endif %}
+
   <!-- Breadcrumbs -->
   {% if header %}
-    <ol class="breadcrumb">
+    <ol class="breadcrumb hidden-print">
       <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
       {% for ancestor in header.get_ancestors %}
         <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
@@ -27,7 +31,7 @@ Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
 
 {% if not header %}
   <!-- Tabs -->
-  <ul class="nav nav-tabs">
+  <ul class="nav nav-tabs hidden-print">
     {% for root_node in root_nodes %}
       <li><a href="#{{ root_node.slug }}" data-toggle="tab">{{ root_node.name|capwords }}</a></li>
     {% endfor %}

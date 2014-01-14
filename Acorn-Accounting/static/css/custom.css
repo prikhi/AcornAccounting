@@ -35,3 +35,29 @@ body { padding-top: 30px; }
 #id_quick_account .selectize-control { width: 162px; }
 #id_quick_bank .selectize-control { width: 190px; }
 #id_quick_event .selectize-control { width: 155px; }
+
+
+/* Print Styles */
+@media print {
+  /* Remove Hyperlink URLs from the print display */
+  a[href]:after {
+    content: none !important;
+  }
+  /* Don't repeat table footers on every page */
+  tfoot {
+    display: table-row-group;
+  }
+  /* Center Page Headers */
+  h1, h2, h3, h4, h5 {
+    text-align: center;
+  }
+  /* Reset body padding */
+  body {
+    padding-top: 0px;
+  }
+  /* All Tabs should show on print, not just the active one */
+  .tab-content > .tab-pane {
+    display: block !important;
+    opacity: 1 !important;
+  }
+}

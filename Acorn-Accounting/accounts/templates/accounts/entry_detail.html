@@ -7,26 +7,29 @@
 
 
 {% block page_header %}
-  <h1>{{ journal_entry.get_number }} - {{ journal_entry.memo|capwords }} <small>{{ journal_entry.date|date:"m/d/Y" }}</small></h1>
+<h1><span class="hidden-print">{{ journal_entry.get_number }} - </span>{{ journal_entry.memo|capwords }} <small class="hidden-print">{{ journal_entry.date|date:"m/d/Y" }}</small></h1>
+<h4 class="visible-print">{{ journal_entry.get_number }} - {{ journal_entry.date|date:"m/d/Y" }}</h4>
 {% endblock %}
 
 
 {% block content %}
 
-<strong>Created:</strong> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<strong>Updated:</strong> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
+<div class="hidden-print">
+  <strong>Created:</strong> {{ journal_entry.created_at|date:"m/d/Y" }} {% if is_updated %}<strong>Updated:</strong> {{ journal_entry.updated_at|date:"m/d/Y" }} {% endif %}
+  <br />
+
+  {% if journal_entry.comments %}
+    <strong>Comments:</strong><br />
+    <p>{{ journal_entry.comments }}</p>
+  {% endif %}
+
+  <br />
+
+  {% if journal_entry.in_fiscal_year %}
+    <a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-edit"></span> Edit</a>
+  {% endif %}
+</div>
 <br />
-
-{% if journal_entry.comments %}
-  <strong>Comments:</strong><br />
-  <p>{{ journal_entry.comments }}</p>
-{% endif %}
-
-<br />
-
-{% if journal_entry.in_fiscal_year %}
-  <a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-edit"></span> Edit</a>
-{% endif %}
-<br /><br />
 
 <table summary="{{ account.name }} Details" class="table table-hover table-condensed">
     <thead>

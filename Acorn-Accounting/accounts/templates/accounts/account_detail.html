@@ -11,7 +11,7 @@
   <h1>#{{ account.get_full_number }} {{ account.name|capwords }} <small>{{ account.get_balance|currency }}</small></h1>
 
 <!-- Breadcrumbs -->
-  <ol class="breadcrumb">
+  <ol class="breadcrumb hidden-print">
     <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
     {% for ancestor in account.parent.get_ancestors %}
       <li><a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name|capwords }}</a></li>
@@ -24,31 +24,33 @@
 
 {% block content %}
 
-<!-- Buttons -->
-<div>
-  {% if account.bank %}<a href="{% url accounts.views.bank_journal account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-list"></span> Bank Journal</a>{% endif %}
-  <a href="{% url accounts.views.reconcile_account account_slug=account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-book"></span> Reconcile</a>
-  <a href="{% url admin:accounts_account_change account.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
-</div>
-<br />
-
-<!-- Account Information -->
-{% if account.last_reconciled %}
-  <p><strong>Last Reconciled:</strong> {{ account.last_reconciled|date:"m/d/Y" }}</p>
-{% endif %}
-
-<!-- Date Range Form -->
-{% date_range_form form %}
-
-<!-- Alert Box -->
-{% if not show_balance %}
-  <div class="alert alert-info alert-dismissable">
-    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-    <strong>FYI:</strong> The Balance counters are
-    only available when the Start Date is in the current Fiscal Year (after
-    {{ current_fiscal_start_date|date:"m/d/Y" }}).
+<div class="hidden-print">
+  <!-- Buttons -->
+  <div>
+    {% if account.bank %}<a href="{% url accounts.views.bank_journal account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-list"></span> Bank Journal</a>{% endif %}
+    <a href="{% url accounts.views.reconcile_account account_slug=account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-book"></span> Reconcile</a>
+    <a href="{% url admin:accounts_account_change account.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
   </div>
-{% endif %}
+  <br />
+
+  <!-- Account Information -->
+  {% if account.last_reconciled %}
+    <p><strong>Last Reconciled:</strong> {{ account.last_reconciled|date:"m/d/Y" }}</p>
+  {% endif %}
+
+  <!-- Date Range Form -->
+  {% date_range_form form %}
+
+  <!-- Alert Box -->
+  {% if not show_balance %}
+    <div class="alert alert-info alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+      <strong>FYI:</strong> The Balance counters are
+      only available when the Start Date is in the current Fiscal Year (after
+      {{ current_fiscal_start_date|date:"m/d/Y" }}).
+    </div>
+  {% endif %}
+</div>
 
 
 <table summary="{{ account.name }} Details" id="accounts_chart" class="table table-hover table-condensed">
