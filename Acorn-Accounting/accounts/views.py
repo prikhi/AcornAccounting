@@ -241,7 +241,7 @@ def journal_ledger(request, template_name="accounts/journal_ledger.html"):
 
 
 def bank_journal(request, account_slug,
-                  template_name="accounts/bank_journal.html"):
+                 template_name="accounts/bank_journal.html"):
     form, start_date, stop_date = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
     # TODO: Refactor into Account method, get_bank_transactions_by_date()

@@ -3,7 +3,8 @@ General Functions for Accounting App
 """
 import datetime
 
-from .forms import DateRangeForm, QuickAccountForm, QuickBankForm, QuickEventForm
+from .forms import (DateRangeForm, QuickAccountForm, QuickBankForm,
+                    QuickEventForm)
 
 
 def american_today():

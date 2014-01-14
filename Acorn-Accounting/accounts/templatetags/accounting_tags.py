@@ -16,6 +16,7 @@ def quick_search(GET):
             'quick_bank_form': bank_form[0],
             'quick_event_form': event_form[0]}
 
+
 @register.inclusion_tag("accounts/tags/date_range_form.html")
 def date_range_form(form):
     return {'form': form}

@@ -16,6 +16,7 @@ from .forms import JournalEntryForm, TransactionFormSet, TransferFormSet, \
         BankSpendingTransactionFormSet, DateRangeForm, AccountReconcileForm, \
         ReconcileTransactionFormSet, FiscalYearForm, \
         FiscalYearAccountsFormSet
+from .templatetags.accounting_filters import capitalize_words
 
 
 def create_header(name, parent=None, cat_type=2):
@@ -263,7 +264,6 @@ class HeaderModelTests(TestCase):
         liability_child = create_header('me too', liability)
         self.assertEqual(Header.objects.get(id=liability.id).get_full_number(), '{0}-0000'.format(liability.type))
         self.assertEqual(Header.objects.get(id=liability_child.id).get_full_number(), '{0}-0100'.format(liability_child.type))
-
 
 
 class AccountModelTests(TestCase):
@@ -1270,7 +1270,6 @@ class TransactionModelTests(TestCase):
         self.assertRaises(ValidationError, trans.save)
 
 
-
 class AccountManagerTests(TestCase):
     """Test the manager class for the Account object."""
     def test_banks(self):
@@ -1312,7 +1311,6 @@ class AccountManagerTests(TestCase):
         active = Account.objects.active()
 
         self.assertSequenceEqual([], active)
-
 
 
 class FiscalYearManagerTests(TestCase):
@@ -5879,3 +5877,28 @@ class FiscalYearViewTests(TestCase):
         self.assertEqual(BankReceivingEntry.objects.count(), 0)
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 4)
+
+
+class AccountingFilterTests(TestCase):
+    """
+    These test the accounting_filters.
+    """
+
+    def test_capitalize_words_all_lower_case(self):
+        """A lowercase word should have its first letter capitalized."""
+        lowercase_string = "foobar"
+        capitalized_string = capitalize_words(lowercase_string)
+        self.assertEqual(capitalized_string, "Foobar")
+
+    def test_capitalize_words_an_upper_case_letter(self):
+        """A word with an uppercase letter will not be capitalized."""
+        uppercase_string = "fooBar"
+        uncapitalized_string = capitalize_words(uppercase_string)
+        self.assertEqual(uncapitalized_string, "fooBar")
+
+    def test_capitalize_wods_multiple_words(self):
+        """These rules apply on a per-word basis, not globally."""
+        mixed_sentence = "some oF these WorDs won'T be Capitalized."
+        mixed_result = capitalize_words(mixed_sentence)
+        self.assertEqual(mixed_result,
+                         "Some oF These WorDs won'T Be Capitalized.")

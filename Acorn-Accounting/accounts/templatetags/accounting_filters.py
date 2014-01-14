@@ -1,4 +1,5 @@
 import locale
+import re
 import string
 
 from django import template
@@ -29,4 +30,16 @@ def tab_number(value):
 
 @register.filter(name="capwords")
 def capitalize_words(value):
-    return string.capwords(str(value))
+    """Capitalize the first letter of each lowercase word."""
+    output_list = list()
+    uppercase_pattern = re.compile(r'[A-Z]')
+
+    for word in str(value).split():
+        uppercase_letter = uppercase_pattern.search(word)
+        if uppercase_letter is None:
+            word = string.capwords(str(word))
+        output_list.append(word)
+
+    output_string = ' '.join(output_list)
+
+    return output_string
