@@ -45,7 +45,7 @@
   {% if not show_balance %}
     <div class="alert alert-info alert-dismissable">
       <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-      <strong>FYI:</strong> The Balance counters are
+      <strong><span class="glyphicon glyphicon-info-sign"></span> FYI:</strong> The Balance counters are
       only available when the Start Date is in the current Fiscal Year (after
       {{ current_fiscal_start_date|date:"m/d/Y" }}).
     </div>

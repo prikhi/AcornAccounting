@@ -1,0 +1,31 @@
+{% load accounting_filters %}
+
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-dismissable alert-{{ message.tags }}">
+      <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+      <strong>
+        {% if message.level == 25 %}
+          {# success #}
+          <span class="glyphicon glyphicon-ok-sign"></span>
+        {% else %}
+          {% if message.level == 30 %}
+            {# warning #}
+            <span class="glyphicon glyphicon-warning-sign"></span>
+          {% else %}
+            {% if message.level == 40 %}
+              {# danger #}
+              <span class="glyphicon glyphicon-remove-sign"></span>
+            {% else %}
+              {% if message.level == 20 %}
+                {# info #}
+                <span class="glyphicon glyphicon-info-sign"></span>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {{ message.tags|capwords }}: </strong>{{message}}
+    </div>
+  {% endfor %}
+{% endif %}

@@ -34,7 +34,7 @@
   <div class ="form-group">
     <label for="last-reconciled" class="control-label col-sm-2">Last Reconciled:</label>
     <div class="col-sm-3">
-      <p id="last-reconciled" class="form-control-static">{{ last_reconciled|date:"m/d/Y" }}</p>
+      <p id="last-reconciled" class="form-control-static">{{ last_reconciled|date:"m/d/Y"|default:"Never" }}</p>
     </div>
   </div>
   <div class ="form-group">
