@@ -1,7 +1,7 @@
 from django.contrib import admin
 from mptt.admin import MPTTModelAdmin
 
-from .models import Header, Account, Event
+from .models import Header, Account
 
 
 class AccountAdmin(admin.ModelAdmin):
@@ -25,12 +25,3 @@ class HeaderAdmin(MPTTModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
 admin.site.register(Header, HeaderAdmin)
-
-
-class EventAdmin(admin.ModelAdmin):
-    list_display = ('date', 'id', 'name', 'city', 'state')
-    search_fields = ['date', 'name']
-    list_filter = ['date', 'state']
-    list_per_page = 50
-
-admin.site.register(Event, EventAdmin)
