@@ -22,17 +22,20 @@
 {% endblock %}
 
 
-{% block content %}
-
-<div class="hidden-print">
+{% block post_header %}
   <!-- Buttons -->
-  <div>
+  <div class="hidden-print">
     {% if account.bank %}<a href="{% url accounts.views.bank_journal account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-list"></span> Bank Journal</a>{% endif %}
     <a href="{% url accounts.views.reconcile_account account_slug=account.slug %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-book"></span> Reconcile</a>
     <a href="{% url admin:accounts_account_change account.id %}" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-edit"></span> Edit</a>
   </div>
   <br />
+{% endblock %}
 
+
+{% block content %}
+
+<div class="hidden-print">
   <!-- Account Information -->
   {% if account.last_reconciled %}
     <p><strong>Last Reconciled:</strong> {{ account.last_reconciled|date:"m/d/Y" }}</p>
