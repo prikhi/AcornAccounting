@@ -1,3 +1,6 @@
+{% load accounting_tags %}
+
+
 <header class="navbar navbar-inverse navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -40,6 +43,7 @@
           </ul>
         </li>
       </ul>
+      {% quick_search request.GET %}
       <ul class="nav navbar-nav navbar-right">
         <li class="dropdown navbar-right">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">Admin <b class="caret"></b></a>

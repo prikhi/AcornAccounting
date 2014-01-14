@@ -233,11 +233,11 @@
             removed: removeRow});
     });
     /*
-    Pressing `Enter` on a Select or Text input in the `transaction-table` table
+    Pressing `Enter` on a `.enter-mod` input  in the `transaction-table` table
     should move the cursor to the next row.
     */
     $(document).ready(function() {
-        $('input, select', $('#transaction-table')).each(function() {
+        $('#transaction-table .enter-mod').each(function() {
             var that = this;
             $(this).keypress(function(e) {
                 if (e.which == 13) {

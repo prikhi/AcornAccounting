@@ -20,8 +20,18 @@
   overflow: auto;
 }
 
+/* For making clickable rows appear clickable */
+.clickable { cursor: pointer; }
+
 /* Fix Bootstrap3 navbar spacing */
 body { padding-top: 30px; }
 
-
-.clickable{ cursor: pointer; }
+/* Fix Selectize dropdowns in navbar
+ *
+ * These are the maximum values possible without causing a double
+ * navbar in Chrome
+ *
+ */
+#id_quick_account .selectize-control { width: 162px; }
+#id_quick_bank .selectize-control { width: 190px; }
+#id_quick_event .selectize-control { width: 155px; }

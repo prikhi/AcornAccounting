@@ -8,6 +8,8 @@
         <meta name="viewport" content="width-device-width, initial-scale=1.0" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap.min.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap-theme.min.css" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.css" />
+        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.bootstrap3.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/custom.css" />
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>{% block title %}{% endblock %} - Acorn Community</title>
@@ -17,8 +19,10 @@
         {% block site_wrapper %}{% endblock %}
         <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
         <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="{{ STATIC_URL }}js/selectize.min.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
+                $('.autocomplete-select').selectize();
                 $('tr.clickable').click(function() {
                     var href = $(this).find("a").attr("href");
                     if(href) {

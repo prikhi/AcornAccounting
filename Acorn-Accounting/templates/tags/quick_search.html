@@ -1,13 +1,17 @@
-<div id="quick_search">
-<form action="{% url accounts.views.quick_account_search %}" method="GET">
-    {{ quick_account_form }}
-</form>
-<br />
-<form action="{% url accounts.views.quick_bank_search %}" method="GET">
-    {{ quick_bank_form }}
-</form>
-<br />
-<form action="{% url accounts.views.quick_event_search %}" method="GET">
-    {{ quick_event_form }}
-</form>
+<div>
+  <form id="id_quick_account" action="{% url accounts.views.quick_account_search %}" method="GET" class="navbar-form navbar-left" role="search">
+    <div class="form-group">
+      {{ quick_account_form }}
+    </div>
+  </form>
+  <form id="id_quick_bank" action="{% url accounts.views.quick_bank_search %}" method="GET" class="navbar-form navbar-left hidden-sm" role="search">
+    <div class="form-group">
+      {{ quick_bank_form }}
+    </div>
+  </form>
+  <form id="id_quick_event" action="{% url accounts.views.quick_event_search %}" method="GET" class="navbar-form navbar-left hidden-md hidden-sm" role="search">
+    <div class="form-group">
+      {{ quick_event_form }}
+    </div>
+  </form>
 </div>

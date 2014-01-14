@@ -57,22 +57,30 @@ class DateRangeForm(forms.Form):
 class QuickAccountForm(forms.Form):
     account = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name'),
-        widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
-        label='', empty_label='Jump to an Account')
+        widget=forms.Select(attrs={'onchange': 'this.form.submit();',
+                                   'class': 'form-control autocomplete-select',
+                                   'placeholder': 'Jump to an Account'}),
+        label='', empty_label=''
+    )
 
 
 class QuickBankForm(forms.Form):
     bank = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name').filter(bank=True),
-        widget=forms.Select(attrs={'onchange': 'this.form.submit();'}),
-        label='', empty_label='Jump to a Register')
+        widget=forms.Select(attrs={'onchange': 'this.form.submit();',
+                                   'class': 'form-control autocomplete-select',
+                                   'placeholder': 'Jump to a Bank Journal'}),
+        label='', empty_label=''
+    )
 
 
 class QuickEventForm(forms.Form):
-    event = forms.ModelChoiceField(queryset=Event.objects.all(),
-                                   widget=forms.Select(attrs={
-                                       'onchange': 'this.form.submit();'}),
-                                   label='', empty_label='Jump to an Event')
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.all(), label='', empty_label='',
+        widget=forms.Select(attrs={'onchange': 'this.form.submit();',
+                                   'class': 'form-control autocomplete-select',
+                                   'placeholder': 'Jump to an Event'}),
+       )
 
 
 @parsleyfy
@@ -103,19 +111,19 @@ class TransactionForm(forms.ModelForm):
     credit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                 widget=forms.TextInput(
                                     attrs={'size': 10, 'maxlength': 10,
-                                           'class': 'credit form-control'}))
+                                           'class': 'credit form-control enter-mod'}))
     debit = forms.DecimalField(required=False, min_value=Decimal("0.01"),
                                widget=forms.TextInput(
                                    attrs={'size': 10, 'maxlength': 10,
-                                          'class': 'debit form-control'}))
+                                          'class': 'debit form-control enter-mod'}))
 
     class Meta:
         model = Transaction
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
         widgets = {
             'account': forms.Select(attrs={'class': 'account form-control'}),
-            'detail': forms.TextInput(attrs={'class': 'form-control'}),
-            'event': forms.Select(attrs={'class': 'form-control'}),
+            'detail': forms.TextInput(attrs={'class': 'form-control enter-mod'}),
+            'event': forms.Select(attrs={'class': 'form-control enter-mod'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -182,11 +190,11 @@ class TransferForm(forms.Form):
     amount = forms.DecimalField(
         max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
         widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
-                                      'class': 'amount form-control'})
+                                      'class': 'amount form-control enter-mod'})
     )
     detail = forms.CharField(
         max_length=50, required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
+        widget=forms.TextInput(attrs={'class': 'form-control enter-mod'})
     )
 
     def clean(self):
@@ -318,7 +326,7 @@ class BankTransactionForm(forms.ModelForm):
     amount = forms.DecimalField(
         max_digits=19, decimal_places=4, min_value=Decimal("0.01"),
         widget=forms.TextInput(attrs={'size': 10, 'maxlength': 10,
-                                      'class': 'amount form-control'})
+                                      'class': 'amount form-control enter-mod'})
     )
 
     class Meta:
@@ -326,8 +334,8 @@ class BankTransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {
             'account': forms.Select(attrs={'class': 'account form-control'}),
-            'detail': forms.TextInput(attrs={'class': 'form-control'}),
-            'event': forms.Select(attrs={'class': 'form-control'}),
+            'detail': forms.TextInput(attrs={'class': 'form-control enter-mod'}),
+            'event': forms.Select(attrs={'class': 'form-control enter-mod'}),
         }
 
     def __init__(self, *args, **kwargs):
