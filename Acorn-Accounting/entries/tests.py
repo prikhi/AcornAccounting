@@ -11,6 +11,7 @@ from core.tests import (create_header, create_entry, create_account,
 from accounts.models import Account
 from core.forms import DateRangeForm
 from events.models import Event
+from fiscalyears.fiscalyears import get_current_fiscal_year_start
 from fiscalyears.models import FiscalYear
 
 from .forms import (JournalEntryForm, TransactionFormSet, TransferFormSet,
@@ -40,7 +41,7 @@ class JournalEntryModelTests(TestCase):
         entry_date = datetime.date(2011, 2, 5)
         entry = JournalEntry.objects.create(
             date=entry_date, memo='before fiscal year')
-        self.assertEqual(FiscalYear.objects.current_start(),
+        self.assertEqual(get_current_fiscal_year_start(),
                          datetime.date(2012, 1, 1))
         self.assertFalse(entry.in_fiscal_year())
 
@@ -53,7 +54,7 @@ class JournalEntryModelTests(TestCase):
         entry_date = datetime.date(2012, 2, 5)
         entry = JournalEntry.objects.create(date=entry_date,
                                             memo='in fiscal year')
-        self.assertEqual(FiscalYear.objects.current_start(),
+        self.assertEqual(get_current_fiscal_year_start(),
                          datetime.date(2012, 1, 1))
         self.assertTrue(entry.in_fiscal_year())
 

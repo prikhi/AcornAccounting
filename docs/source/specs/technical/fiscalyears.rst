@@ -8,10 +8,10 @@ fiscalyears Package
 .. automodule:: fiscalyears.models
     :members:
 
-:mod:`managers` Module
------------------------
+:mod:`fiscalyears` Module
+--------------------------
 
-.. automodule:: fiscalyears.managers
+.. automodule:: fiscalyears.fiscalyears
     :members:
 
 :mod:`forms` Module

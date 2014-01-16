@@ -8,6 +8,7 @@ from parsley.decorators import parsleyfy
 from accounts.models import Account
 from entries.models import Transaction
 
+from .fiscalyears import get_current_fiscal_year_start
 from .models import FiscalYear
 
 
@@ -51,7 +52,7 @@ class FiscalYearForm(forms.ModelForm):
 
         """
         new_fiscal_year = self.cleaned_data.get('year')
-        current_year = FiscalYear.objects.current_start()
+        current_year = get_current_fiscal_year_start()
         if current_year and new_fiscal_year < current_year.year:
             raise forms.ValidationError("The Year cannot be before the "
                                         "current Year.")

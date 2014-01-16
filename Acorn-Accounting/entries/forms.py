@@ -8,7 +8,7 @@ from parsley.decorators import parsleyfy
 from accounts.models import Account
 from core.forms import RequiredBaseFormSet, RequiredBaseInlineFormSet
 from events.models import Event     # Needed for Sphinx
-from fiscalyears.models import FiscalYear
+from fiscalyears.fiscalyears import get_current_fiscal_year_start
 
 from .models import (Transaction, JournalEntry, BankSpendingEntry,
                      BankReceivingEntry)
@@ -32,7 +32,7 @@ class JournalEntryForm(forms.ModelForm):
         """The date must be in the Current :class:`FiscalYear`."""
         # TODO: Refactor out into subclass from this and BaseBankForm
         input_date = self.cleaned_data.get('date')
-        fiscal_year_start = FiscalYear.objects.current_start()
+        fiscal_year_start = get_current_fiscal_year_start()
         if fiscal_year_start is not None and input_date < fiscal_year_start:
             raise forms.ValidationError("The date must be in the current "
                                         "Fiscal Year.")
@@ -229,7 +229,7 @@ class BaseBankForm(forms.ModelForm):
     def clean_date(self):
         """The date must be in the Current :class:`FiscalYear`."""
         date = self.cleaned_data.get('date')
-        start = FiscalYear.objects.current_start()
+        start = get_current_fiscal_year_start()
         if start is not None and date < start:
             raise forms.ValidationError("The date must be in the current "
                                         "Fiscal Year.")

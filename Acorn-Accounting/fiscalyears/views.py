@@ -13,6 +13,7 @@ from entries.models import (Transaction, JournalEntry, BankSpendingEntry,
                             BankReceivingEntry)
 
 
+from .fiscalyears import get_current_fiscal_year_start
 from .forms import FiscalYearForm, FiscalYearAccountsFormSet
 from .models import FiscalYear
 
@@ -68,7 +69,7 @@ def add_fiscal_year(request, template_name="fiscalyears/year_add.html"):
         if valid and previous_year:
             # Create HistoricalAccounts
             stop_date = previous_year.date
-            start_date = FiscalYear.objects.current_start()
+            start_date = get_current_fiscal_year_start()
             # TODO: Refactor into FiscalYear.objects.current_years_months()
             for month in rrule.rrule(rrule.MONTHLY, dtstart=start_date,
                                      until=stop_date):

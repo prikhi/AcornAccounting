@@ -8,18 +8,19 @@ from entries.models import Transaction, BankSpendingEntry, BankReceivingEntry
 from core.tests import (create_header, create_entry, create_account,
                         create_transaction)
 
-from .models import FiscalYear
+from .fiscalyears import get_current_fiscal_year_start
 from .forms import FiscalYearForm, FiscalYearAccountsFormSet
+from .models import FiscalYear
 
 
-class FiscalYearManagerTests(TestCase):
-    """Test the manager class for FiscalYears"""
+class FiscalYearModuleTests(TestCase):
+    """Test the utility functions in the fiscalyears.fiscalyears module."""
     def test_current_start_no_years(self):
         """
         The ``current_start`` method should return ``None`` if there are no
         ``FiscalYears``.
         """
-        self.assertEqual(FiscalYear.objects.current_start(), None)
+        self.assertEqual(get_current_fiscal_year_start(), None)
 
     def test_current_start_one_year(self):
         """
@@ -29,7 +30,7 @@ class FiscalYearManagerTests(TestCase):
         """
         FiscalYear.objects.create(year=2012, end_month=2, period=12)
         start = datetime.date(2011, 3, 1)
-        self.assertEqual(FiscalYear.objects.current_start(), start)
+        self.assertEqual(get_current_fiscal_year_start(), start)
 
     def test_current_start_two_years(self):
         """
@@ -40,7 +41,7 @@ class FiscalYearManagerTests(TestCase):
         FiscalYear.objects.create(year=2012, end_month=2, period=12)
         FiscalYear.objects.create(year=2012, end_month=6, period=12)
         start = datetime.date(2012, 3, 1)
-        self.assertEqual(FiscalYear.objects.current_start(), start)
+        self.assertEqual(get_current_fiscal_year_start(), start)
 
 
 class FiscalYearFormTests(TestCase):

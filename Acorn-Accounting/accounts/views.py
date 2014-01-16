@@ -10,7 +10,7 @@ from django.shortcuts import render, get_object_or_404
 
 
 from core.core import american_today, process_date_range_form
-from fiscalyears.models import FiscalYear
+from fiscalyears.fiscalyears import get_current_fiscal_year_start
 
 from .forms import AccountReconcileForm, ReconcileTransactionFormSet
 from .models import Account, Header, HistoricalAccount
@@ -73,19 +73,20 @@ def show_account_detail(request, account_slug,
     ``final_balance`` attribute.
 
     If the provided ``start_date`` is before the start of the current
-    :class:`FiscalYear`, the running balance and
-    :class:`Transaction's<Transaction>` ``final_balance`` will not be
-    calculated.
+    :class:`~fiscalyears.models.FiscalYear`, the running balance and
+    :class:`Transaction's<entries.models.Transaction>` ``final_balance`` will
+    not be calculated.
 
-    If there are no :class:`Transactions<Transaction>` the ``start_balance``
-    and ``end_balance`` will both be set to the balance on the ``start_date``
+    If there are no :class:`Transactions<entries.models.Transaction>` the
+    ``start_balance`` and ``end_balance`` will both be set to the balance on
+    the ``start_date``
 
-    :param account_slug: The :attr:`Account.slug` of the :class:`Account` to  \
-            retrieve.
+    :param account_slug: The :attr:`~accounts.models.Account.slug` of top   \
+            :class:`Account` to retrieve.
     :type account_slug: string
     :param template_name: The template file to use to render the response.
     :type template_name: string
-    :returns: HTTP Response with :class:`Transactions<Transaction>` and \
+    :returns: HTTP Response with :class:`Transactions<Transaction>` and     \
             balance counters.
     :rtype: HttpResponse
     """
@@ -98,7 +99,7 @@ def show_account_detail(request, account_slug,
         date_range_query).select_related(
             'journal_entry', 'bankspendingentry', 'bankspend_entry',
             'bankreceivingentry', 'bankreceive_entry')
-    current_fiscal_start_date = FiscalYear.objects.current_start()
+    current_fiscal_start_date = get_current_fiscal_year_start()
     show_balance = (current_fiscal_start_date is None or
                     current_fiscal_start_date <= start_date)
     if not show_balance:

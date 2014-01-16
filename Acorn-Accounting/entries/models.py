@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
-from fiscalyears.models import FiscalYear
+from fiscalyears.fiscalyears import get_current_fiscal_year_start
 
 from .managers import TransactionManager
 
@@ -93,7 +93,7 @@ class BaseJournalEntry(CachingMixin, models.Model):
         :rtype: bool
 
         """
-        current_year_start = FiscalYear.objects.current_start()
+        current_year_start = get_current_fiscal_year_start()
         if current_year_start is not None and current_year_start > self.date:
             return False
         return True

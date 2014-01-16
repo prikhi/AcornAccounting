@@ -1,10 +1,8 @@
 import calendar
 import datetime
 
-from caching.base import CachingMixin
+from caching.base import CachingManager, CachingMixin
 from django.db import models
-
-from .managers import FiscalYearManager
 
 
 class FiscalYear(CachingMixin, models.Model):
@@ -55,7 +53,7 @@ class FiscalYear(CachingMixin, models.Model):
     # seemlessly by making them properties.
     date = models.DateField(editable=False, blank=True)
 
-    objects = FiscalYearManager()
+    objects = CachingManager()
 
     class Meta:
         ordering = ('date',)
