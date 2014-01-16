@@ -94,21 +94,22 @@ Install the development prerequisites:
 
 .. code-block:: bash
 
-    $ pip install -r requirements/develop.txt
+    $ pip install -r requirements/local.txt
 
-Setup the database and migrations:
+Setup the database and migrations, note that you must export a
+``DJANGO_SETTINGS_MODULE`` or specify the settings module:
 
 .. code-block:: bash
 
     $ cd Acorn-Accounting/
-    $ ./manage.py syncdb
-    $ ./manage.py migrate
+    $ ./manage.py syncdb --settings=accounting.settings.local
+    $ ./manage.py migrate --settings=accounting.settings.local
 
 Run the development server:
 
 .. code-block:: bash
 
-    $ ./manage.py runserver localhost:8000
+    $ ./manage.py runserver localhost:8000 --settings=accounting.settings.local
 
 You should now have a working copy of the application on your workstation,
 accessible at http://localhost:8000/.
@@ -118,7 +119,8 @@ available IP addresses instead of ``localhost``:
 
 .. code-block:: bash
 
-    $ ./manage.py runserver 0.0.0.0:8000
+    $ ./manage.py runserver 0.0.0.0:8000 --settings=accounting.settings.local
+
 
 Code Conventions
 =================
@@ -352,8 +354,8 @@ When fixing bugs, a test proving the bug's existence should first be written.
 This test should fail initially and pass when the fix is implemented. This
 ensures that the bug does not reappear in future versions.
 
-All tests must pass before any branch is merged into the public
-branches(``master``, ``develop``, ``future``).
+All tests must pass before any branch is merged into the public branches
+``master`` and ``develop``.
 
 Our goal is to achieve 100% test coverage. Any code that does not have tests
 written for it should be considered bugged.
@@ -362,24 +364,58 @@ Test coverage will be monitored, and no commits that reduce the Test Coverage
 will be merged into the main branches. The `django-nose
 <https://github.com/jbalogh/django-nose>`_ and `coverage
 <https://pypi.python.org/pypi/coverage/3.5.2>`_ packages are recommended for
-monitoring test coverage. These packages are included in the ``tests``
+monitoring test coverage. These packages are included in the ``test``
 requirements file, which can be installed by running:
 
 .. code-block:: bash
 
-    $ pip install -r requirements/tests.txt
+    $ pip install -r requirements/test.txt
 
 You can then check a branch's Test Coverage by running:
 
 .. code-block:: bash
 
-    $ manage.py test --with-coverage --cover-package=app_name --cover-branches
+    $ manage.py test --settings=accounting.settings.test
 
 or
 
 .. code-block:: bash
 
-    $ coverage -x manage.py test app_name.tests
+    $ coverage -x manage.py test --settings=accounting.settings.test
+
+If the code coverage is missing large chunks, try running the tests like this:
+
+.. code-block:: bash
+
+    $ coverage run manage.py test --settings=accounting.settings.test
+
+To clear the coverage history, use the ``--cover-erase`` flag:
+
+.. code-block:: bash
+
+    $ manage.py test --settings=accounting.settings.test --cover-erase
+
+You can generate an html report of the coverage by adding the ``--cover-html``
+flag:
+
+.. code-block:: bash
+
+    $ manage.py test --settings=accounting.settings.test --cover-html
+
+You can specify which package to test. Make sure to limit the coverage with
+the ``--cover-package=`` flag:
+
+.. code-block:: bash
+
+    $ manage.py test accounts --settings=accounting.settings.test           \
+        --cover-package=accounts
+
+Or even exactly which test to run:
+
+.. code-block:: bash
+
+    $ manage.py test accounts.tests:BaseAccountModelTests.test_balance_flip \
+        --settings=accounting.settings.test
 
 Documentation
 ==============

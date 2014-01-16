@@ -2557,4 +2557,3 @@ class BankJournalViewTests(TestCase):
                          datetime.date(2011, 1, 1))
         self.assertEqual(response.context['stop_date'],
                          datetime.date(2012, 3, 7))
-

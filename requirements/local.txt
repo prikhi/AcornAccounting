@@ -1,0 +1,8 @@
+-r test.txt
+
+Sphinx==1.2
+sphinxcontrib-plantuml==0.3
+django-debug-toolbar
+django-extensions
+django-snippetscream
+pep8

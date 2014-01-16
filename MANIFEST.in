@@ -1,0 +1,9 @@
+include *.txt
+
+include docs/Makefile
+recursive-include docs/source *
+
+recursive-include acornaccounting *.py *.html
+recursive-include acornaccounting/static *
+
+prune */.ropeproject

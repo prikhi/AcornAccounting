@@ -82,9 +82,10 @@ You may then install dependencies into this virtual environment. There are
 multiple tiers of dependencies:
 
 * ``base`` - minimum requirements needed to run the application
-* ``develop`` - development prerequisites such as the test runner and
-  documentation builders
-* ``production`` - all the packages required for full usage
+* ``test`` - requirements necessary for running the test suite
+* ``local`` - development prerequisites such as the the debug toolbar and
+    documentation builders
+* ``production`` - all packages required for real world usage
 
 A set of dependencies may be installed via `pip`_:
 
@@ -104,6 +105,20 @@ Amount, etc.
 
 Also talk about how to specify settings in Environmental Variables instead of
 in files, especially for things like ``DJANGO_SECRET_KEY``.
+
+Some settings are set through environmental variables instead of files. These
+include settings with sensitive information, and allows us to keep the
+information out of version control.
+
+You may set these variables directly in the terminal or add them to your
+virtualenv's ``activate`` script::
+
+    $ DB_USER='prikhi' DB_NAME='DjangoAccounting' ./manage.py runserver
+    $ export DB_NAME='DjangoAccounting'
+    $ ./manage.py runserver
+
+The required environmental variables are ``DJANGO_SECRET_KEY``, ``DB_NAME`` and
+``DB_USER``.
 
 
 Deployment
@@ -136,7 +151,7 @@ Building the Documentation
 
 .. code-block:: bash
 
-    $ pip install -r requirements/docs.txt
+    $ pip install -r requirements/local.txt
 
 `Java`_ is optional, but required to create the plantUML images. You can
 install it via your package manager.
@@ -149,12 +164,14 @@ On Arch Linux:
 
 On Debian:
 
+.. code-block:: bash
+
     $ sudo apt-get install default-jdk
 
 On Slackware you must manually download the source from Oracle, `available here
 <http://www.oracle.com/technetwork/java/javase/downloads/index.html>`_. You may
 then use the slackbuild at
-http://slackbuilds.org/repository/14.0/development/jdk/ to install the package:
+http://slackbuilds.org/repository/14.1/development/jdk/ to install the package:
 
 .. code-block:: bash
 
@@ -174,9 +191,10 @@ You can now build the full documentation in HTML or PDF format:
 
     $ cd docs/
     $ make html
-    $ make latex
+    $ make latexpdf
 
-The output files are located in ``docs/build/html`` and ``docs/build/latex``.
+The output files will be located in ``docs/build/html`` and
+``docs/build/latex``.
 
 
 .. _Java: http://www.java.com/en/

@@ -22,13 +22,13 @@ import sys
 # -- Custom configuration ------------------------------------------------------
 
 # Add the Django Project
-sys.path.append(os.path.abspath('../../Acorn-Accounting/'))
+sys.path.append(os.path.abspath('../../acornaccounting/'))
 
 # Setup Django settings/environment
 from django.core.management import setup_environ
-from accounting import settings
+from accounting.settings import production
 
-setup_environ(settings)
+setup_environ(production)
 
 # -- General configuration -----------------------------------------------------
 
@@ -57,7 +57,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Acorn Accounting'
-copyright = u'2013, Pavan Rikhi'
+copyright = u'2014, Pavan Rikhi'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

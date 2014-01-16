@@ -1,7 +1,7 @@
 import calendar
 import datetime
-from dateutil import rrule
 
+from dateutil import rrule
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db.models import Sum
