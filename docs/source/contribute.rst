@@ -417,6 +417,7 @@ Or even exactly which test to run:
     $ manage.py test accounts.tests:BaseAccountModelTests.test_balance_flip \
         --settings=accounting.settings.test
 
+
 Documentation
 ==============
 
@@ -431,6 +432,18 @@ Sphinx to use.
 Each feature or bug fix should include all applicable documentation changes such
 as changes in :ref:`Screen Designs` or the :ref:`API <Technical
 Specifications>`.
+
+To build the Documentation, install the prerequisites then run the make command
+to generate either html or pdf output:
+
+.. code-block:: bash
+
+    $ pip install -r requirements/local.txt
+    $ cd docs/
+    $ make html; make latexpdf
+
+The output files will be located in the ``docs/build`` directory.
+
 
 .. _Specifications:
 
