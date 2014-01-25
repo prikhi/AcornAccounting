@@ -1,0 +1,52 @@
+{% extends 'site.html' %}
+
+{% load core_filters %}
+
+
+{% block title %}
+  Events Report
+{% endblock %}
+
+
+{% block page_header %}
+  <h1>Events Report</h1>
+{% endblock %}
+
+
+{% block content %}
+
+{% for event in events %}
+    {% if forloop.first %}
+      <table class="table table-condensed table-hover">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Number</th>
+            <th>Name</th>
+            <th>City</th>
+            <th>State</th>
+            <th class="text-right">Net Change</th>
+          </tr>
+        </thead>
+        <tbody>
+    {% endif %}
+
+    <tr class="{% cycle main,alt %} clickable">
+        <td><a href="{{ event.get_absolute_url }}">{{ event.date|date:"m/d/Y" }}</a></td>
+        <td>{{ event.number }}</td>
+        <td>{{ event.name|capwords }}</td>
+        <td>{{ event.city|capwords }}</td>
+        <td>{{ event.state|capwords }}</td>
+        <td class="text-right">{{ event.get_net_change|currency }}</td>
+    </tr>
+
+    {% if forloop.last %}
+      </tbody>
+      </table>
+    {% endif %}
+{% empty %}
+  <p>Sorry, no Events were found. Please
+  <a href="{% url admin:events_event_add %}">create an Event</a> first.</p>
+{% endfor %}
+
+{% endblock %}

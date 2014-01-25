@@ -565,6 +565,7 @@ Account.
 
     Sample Journal Entry Detail Page.
 
+
 .. _Bank Receiving Entry Detail Design:
 
 Bank Receiving Entry
@@ -659,6 +660,7 @@ Account.
     Sample Bank Spending Entry Detail Page for an Entry with a ``Check
     Number``.
 
+
 .. _General Ledger Page Design:
 
 General Ledger Page
@@ -708,6 +710,7 @@ Account. Clicking on an Event in the table will direct the user to that Event's
     :align: center
 
     A Sample General Ledger Page, showing two General Journal Entries.
+
 
 .. _Bank Journal Page Design:
 
@@ -768,12 +771,41 @@ Account. Clicking on an Event in the table will direct the user to that Event's
     A Sample Bank Journal Page, showing both Bank Spending and Bank Receiving
     Entries.
 
+
 .. _Event Report Page Design:
 
-Event Report Page
+Events Report Page
 ------------------
 
-Not yet designed or implemented. See :ref:`Event Reports`.
+The Events Report Page shows an overview of all Events.
+
+**Entry Conditions**
+
+The page is accessible through the ``Events`` link in the :ref:`Reports
+Sub-Menu<Reports Submenu Design>`.
+
+**Initial Conditions**
+
+The page will contain a Heading and a table for displaying all Events.
+
+The Heading should be ``Events Report``.
+
+The table should have headers for each Event's date, name, number, city, state
+and net change. The net change should be the sum of all credits and debits
+related to the Event.
+
+**Final Conditions**
+
+Clicking a row in the Events table will redirect the user to that Event's
+:ref:`Detail Page<Event Detail Page Design>`.
+
+.. figure:: _images/wireframes/events_report.png
+    :alt: A Sample Events Report Page.
+    :width: 700px
+    :align: center
+
+    A Sample Events Report Page, showing two Events.
+
 
 .. _Reconcile Account Page Design:
 

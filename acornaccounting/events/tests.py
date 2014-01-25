@@ -9,41 +9,38 @@ from entries.models import Transaction
 from .models import Event
 
 
-class QuickEventSearchViewTests(TestCase):
-    """Test the quick_event_search view"""
+class EventModelTests(TestCase):
+    """Test the Event model."""
     def setUp(self):
-        """An Event to search for is required."""
-        self.event = Event.objects.create(name='test event', number='1',
+        """Create Headers, Accounts and an Event."""
+        self.liability_header = create_header('Liability Account')
+        self.liability_account = create_account('Liability Account',
+                                                self.liability_header, 0)
+        self.event = Event.objects.create(name="test", number=1201,
                                           date=datetime.date.today(),
-                                          city='mineral', state='VA')
+                                          city="Louisa", state="MD")
 
-    def test_quick_event_success(self):
-        """
-        A `GET` to the `quick_event_search` view with an `event_id` should
-        redirect to the Event's Detail page.
-        """
-        response = self.client.get(reverse('events.views.quick_event_search'),
-                                   data={'event': self.event.id})
-        self.assertRedirects(response,
-                             reverse('events.views.show_event_detail',
-                                     args=[self.event.id]))
+    def test_get_net_change(self):
+        """The get_net_change method returns the sum of all balance_deltas."""
+        entry = create_entry(datetime.date.today(), 'reconciled entry')
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.liability_account,
+                                   balance_delta=25, event=self.event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.liability_account,
+                                   balance_delta=-15, event=self.event)
 
-    def test_quick_event_fail_not_event(self):
-        """
-        A `GET` to the `quick_event_search` view with an `event_id` should
-        return a 404 if the Event does not exist.
-        """
-        response = self.client.get(
-            reverse('events.views.quick_event_search'), data={'event': 9001})
-        self.assertEqual(response.status_code, 404)
+        self.event = Event.objects.get()
+        net_change = self.event.get_net_change()
 
-    def test_quick_event_fail_no_event(self):
-        """
-        A `GET` to the `quick_event_search` view with no `event_id` should
-        return a 404.
-        """
-        response = self.client.get(reverse('events.views.quick_event_search'))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(net_change, 10)
+
+    def test_get_net_change_no_transactions(self):
+        """Events with no transactions should return a net change of 0."""
+
+        net_change = self.event.get_net_change()
+
+        self.assertEqual(net_change, 0)
 
 
 class EventDetailViewTests(TestCase):

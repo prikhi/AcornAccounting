@@ -26,3 +26,12 @@ class Event(CachingMixin, models.Model):
         """Return the URL of the Event's Details Page."""
         return reverse('events.views.show_event_detail',
                        kwargs={'event_id': self.id})
+
+    def get_net_change(self):
+        """Return the sum of all related credit and debit charges.
+
+        :rtype: :class:`~decimal.Decimal`
+
+        """
+        _, _, net_change = self.transaction_set.get_totals(net_change=True)
+        return net_change

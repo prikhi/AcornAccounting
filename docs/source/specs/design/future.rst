@@ -85,19 +85,6 @@ Application should display:
 * Alert for accountants/administrators when Accounts hit their budget or get
   within $X.XX of their budget.
 
-.. _Event Reports:
-
-Event Reports
---------------
-
-Events Reports should show a table of all events, ordered by date with the most
-recent event first.
-
-The table should display each Event's Date, Name, City, State and Net Change.
-
-Clicking a row of the table should display the :ref:`Event Detail Page <Event
-Detail Page Design>` for the selected Event.
-
 .. _PL Reports:
 
 Profit and Loss Reports

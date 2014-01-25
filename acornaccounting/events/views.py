@@ -1,18 +1,6 @@
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 
 from .models import Event
-
-
-def quick_event_search(request):
-    """Processes search for events"""
-    if 'event' in request.GET:
-        event = get_object_or_404(Event, pk=request.GET.get('event'))
-        return HttpResponseRedirect(reverse('show_event_detail',
-                                            kwargs={'event_id': event.id}))
-    else:
-        raise Http404
 
 
 def show_event_detail(request, event_id,

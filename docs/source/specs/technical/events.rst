@@ -8,12 +8,6 @@ events Package
 .. automodule:: events.models
     :members:
 
-:mod:`forms` Module
--------------------
-
-.. automodule:: events.forms
-    :members:
-
 :mod:`views` Module
 -------------------
 

@@ -32,9 +32,8 @@ body { padding-top: 30px; }
  * navbar in Chrome
  *
  */
-#id_quick_account .selectize-control { width: 162px; }
-#id_quick_bank .selectize-control { width: 190px; }
-#id_quick_event .selectize-control { width: 155px; }
+#id_quick_account .selectize-control { width: 178px; }
+#id_quick_bank .selectize-control { width: 197px; }
 
 
 /* Print Styles */

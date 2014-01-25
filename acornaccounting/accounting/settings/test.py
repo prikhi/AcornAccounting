@@ -13,7 +13,7 @@ NOSE_ARGS = [
     '--with-coverage',
     '--cover-branches',
     '--with-progressive',
-    '--cover-package=accounts,core,entries,events,fiscalyears'
+    '--cover-package=accounts,core,entries,events,fiscalyears,reports'
 ]
 
 DATABASES = {

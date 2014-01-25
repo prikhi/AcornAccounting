@@ -45,6 +45,7 @@ INSTALLED_APPS = (
     'entries',
     'events',
     'fiscalyears',
+    'reports',
 )
 
 
@@ -80,7 +81,7 @@ CONSTANCE_CONFIG = {
                        "your company's city, state and zipcode."),
     'PHONE': ('(456)555-0925', "your company's phone number."),
     'TAX_ID': ('00-0000000', "your company's federal tax id.")
-    }
+}
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
@@ -151,7 +152,7 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-MESSAGE_TAGS = { messages.ERROR: 'danger' }
+MESSAGE_TAGS = {messages.ERROR: 'danger'}
 
 SITE_ID = 1
 TIME_ZONE = 'America/New_York'
