@@ -37,10 +37,21 @@ Specify some environmental variables:
     $ export DB_NAME="<database name>"
     $ export DB_USER="<database username>"
 
+Create all necessary tables:
+
+    $ python manage.py syncdb --settings=accounting.settings.base
+    $ python manage.py migrate --settings=accounting.settings.base
+
 Run the development server:
 
     $ cd acornaccounting
     $ python manage.py runserver --settings=accounting.settings.base
+
+You can omit the ``settings`` flag by setting the ``DJANGO_SETTINGS_MODULE``
+environmental variable:
+
+    $ export DJANGO_SETTINGS_MODULE=accounting.settings.base
+    $ python manage.py runserver
 
 
 Running Tests

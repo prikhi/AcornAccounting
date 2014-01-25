@@ -75,8 +75,6 @@ Specifications`.
 Development Quickstart
 =======================
 
-Brief guide to quickly getting up and running. A quick example:
-
 First, start by cloning the source code repository:
 
 .. code-block:: bash
@@ -250,10 +248,17 @@ Workflow
 ---------
 
 The general workflow we follow is based on `A Git Workflow for Agile Teams`_.
+
 Work on a new task begins by branching from ``develop``. Feature branch names
-should be in the format of ``tasknumber-short-title-or-name``. Commits on this
-branch should be early and often. These commit messages are not permanent and
-do not have to use the format specified above.
+should be in the format of ``tasknumber-short-title-or-name``:
+
+.. code-block:: bash
+
+    $ git checkout -b 142-add-account-history develop
+
+
+Commits on this branch should be early and often. These commit messages are not
+permanent and do not have to use the format specified above.
 
 You should fetch and rebase against the upstream repository often in order to
 prevent merging conflicts:
@@ -284,7 +289,7 @@ upstream repository:
 .. code-block:: bash
 
     $ git checkout develop
-    $ git merge tasknumber-short-title-or-name
+    $ git merge 142-add-account-history
     $ git push origin develop
 
 Preparing a Release
@@ -296,11 +301,16 @@ Quick overview(will be expanded and solidified before v1.0.0 release):
 
    .. code-block:: bash
 
-       $ git checkout -b release-1.0.0 develop
+       $ git checkout -b release-1.2.0 develop
 
 #. Branch, Fix and Merge any bugs.
 #. Bump version number and year in ``setup.py`` and ``docs/source/conf.py``.
-#. Commit version changes.
+#. Commit version changes:
+
+   .. code-block:: bash
+
+       $ git commit -a -m "Prepare v1.2.0 Release"
+
 #. Merge into master and push upstream:
 
    .. code-block:: bash
