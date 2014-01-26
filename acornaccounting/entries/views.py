@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
-from core.core import american_today, process_date_range_form
+from core.core import today_in_american_format, process_date_range_form
 
 from .forms import (JournalEntryForm, BankSpendingForm, BankReceivingForm,
                     TransactionFormSet, TransferFormSet,
@@ -179,7 +179,7 @@ def add_journal_entry(request, entry_id=None,
             entry_form.initial['date'] = entry_form.instance.date.strftime(
                 '%m/%d/%Y')
         else:
-            entry_form.initial['date'] = american_today()
+            entry_form.initial['date'] = today_in_american_format()
         for form in transaction_formset.forms:
             if form.instance.pk:
                 if form.instance.balance_delta > 0:
@@ -323,7 +323,7 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                 if not form.empty_permitted:
                     form.initial['amount'] = abs(form.instance.balance_delta)
         else:
-            entry_form.initial['date'] = american_today()
+            entry_form.initial['date'] = today_in_american_format()
             if 'bank_account' in request.GET:
                 entry_form.initial['account'] = request.GET.get('bank_account')
     return render(request, template_name,
@@ -397,7 +397,7 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
         if entry.pk:
             entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
         else:
-            entry_form.initial['date'] = american_today()
+            entry_form.initial['date'] = today_in_american_format()
     return render(request, template_name,
                   {'entry_form': entry_form,
                    'transaction_formset': transfer_formset,

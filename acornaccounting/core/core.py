@@ -3,33 +3,44 @@ import datetime
 from .forms import DateRangeForm
 
 
-def american_today():
-    """Return the current Date in ``MM/DD/YYYY`` format."""
-    return datetime.date.today().strftime('%m/%d/%Y')
+def today_in_american_format():
+    """Return the Today's Date in ``MM/DD/YYYY`` format."""
+    return _american_format(datetime.date.today())
 
 
-def first_of_month():
-    """Return the first day of the current month."""
+def first_day_of_month():
+    """Return the first day of the current month in ``MM/DD/YYYY`` format."""
     today = datetime.date.today()
-    return datetime.date(today.year, today.month, 1).strftime('%m/%d/%Y')
+    return _american_format(datetime.date(today.year, today.month, 1))
+
+
+def first_day_of_year():
+    """Return the first day of the current year in ``MM/DD/YYYY`` format."""
+    today = datetime.date.today()
+    return _american_format(datetime.date(today.year, 1, 1))
+
+
+def _american_format(date):
+    """Return a string of the date in the American ``MM/DD/YY`` format."""
+    return date.strftime('%m/%d/%Y')
 
 
 def process_date_range_form(request):
     """
-    Returns a :class:`~.forms.DateRangeForm`, ``startdate`` and ``stopdate``
+    Returns a :class:`~.forms.DateRangeForm`, ``start_date`` and ``stop_date``
     based on the request ``GET`` data.  Defaults to using beginning of this
     month to today.
     """
-    form = DateRangeForm(initial={'startdate': first_of_month(),
-                                  'stopdate': american_today()})
-    stopdate = datetime.date.today()
-    startdate = datetime.date(stopdate.year, stopdate.month, 1)
-    if 'startdate' in request.GET and 'stopdate' in request.GET:
+    form = DateRangeForm(initial={'start_date': first_day_of_month(),
+                                  'stop_date': today_in_american_format()})
+    stop_date = datetime.date.today()
+    start_date = datetime.date(stop_date.year, stop_date.month, 1)
+    if 'start_date' in request.GET and 'stop_date' in request.GET:
         form = DateRangeForm(request.GET)
         if form.is_valid():
-            startdate = form.cleaned_data.get('startdate', startdate)
-            stopdate = form.cleaned_data.get('stopdate', stopdate)
-    return form, startdate, stopdate
+            start_date = form.cleaned_data.get('start_date', start_date)
+            stop_date = form.cleaned_data.get('stop_date', stop_date)
+    return form, start_date, stop_date
 
 
 def process_quick_search_form(get_dictionary, get_variable, form):

@@ -29,13 +29,19 @@
         <script type="text/javascript" src="{{ STATIC_URL }}js/selectize.min.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
+                // Turn Select widgets into Autocompletes
                 $('.autocomplete-select').selectize();
+                // Allow the user to click anywhere in a row to visit the link
                 $('tr.clickable').click(function() {
                     var href = $(this).find("a").attr("href");
                     if(href) {
                         window.location = href;
                         $(this).addClass("clickable");
                     }
+                });
+                // When clicked, redirect to the Trial Balance Report
+                $('#trial-balance-link').on('click', function () {
+                    window.location = "{% url reports.views.trial_balance_report %}";
                 });
             });
         </script>

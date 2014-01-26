@@ -94,7 +94,13 @@ class BaseAccountModel(MPTTModel, CachingMixin):
 
     def get_full_number(self):
         """Retrieve the Full Number from the model field."""
-        return self.full_number
+        if self.full_number is not None:
+            return self.full_number
+        else:
+            try:
+                return self._calculate_full_number()
+            except ValueError:
+                return None
     get_full_number.short_description = "Number"
 
     def _has_parent_changed(self):
@@ -223,17 +229,18 @@ class Account(BaseAccountModel):
         """
         if self.name == "Current Year Earnings":
             balance = Account.objects.filter(type__in=range(4, 9)).aggregate(
-                models.Sum('balance')).get('balance__sum', Decimal(0))
+                models.Sum('balance')).get('balance__sum') or Decimal(0)
         else:
             balance = self.balance
         if self.flip_balance():
             balance *= -1
         return balance
 
+    @cached_method
     def get_balance_by_date(self, date):
         """
-        Calculates the :class:`Accounts<Account>` balance on a specific
-        ``date``.
+        Calculate the :class:`Account's<Account>` balance at the end of a
+        specific ``date``.
 
         For the ``Current Year Earnings`` :class:`Account`,
         :class:`Transactions<Transaction>` from all :class:`Accounts<Account>`
@@ -241,7 +248,7 @@ class Account(BaseAccountModel):
 
         :param date: The day whose balance should be returned.
         :type date: datetime.date
-        :returns: The Account's balance on a specified date.
+        :returns: The Account's balance at the end of the specified date.
         :rtype: :class:`decimal.Decimal`
         """
         if self.name == "Current Year Earnings":
@@ -249,13 +256,14 @@ class Account(BaseAccountModel):
                 account__type__in=range(4, 9))
         else:
             transaction_set = self.transaction_set
-        transactions = transaction_set.filter(date__lte=date).order_by('-date',
-                                                                       '-id')
-        if self.name == "Current Year Earnings" and transactions.exists():
-            return transactions.aggregate(
-                models.Sum('balance_delta'))['balance_delta__sum']
-        elif transactions.exists():
-            return transactions[0].get_final_account_balance()
+        past_transactions = transaction_set.filter(date__lte=date).reverse()
+
+        if self.name == "Current Year Earnings":
+            return (past_transactions.aggregate(
+                models.Sum('balance_delta'))['balance_delta__sum'] or
+                Decimal(0))
+        elif past_transactions:
+            return past_transactions[0].get_final_account_balance()
         else:
             transaction_sum = (transaction_set.all().aggregate(
                 models.Sum('balance_delta'))['balance_delta__sum'] or
@@ -287,8 +295,8 @@ class Account(BaseAccountModel):
             query.add(models.Q(account__type__in=range(4, 9)), models.Q.AND)
         else:
             query.add(models.Q(account__id=self.id), models.Q.AND)
-        (_, _, net_change) = Transaction.objects.get_totals(query,
-                                                            net_change=True)
+        (_, _, net_change) = Transaction.objects.filter(query).get_totals(
+            net_change=True)
         if self.flip_balance():
             net_change *= -1
         return net_change

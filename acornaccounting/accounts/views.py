@@ -1,4 +1,3 @@
-import calendar
 import datetime
 
 from dateutil import relativedelta
@@ -9,7 +8,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 
 
-from core.core import american_today, process_date_range_form
+from core.core import today_in_american_format, process_date_range_form
 from fiscalyears.fiscalyears import get_current_fiscal_year_start
 
 from .forms import AccountReconcileForm, ReconcileTransactionFormSet
@@ -83,9 +82,9 @@ def show_account_detail(request, account_slug,
 
     :param account_slug: The :attr:`~accounts.models.Account.slug` of top   \
             :class:`Account` to retrieve.
-    :type account_slug: string
+    :type account_slug: str
     :param template_name: The template file to use to render the response.
-    :type template_name: string
+    :type template_name: str
     :returns: HTTP Response with :class:`Transactions<Transaction>` and     \
             balance counters.
     :rtype: HttpResponse
@@ -93,12 +92,13 @@ def show_account_detail(request, account_slug,
     form, start_date, stop_date = process_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug)
     date_range_query = (Q(date__lte=stop_date) & Q(date__gte=start_date))
-    debit_total, credit_total, net_change = account.transaction_set.get_totals(
-        query=date_range_query, net_change=True)
+    debit_total, credit_total, net_change = account.transaction_set.filter(
+        date_range_query).get_totals(net_change=True)
     transactions = account.transaction_set.filter(
-        date_range_query).select_related(
-            'journal_entry', 'bankspendingentry', 'bankspend_entry',
-            'bankreceivingentry', 'bankreceive_entry')
+        date_range_query).select_related('journal_entry', 'bankspendingentry',
+                                         'bankspend_entry',
+                                         'bankreceivingentry',
+                                         'bankreceive_entry')
     current_fiscal_start_date = get_current_fiscal_year_start()
     show_balance = (current_fiscal_start_date is None or
                     current_fiscal_start_date <= start_date)
@@ -225,9 +225,11 @@ def bank_journal(request, account_slug,
                             Q(bankreceivingentry__isnull=False)) &
                            (Q(date__lte=stop_date) & Q(date__gte=start_date)))
     transactions = account.transaction_set.filter(
-        in_range_bank_query).select_related(
-            'journal_entry', 'bankspendingentry', 'bankspend_entry',
-            'bankreceivingentry', 'bankreceive_entry')
+        in_range_bank_query).select_related('journal_entry',
+                                            'bankspendingentry',
+                                            'bankspend_entry',
+                                            'bankreceivingentry',
+                                            'bankreceive_entry')
     return render(request, template_name, locals())
 
 
@@ -301,6 +303,6 @@ def reconcile_account(request, account_slug,
         reconciled_balance *= (-1 if account.flip_balance() else 1)
         account_form = AccountReconcileForm(
             prefix='account', instance=account,
-            initial={'statement_date': american_today(),
+            initial={'statement_date': today_in_american_format(),
                      'statement_balance': reconciled_balance})
     return render(request, template_name, locals())

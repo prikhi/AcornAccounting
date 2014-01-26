@@ -1,7 +1,6 @@
 import datetime
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db.models import ProtectedError
 from django.db.utils import IntegrityError
@@ -11,7 +10,6 @@ from core.forms import DateRangeForm
 from core.tests import (create_header, create_entry, create_account,
                         create_transaction)
 from entries.models import Transaction, BankReceivingEntry, BankSpendingEntry
-from events.models import Event
 from fiscalyears.models import FiscalYear
 
 from .models import Account, Header, HistoricalAccount
@@ -33,7 +31,8 @@ class BaseAccountModelTests(TestCase):
         asset_acc = create_account('asset', asset_header, 0, 1)
         expense_acc = create_account('expense', expense_header, 0, 6)
         cost_acc = create_account('cost', cost_header, 0, 5)
-        oth_expense_acc = create_account('oth_expense', oth_expense_header, 0, 8)
+        oth_expense_acc = create_account('oth_expense', oth_expense_header,
+                                         0, 8)
 
         entry = create_entry(datetime.date.today(), 'Entry')
         create_transaction(entry, asset_acc, -20)
@@ -139,6 +138,21 @@ class BaseAccountModelTests(TestCase):
         self.assertFalse(header._has_parent_changed())
         self.assertFalse(account._has_parent_changed())
 
+    def test_get_full_number_calculate_if_none(self):
+        """If a saved instance has no number, it should be calculated."""
+        header = Header(name="this", slug="this", type=2, parent=None)
+        header.save()
+        header.full_number = None
+
+        self.assertEqual('2-0000', header.get_full_number())
+
+    def test_get_full_number_of_new_instance(self):
+        """The full number of a new unsaved instance should be None."""
+        header = create_header("header")
+        account = Account(name="this", slug="this", type=2, parent=header)
+
+        self.assertEqual(None, account.get_full_number())
+
 
 class HeaderModelTests(TestCase):
     def test_get_account_balance(self):
@@ -190,7 +204,6 @@ class HeaderModelTests(TestCase):
         asset_child2_child = Header.objects.get(slug="asset-child-2-child")
         liability_child = Header.objects.get(slug="me-too")
 
-        print asset_child.get_root().get_descendants()
         self.assertEqual(asset_child.full_number,
                          '{0}-0200'.format(asset_child.type))
         self.assertEqual(liability_child.full_number,
@@ -1798,7 +1811,8 @@ class AccountReconcileViewTests(TestCase):
 
         """
         today = datetime.date.today()
-        FiscalYear.objects.create(year=today.year+1, end_month=12, period=12)
+        FiscalYear.objects.create(year=(today.year + 1), end_month=12,
+                                  period=12)
         equity_header = create_header('Equity', cat_type=3)
         create_account('Retained Earnings', equity_header, 0, 3)
         create_account('Current Year Earnings', equity_header, 0, 3)
@@ -1839,7 +1853,7 @@ class AccountDetailViewTests(TestCase):
     def test_show_account_detail_view_initial(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug` should
-        return a DateRangeForm, start and stopdate from the 1st of Month to
+        return a DateRangeForm, start and stop_date from the 1st of Month to
         Today, an Account and all Transactions within the initial range.
         The balance counters `startbalance`, `endbalance`, `net_change`,
         `debit_total` and `credit_total` should also be returned and flipped if
@@ -1993,7 +2007,7 @@ class AccountDetailViewTests(TestCase):
     def test_show_account_detail_view_date_success(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug`,
-        startdate, and stopdate, should retrieve the Account's Transactions from
+        start_date, and stop_date, should retrieve the Account's Transactions from
         that date period along with the respective total/change counters.
         """
         in_range_date = datetime.date.today()
@@ -2033,7 +2047,7 @@ class AccountDetailViewTests(TestCase):
         response = self.client.get(
             reverse('accounts.views.show_account_detail',
                     kwargs={'account_slug': self.bank_account.slug}),
-            data={'startdate': date_range[0], 'stopdate': date_range[1]})
+            data={'start_date': date_range[0], 'stop_date': date_range[1]})
         self.assertEqual(response.status_code, 200)
         self.failUnless(isinstance(response.context['form'], DateRangeForm))
         self.failUnless(response.context['form'].is_bound)
@@ -2053,24 +2067,24 @@ class AccountDetailViewTests(TestCase):
     def test_show_account_detail_view_date_fail(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug` and
-        invalid startdate or stopdate should return a DateRangeForm with errors.
+        invalid start_date or stop_date should return a DateRangeForm with errors.
         """
         response = self.client.get(
             reverse('accounts.views.show_account_detail',
                     kwargs={'account_slug': self.bank_account.slug}),
-            data={'startdate': '10a/2/b98',
-                  'stopdate': '11b/1threethree7/bar'})
+            data={'start_date': '10a/2/b98',
+                  'stop_date': '11b/1threethree7/bar'})
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'startdate',
+        self.assertFormError(response, 'form', 'start_date',
                              'Enter a valid date.')
-        self.assertFormError(response, 'form', 'stopdate',
+        self.assertFormError(response, 'form', 'stop_date',
                              'Enter a valid date.')
 
     def test_show_account_detail_view_date_in_fiscal_year(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug`,
-        startdate, and stopdate will show the running balance and counters if
-        the startdate is in the FiscalYear.
+        start_date, and stop_date will show the running balance and counters if
+        the start_date is in the FiscalYear.
         """
         in_range_date = datetime.date.today()
         FiscalYear.objects.create(year=in_range_date.year, end_month=12,
@@ -2085,14 +2099,14 @@ class AccountDetailViewTests(TestCase):
         response = self.client.get(
             reverse('accounts.views.show_account_detail',
                     kwargs={'account_slug': self.bank_account.slug}),
-            data={'startdate': date_range[0], 'stopdate': date_range[1]})
+            data={'start_date': date_range[0], 'stop_date': date_range[1]})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['show_balance'])
 
     def test_show_account_detail_view_date_no_fiscal_year(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug`,
-        startdate, and stopdate will show the running balance and counters if
+        start_date, and stop_date will show the running balance and counters if
         there is no current FiscalYear
         """
         in_range_date = datetime.date.today()
@@ -2106,15 +2120,15 @@ class AccountDetailViewTests(TestCase):
         response = self.client.get(
             reverse('accounts.views.show_account_detail',
                     kwargs={'account_slug': self.bank_account.slug}),
-            data={'startdate': date_range[0], 'stopdate': date_range[1]})
+            data={'start_date': date_range[0], 'stop_date': date_range[1]})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['show_balance'])
 
     def test_show_account_detail_view_date_out_fiscal_year(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug`,
-        startdate, and stopdate will show the running balance and counters if
-        the startdate is in the FiscalYear.
+        start_date, and stop_date will show the running balance and counters if
+        the start_date is in the FiscalYear.
         """
         in_range_date = datetime.date.today()
         FiscalYear.objects.create(year=in_range_date.year + 2, end_month=12,
@@ -2129,7 +2143,7 @@ class AccountDetailViewTests(TestCase):
         response = self.client.get(
             reverse('accounts.views.show_account_detail',
                     kwargs={'account_slug': self.bank_account.slug}),
-            data={'startdate': date_range[0], 'stopdate': date_range[1]})
+            data={'start_date': date_range[0], 'stop_date': date_range[1]})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['show_balance'])
 
@@ -2548,7 +2562,7 @@ class BankJournalViewTests(TestCase):
         response = self.client.get(
             reverse('accounts.views.bank_journal',
                     args=[self.bank_account.slug]),
-            data={'startdate': date_range[0], 'stopdate': date_range[1]})
+            data={'start_date': date_range[0], 'stop_date': date_range[1]})
 
         self.assertEqual(response.status_code, 200)
         self.assertItemsEqual(response.context['transactions'],

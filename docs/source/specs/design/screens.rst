@@ -129,6 +129,7 @@ The ``Reports`` Sub-Menu will contain the following Items and Links:
 
 * :ref:`Events <Event Report Page Design>`
 * :ref:`Profit & Loss <PL Reports>`
+* :ref:`Trial Balance <Trial Balance Report Page Design>`
 
 .. figure:: _images/wireframes/navigation_reports.png
     :alt: The Reports Sub-Menu.
@@ -775,7 +776,7 @@ Account. Clicking on an Event in the table will direct the user to that Event's
 .. _Event Report Page Design:
 
 Events Report Page
-------------------
+-------------------
 
 The Events Report Page shows an overview of all Events.
 
@@ -805,6 +806,50 @@ Clicking a row in the Events table will redirect the user to that Event's
     :align: center
 
     A Sample Events Report Page, showing two Events.
+
+
+.. _Trial Balance Report Page Design:
+
+Trial Balance Report Page
+--------------------------
+
+The Trial Balance Report shows the net change and balances of all Accounts over
+a specified date range.
+
+**Entry Conditions**
+
+The page is accessible through the ``Trial Balance`` link in the :ref:`Reports
+Sub-Menu<Reports Submenu Design>`.
+
+**Initial Conditions**
+
+The page will contain a Heading, a Date Range form and a table of every
+Account.
+
+The heading should be ``Trial Balance Report`` along with the start and stop
+dates of the period currently being displayed.
+
+The Date Range form will contain two fields, the ``Start Date`` and ``Stop
+Date``.
+
+The table should have headings for each Account's number, name, balance at the
+beginning of the period, total debits, total credits, net change and the
+ending balance.
+
+**Final Conditions**
+
+Submitting a valid Date Range form will reload the page using the new start and
+stop dates for the table calculations.
+
+Clicking a row in the table will redirect the user to that Account's
+:ref:`Detail Page<Account Detail Page Design>`.
+
+.. figure:: _images/wireframes/trial_balance_report.png
+    :alt: A Sample Trial Balance Report Page.
+    :width: 700px
+    :align: center
+
+    A Sample Trial Balance Report Page.
 
 
 .. _Reconcile Account Page Design:

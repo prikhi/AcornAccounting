@@ -2458,7 +2458,7 @@ class JournalLedgerViewTests(TestCase):
     def test_journal_ledger_view_initial(self):
         """
         A `GET` to the `journal_ledger` view should return a DateRangeForm,
-        start/stopdate from 1st of Month to Today and only JournalEntries in
+        start/stop_date from 1st of Month to Today and only JournalEntries in
         this time period.
         """
         today = datetime.date.today()
@@ -2480,7 +2480,7 @@ class JournalLedgerViewTests(TestCase):
 
     def test_journal_ledger_view_date_success(self):
         """
-        A `GET` to the `journal_ledger` view with a startdate and stopdate
+        A `GET` to the `journal_ledger` view with a start_date and stop_date
         should return only JournalEntries from that time period.
         """
         today = datetime.date.today()
@@ -2494,8 +2494,8 @@ class JournalLedgerViewTests(TestCase):
         create_entry(datetime.date(today.year - 20, 7, 7), 'past entry')
 
         response = self.client.get(reverse('entries.views.journal_ledger'),
-                                   data={'startdate': date_range[0],
-                                         'stopdate': date_range[1]})
+                                   data={'start_date': date_range[0],
+                                         'stop_date': date_range[1]})
 
         self.assertEqual(response.status_code, 200)
         self.failUnless(response.context['form'].is_bound)
@@ -2506,15 +2506,15 @@ class JournalLedgerViewTests(TestCase):
 
     def test_journal_ledger_view_date_fail(self):
         """
-        A `GET` to the `journal_ledger` view with an invalid startdate and
-        stopdate should return a bound DateRangeForm with respective errors.
+        A `GET` to the `journal_ledger` view with an invalid start_date and
+        stop_date should return a bound DateRangeForm with respective errors.
         """
         response = self.client.get(reverse('entries.views.journal_ledger'),
-                                   data={'startdate': 'zerocool',
-                                         'stopdate': 'foobar'})
+                                   data={'start_date': 'zerocool',
+                                         'stop_date': 'foobar'})
         self.assertEqual(response.status_code, 200)
         self.failUnless(response.context['form'].is_bound)
-        self.assertFormError(response, 'form', 'startdate',
+        self.assertFormError(response, 'form', 'start_date',
                              'Enter a valid date.')
-        self.assertFormError(response, 'form', 'stopdate',
+        self.assertFormError(response, 'form', 'stop_date',
                              'Enter a valid date.')

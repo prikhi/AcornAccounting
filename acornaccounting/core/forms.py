@@ -31,16 +31,16 @@ class RequiredBaseInlineFormSet(RequiredFormSetMixin,
 
 @parsleyfy
 class DateRangeForm(forms.Form):
-    """A form for acquiring a DateRange via a startdate and enddate."""
-    startdate = forms.DateField(label="Start Date",
+    """A form for acquiring a DateRange via a start_date and enddate."""
+    start_date = forms.DateField(label="Start Date",
+                                 widget=forms.DateInput(
+                                     attrs={'data-americandate': True,
+                                            'size': 8,
+                                            'class': 'form-control'})
+                                 )
+    stop_date = forms.DateField(label="Stop Date",
                                 widget=forms.DateInput(
                                     attrs={'data-americandate': True,
                                            'size': 8,
                                            'class': 'form-control'})
                                 )
-    stopdate = forms.DateField(label="Stop Date",
-                               widget=forms.DateInput(
-                                   attrs={'data-americandate': True,
-                                          'size': 8,
-                                          'class': 'form-control'})
-                               )

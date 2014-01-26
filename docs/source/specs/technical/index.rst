@@ -12,3 +12,4 @@ Technical Specifications
     entries
     fiscalyears
     events
+    reports

@@ -1,0 +1,65 @@
+{% extends 'site.html' %}
+
+{% load core_filters %}
+{% load core_tags %}
+
+
+{% block title %}
+Trial Balance Report
+{% endblock title %}
+
+
+{% block page_header %}
+  <h1>
+      Trial Balance Report
+      <small class="hidden-print">{{ start_date|date:"m/d/Y" }} - {{ stop_date|date:"m/d/Y" }}</small>
+  </h1>
+  <h3 class="visible-print">{{ start_date|date:"m/d/Y" }} - {{ stop_date|date:"m/d/Y" }}</h3>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="hidden-print">
+  {% date_range_form form %}
+</div>
+
+<table summary="Trial Balances Table" class="table table-hover table-condensed">
+  <thead>
+    <tr>
+      <th>Number</th>
+      <th>Name</th>
+      <th class="text-right">Beginning Balance</th>
+      <th class="text-right">Debit Total</th>
+      <th class="text-right">Credit Total</th>
+      <th class="text-right">Net Change</th>
+      <th class="text-right">Ending Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for account in accounts %}
+      <tr class="{% cycle main,alt %} clickable">
+        <td><a href="{{ account.url }}">{{ account.number }}<a></td>
+        <td>{{ account.name|capwords }}</td>
+        <td class="text-right">{{ account.beginning_balance|currency }}</td>
+        <td class="text-right">{{ account.total_debits|currency }}</td>
+        <td class="text-right">{{ account.total_credits|currency }}</td>
+        <td class="text-right">{{ account.net_change|currency }}</td>
+        <td class="text-right">{{ account.ending_balance|currency }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+
+{% block javascript %}
+  <script type="text/javascript">
+    $(document).ready(function() {
+        $('#date-range-submit').on('click', function(el) {
+            $('#generateReportModal').modal('show');
+            el.form.submit();
+        });
+    });
+  </script>
+{% endblock %}
