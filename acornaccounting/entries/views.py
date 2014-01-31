@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
@@ -85,6 +86,7 @@ def show_bank_entry(request, entry_id, journal_type):
     return render(request, template_name, locals())
 
 
+@login_required
 def add_journal_entry(request, entry_id=None,
                       template_name="entries/entry_add.html"):
     """Add, Edit or Delete a :class:`~.models.JournalEntry`.
@@ -192,6 +194,7 @@ def add_journal_entry(request, entry_id=None,
     return render(request, template_name, request_data)
 
 
+@login_required
 def add_bank_entry(request, entry_id=None, journal_type='',
                    template_name="entries/entry_add.html"):
     """Add, Edit or Delete a :class:`~.models.BankSpendingEntry` or
@@ -332,6 +335,7 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                    'transaction_formset': transaction_formset})
 
 
+@login_required
 def add_transfer_entry(request, template_name="entries/entry_add.html"):
     """Add a Transfer Entry, a specialized :class:`~.models.JournalEntry`.
 

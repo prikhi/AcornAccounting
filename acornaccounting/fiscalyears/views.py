@@ -3,6 +3,7 @@ import datetime
 
 from dateutil import rrule
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.db.models import Sum
 from django.http import HttpResponseRedirect
@@ -18,6 +19,7 @@ from .forms import FiscalYearForm, FiscalYearAccountsFormSet
 from .models import FiscalYear
 
 
+@login_required
 def add_fiscal_year(request, template_name="fiscalyears/year_add.html"):
     """
     Creates a new :class:`~.models.FiscalYear` using a

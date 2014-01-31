@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 
 from parsley.decorators import parsleyfy
 
@@ -44,3 +45,12 @@ class DateRangeForm(forms.Form):
                                            'size': 8,
                                            'class': 'form-control'})
                                 )
+
+
+class BootstrapAuthenticationForm(AuthenticationForm):
+    """A login form using bootstrap attributes."""
+    def __init__(self, *args, **kwargs):
+        """Add the form-control CSS class to all fields"""
+        super(BootstrapAuthenticationForm, self).__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs['class'] = 'form-control'
+        self.fields['password'].widget.attrs['class'] = 'form-control'

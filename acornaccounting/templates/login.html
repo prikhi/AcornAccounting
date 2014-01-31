@@ -1,0 +1,45 @@
+{% extends 'site.html' %}
+
+
+{% block title %}
+Login
+{% endblock %}
+
+
+{% block page_header %}
+<h1>User Login</h1>
+{% endblock %}
+
+
+{% block content %}
+{% if form.errors %}
+  <div class="alert alert-danger">
+    <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong>
+    Your username and/or password is invalid. Please try again.
+  </div>
+{% endif %}
+
+<form method="post" action=".">
+  {% csrf_token %}
+  <div class="form-horizontal">
+    <div class ="form-group">
+      <label for="id_username" class="control-label col-sm-2 col-md-1">Username:</label>
+      <div class="col-sm-4 col-md-3 controls">
+        {{ form.username }}
+      </div>
+    </div>
+    <div class ="form-group">
+      <label for="id_password" class="control-label col-sm-2 col-md-1">Password:</label>
+      <div class="col-sm-4 col-md-3 controls">
+        {{ form.password }}
+      </div>
+    </div>
+    <div class="form-group">
+      <input type="hidden" value="{{ next }}" name="next" />
+      <button type="submit" value="login" class="col-xs-offset-1 col-sm-offset-2 col-md-offset-1 col-xs-10 col-sm-4 col-md-3 btn btn-primary">Login</button>
+    </div>
+  </div>
+</form>
+
+
+{% endblock %}

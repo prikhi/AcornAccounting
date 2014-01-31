@@ -24,6 +24,9 @@ SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
 
 STATIC_URL = '/static/'
 
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -40,8 +43,8 @@ INSTALLED_APPS = (
     'parsley',
     'south',
 
-    'accounts',
     'core',
+    'accounts',
     'entries',
     'events',
     'fiscalyears',

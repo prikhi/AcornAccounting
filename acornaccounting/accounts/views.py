@@ -2,6 +2,7 @@ import datetime
 
 from dateutil import relativedelta
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Max
 from django.http import HttpResponseRedirect, Http404
@@ -233,6 +234,7 @@ def bank_journal(request, account_slug,
     return render(request, template_name, locals())
 
 
+@login_required
 def reconcile_account(request, account_slug,
                       template_name="accounts/account_reconcile.html"):
     """Reconcile an Account against a Statement.
