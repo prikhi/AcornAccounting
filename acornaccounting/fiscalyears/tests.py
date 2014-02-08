@@ -6,7 +6,7 @@ from django.test import TestCase
 from accounts.models import Account, HistoricalAccount
 from entries.models import Transaction, BankSpendingEntry, BankReceivingEntry
 from core.tests import (create_header, create_entry, create_account,
-                        create_transaction)
+                        create_transaction, create_and_login_user)
 
 from .fiscalyears import get_current_fiscal_year_start
 from .forms import FiscalYearForm, FiscalYearAccountsFormSet
@@ -276,6 +276,7 @@ class FiscalYearViewTests(TestCase):
         Equity Accounts named ``Retained Earnings`` and ``Current Year
         Earnings`` is required to move balances after purging.
         """
+        create_and_login_user(self)
         self.asset_header = create_header('asset', cat_type=1)
         self.expense_header = create_header('expense', cat_type=6)
         self.bank_account = create_account('bank', self.asset_header, 0, 1,

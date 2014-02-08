@@ -83,8 +83,8 @@ multiple tiers of dependencies:
 
 * ``base`` - minimum requirements needed to run the application
 * ``test`` - requirements necessary for running the test suite
-* ``local`` - development prerequisites such as the the debug toolbar and
-    documentation builders
+* ``local`` - development prerequisites such as the debug toolbar and
+  documentation builders
 * ``production`` - all packages required for real world usage
 
 A set of dependencies may be installed via `pip`_:

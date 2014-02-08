@@ -99,7 +99,7 @@ Setup the database and migrations, note that you must export a
 
 .. code-block:: bash
 
-    $ cd Acorn-Accounting/
+    $ cd acornaccounting/
     $ ./manage.py syncdb --settings=accounting.settings.local
     $ ./manage.py migrate --settings=accounting.settings.local
 

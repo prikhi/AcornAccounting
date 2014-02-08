@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from core.forms import DateRangeForm
 from core.tests import (create_header, create_entry, create_account,
-                        create_transaction)
+                        create_transaction, create_and_login_user)
 from entries.models import Transaction, BankReceivingEntry, BankSpendingEntry
 from fiscalyears.models import FiscalYear
 
@@ -1021,6 +1021,7 @@ class AccountReconcileViewTests(TestCase):
         """
         Test Accounts with `flip_balance` of `True`(asset/bank) and `False`(liability).
         """
+        create_and_login_user(self)
         self.asset_header = create_header('asset', cat_type=1)
         self.liability_header = create_header('liability', cat_type=2)
         self.bank_account = create_account('bank', self.asset_header, 0, 1, True)

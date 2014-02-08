@@ -1,0 +1,42 @@
+{% load core_filters %}
+
+<!-- Root Header -->
+<tr class="{% cycle main,alt %} clickable">
+  <td><a href="{{ header.get_absolute_url }}">{{ header.name|capwords }}</a></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+
+<!-- Root Header's Accounts -->
+{% for account in header.accounts %}
+  <tr class="{% cycle main,alt %} clickable">
+    <td><a href="{{ account.get_absolute_url }}">{{ account.level|int_to_tabs }}{{ account.name|capwords }}</a></td>
+    {% if account.total < 0 %}
+      <td class="text-right">{{ account.total|currency }}</td>
+      <td></td>
+    {% else %}
+      <td></td>
+      <td class="text-right">{{ account.total|currency }}</td>
+    {% endif %}
+    <td></td>
+    <td></td>
+  </tr>
+{% endfor %}
+
+<!-- Child Headers -->
+{% for descendant in header.descendants %}
+  {% with descendant=descendant template_name="reports/profit_loss_children.html" %}
+    {% include template_name %}
+  {% endwith %}
+{% endfor %}
+
+<!-- Root Header Total -->
+<tr class="{% cycle main,alt %} clickable">
+  <td><a href="{{ header.get_absolute_url }}">{{ header.name|capwords }} Total</a></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td class="text-right">{{ header.total|currency }}</td>
+</tr>

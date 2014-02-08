@@ -43,6 +43,9 @@
                 $('#trial-balance-link').on('click', function () {
                     window.location = "{% url reports.views.trial_balance_report %}";
                 });
+                $('#profit-loss-link').on('click', function () {
+                    window.location = "{% url reports.views.profit_loss_report %}";
+                });
             });
         </script>
         {% block javascript %}{% endblock %}

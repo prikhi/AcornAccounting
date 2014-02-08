@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils.timezone import utc
 
 from core.tests import (create_header, create_entry, create_account,
-                        create_transaction)
+                        create_transaction, create_and_login_user)
 
 from accounts.models import Account
 from core.forms import DateRangeForm
@@ -492,6 +492,7 @@ class JournalEntryViewTests(TestCase):
         """
         JournalEntries require two accounts
         """
+        create_and_login_user(self)
         self.asset_header = create_header('asset', cat_type=1)
         self.expense_header = create_header('expense', cat_type=6)
         self.asset_account = create_account('asset', self.asset_header, 0, 1)
@@ -1296,6 +1297,7 @@ class TransferEntryViewTests(TestCase):
     Test TransferEntry add view
     """
     def setUp(self):
+        create_and_login_user(self)
         self.asset_header = create_header('asset', cat_type=1)
         self.expense_header = create_header('expense', cat_type=6)
         self.asset_account = create_account('asset', self.asset_header, 0, 1)
@@ -1446,6 +1448,7 @@ class BankEntryViewTests(TestCase):
         Bank Entries require a Bank Account(Assets) and a normal Account(assume
         Expense)
         """
+        create_and_login_user(self)
         self.asset_header = create_header('asset', cat_type=1)
         self.expense_header = create_header('expense', cat_type=6)
         self.bank_account = create_account('bank', self.asset_header, 0, 1,

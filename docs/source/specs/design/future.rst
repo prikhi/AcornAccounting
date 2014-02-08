@@ -3,6 +3,7 @@
 Future Features
 ================
 
+
 .. _Trip Entry Form:
 
 Trip Entry Form
@@ -32,6 +33,7 @@ submitted entry, so they may print the form and attach receipts.
 
 Brainstorm clean ways to deal with Store Accounts and Returns.
 
+
 .. _Credit Card Entry Form:
 
 Credit Card Entry Form
@@ -52,6 +54,7 @@ A valid form will require that ``Statement Balance = Sum of Amounts``.
 A successful submission will redirect the User to a printable version of their
 submitted entry, so they may print the form and attach receipts.
 
+
 .. _Bank Statement Form:
 
 Bank Statement Form
@@ -65,6 +68,7 @@ match. If no transaction matches, fill the amount and date leaving account and
 memo blank. User will enter these fields. For non-matched lines, the application
 will create either a bank spending or receiving entry for the bank and
 user-specified account.
+
 
 .. _Budgeted Accounts:
 
@@ -85,41 +89,6 @@ Application should display:
 * Alert for accountants/administrators when Accounts hit their budget or get
   within $X.XX of their budget.
 
-.. _PL Reports:
-
-Profit and Loss Reports
-------------------------
-
-P&L Reports should show the net balance change for each Account, from the
-beginning of the fiscal year(or the beginning of time if there is no fiscal
-year) to a user-specified date.
-
-**Entry Conditions**
-
-The Profit & Loss report should be accessible through a ``Profit & Loss`` link
-in the :ref:`Reports Sub-menu <Reports Submenu Design>`.
-
-**Initial Conditions**
-
-The page should display the name of the report, a form for selecting the
-start and end dates and a table.
-
-The start date should default to the start of the current Fiscal Year. The
-end date should default to the current date.
-
-The table should contain every account that exists, sorted by account number.
-It should have columns displaying the Account name and the Profit/Loss
-amounts(aka net change) for each account.
-
-Net Change is calculated by: ``netchange = sum of credits - sum of debits``
-
-**Final Conditions**
-
-Submitting the date range form will refresh the page, using the specified
-start and end dates to calculate the profit and loss amounts.
-
-Clicking a row in the table will redirect the User to the Account's
-:ref:`Detail Page <Account Detail Page Design>`.
 
 .. _Tax Prep Report Design:
 
@@ -127,6 +96,7 @@ Tax Preparation Report
 -----------------------
 
 A report to help the tax preparer collect information.
+
 
 .. _Yearly Budget Report Design:
 
@@ -140,6 +110,7 @@ By default it should show from the beginning of the current fiscal year to the
 current date. Maybe it could extrapolate for the rest of the year and show
 breakdown by quarter?
 
+
 .. _People Tracking:
 
 People Tracking
@@ -152,6 +123,7 @@ the tax preparer learn the # of intern days in the year.
 Can track the "Render unto Caesar" form details.
 
 Store email address & email monthly balance reports to members and interns.
+
 
 .. _Alternate Home Page:
 

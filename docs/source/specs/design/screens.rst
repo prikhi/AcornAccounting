@@ -31,6 +31,7 @@ application:
 * Negative balances and amounts will be surrounded by parenthesis,
   ``($22.00)``, instead of having minus signs, ``-$22.00``.
 
+
 .. _General Layout Design:
 
 General Layout
@@ -51,6 +52,7 @@ model:
     The general layout of the application.
 
 There will be no global sidebars.
+
 
 .. _Site Navigation Design:
 
@@ -78,6 +80,7 @@ The navigation will contain multiple dropdown-menus and autocomplete inputs:
 
     The Base Navigation Menu.
 
+
 .. _Accounts Submenu Design:
 
 Accounts Sub-Menu
@@ -101,6 +104,7 @@ The ``Accounts`` Sub-Menu will contain the following Items and Links:
 
     The Accounts Sub-Menu.
 
+
 .. _Entry Submenu Design:
 
 Entry Sub-Menu
@@ -120,6 +124,7 @@ The ``Entry`` Sub-Menu will contain the following Items and Links:
 
     The Entry Sub-Menu.
 
+
 .. _Reports Submenu Design:
 
 Reports Sub-Menu
@@ -128,7 +133,7 @@ Reports Sub-Menu
 The ``Reports`` Sub-Menu will contain the following Items and Links:
 
 * :ref:`Events <Event Report Page Design>`
-* :ref:`Profit & Loss <PL Reports>`
+* :ref:`Profit & Loss <Profit and Loss Report Page Design>`
 * :ref:`Trial Balance <Trial Balance Report Page Design>`
 
 .. figure:: _images/wireframes/navigation_reports.png
@@ -137,6 +142,7 @@ The ``Reports`` Sub-Menu will contain the following Items and Links:
     :align: center
 
     The Reports Sub-Menu.
+
 
 .. _Admin Submenu Design:
 
@@ -156,6 +162,7 @@ The ``Admin`` Sub-Menu will contain the following Items and Links:
     :align: center
 
     The Admin Sub-Menu.
+
 
 .. _Autocomplete Inputs:
 
@@ -184,6 +191,7 @@ For a working example of this functionality, see the `Select2 Widget`_.
 
     An example of the Autocomplete Input Widgets.
 
+
 .. _Home Page Design:
 
 Home Page
@@ -201,6 +209,7 @@ The Home Page will be accessible through the application's base URL(e.g.
 www.acornaccounting.com/). The :ref:`Navigation's <Site Navigation Design>`
 Company Title and Logo will be a hyperlink, directing the User to the Home
 Page.
+
 
 .. _Admin Pages Design:
 
@@ -240,20 +249,24 @@ Login Credentials, redirecting to the main Admin Page if valid.
 
     The Main Administration Page, created by Django's Admin App.
 
+
 .. _Header Admin Design:
 
 Headers Admin
 ++++++++++++++
+
 
 .. _Account Admin Design:
 
 Accounts Admin
 +++++++++++++++
 
+
 .. _Event Admin Design:
 
 Events Admin
 +++++++++++++
+
 
 .. _Chart of Accounts Page Design:
 
@@ -336,6 +349,7 @@ Design>`.
 
     A Sample Chart of Accounts Page(*Case 1*).
 
+
 .. _Account Detail Page Design:
 
 Account Detail Page
@@ -399,6 +413,7 @@ item in the ``Event`` column is clicked, the User will be directed to the
 
     A Sample Account Detail Page.
 
+
 .. _Event Detail Page Design:
 
 Event Detail Page
@@ -443,6 +458,7 @@ selected Transaction.
     :align: center
 
     A Sample Event Detail Page.
+
 
 .. _Account History Page:
 
@@ -501,6 +517,7 @@ the next or previous month's Account History.
 
     A Sample Account History Page.
 
+
 .. _Journal Entry Detail Pages Design:
 
 Journal Entry Detail Pages
@@ -519,6 +536,7 @@ There are three types of Journal Entries:
 * :ref:`General Journal Entry <General Journal Entry Detail Page Design>` -
   Entries not related to Bank Accounts (internal transfers, cash drawer
   withdrawals, etc.)
+
 
 .. _General Journal Entry Detail Page Design:
 
@@ -612,6 +630,7 @@ Account.
     :align: center
 
     Sample Bank Receiving Entry Detail Page.
+
 
 .. _Bank Spending Entry Detail Design:
 
@@ -808,6 +827,83 @@ Clicking a row in the Events table will redirect the user to that Event's
     A Sample Events Report Page, showing two Events.
 
 
+.. _Profit and Loss Report Page Design:
+
+Profit & Loss Report Page
+--------------------------
+
+The Profit & Loss Report shows the Net Profit or Loss over a specified date
+range.
+
+**Entry Conditions**
+
+The page is accessible through the ``Events`` link in the :ref:`Reports
+Sub-Menu<Reports Submenu Design>`.
+
+**Initial Conditions**
+
+The page will contain a Heading, a Date Range form and a table containing
+header totals and summations.
+
+The Heading should be ``Profit & Loss Statement`` along with the selected Date
+Range.
+
+The Date Range form will contain two fields, the ``Start Date`` and ``Stop
+Date``. The default dates should be the first day of the current to the current
+day.
+
+The table will have no column headings. The table will display header totals
+and the results of calculations using these totals. There will be a table body
+for the following headers and calculations:
+
+#. Sales
+#. Cost of Goods Sold
+#. Gross Profit (Sales - CoGS)
+#. Expenses
+#. Operating Profit (Gross Profit - Expenses)
+#. Other Income
+#. Other Expenses
+#. Net Profit/(Loss)    (Operating Profit + Other Income - Other Expenses)
+
+The table should have 5 columns:
+
+#. Header/Account/Calculation Name
+#. Account Credits
+#. Account Debits
+#. Child Header Totals
+#. Root Header/Cacluation Total
+
+Names should be indented by their depth level. Only root Headers, their
+children and grandchildren should have their totals shown. The general layout
+will look like::
+
+    Root Header
+      Child Account                         $7.00
+      Child Header
+        Some Account            ($12.00)
+        Grandchild Header                              2.00
+          Another Account                   $2.00
+      Child Header Total                            ($10.00)
+    Root Header Total                                           ($3.00)
+
+    Some Counter                                                ($3.00)
+
+**Final Conditions**
+
+Submitting a valid Date Range form will reload the page using the new start and
+stop dates for the table calculations.
+
+Clicking a row in the table will redirect the user to that Account's
+:ref:`Detail Page<Account Detail Page Design>`.
+
+.. figure:: _images/wireframes/profit_loss_report.png
+    :alt: A Profit & Loss Report Page.
+    :width: 700px
+    :align: center
+
+    A Sample Profit & Loss Report Page, showing just the Income Header.
+
+
 .. _Trial Balance Report Page Design:
 
 Trial Balance Report Page
@@ -830,7 +926,8 @@ The heading should be ``Trial Balance Report`` along with the start and stop
 dates of the period currently being displayed.
 
 The Date Range form will contain two fields, the ``Start Date`` and ``Stop
-Date``.
+Date``. The default dates should be the first day of the current to the current
+day.
 
 The table should have headings for each Account's number, name, balance at the
 beginning of the period, total debits, total credits, net change and the
@@ -1029,6 +1126,7 @@ validating new Entries and Transactions.
         -u-> "Fill Form"
     endif
 
+
 .. _Add Journal Entry Page Design:
 
 Add Journal Entry
@@ -1159,6 +1257,7 @@ refresh with a blank form.
     A Sample Add Transfer Entry Page, showing 2 rows which will create 4
     Transactions.
 
+
 .. _Add Bank Receiving Entry Page Design:
 
 Add Bank Receiving Entry
@@ -1221,6 +1320,7 @@ be redirected to the :ref:`Bank Account's Journal <Bank Journal Page Design>`.
     :align: center
 
     A Sample Add Bank Receiving Entry Page, showing a balanced deposit.
+
 
 .. _Add Bank Spending Entry Page Design:
 
@@ -1290,6 +1390,7 @@ be redirected to the :ref:`Bank Account's Journal <Bank Journal Page Design>`.
     :align: center
 
     A Sample Add Bank Receiving Entry Page, showing a balanced ACH withdrawl.
+
 
 .. _Add Fiscal Year Page Design:
 
@@ -1374,6 +1475,7 @@ Page Design>`.
 
     A Sample New Fiscal Year Page, showing the default of checking previously
     reconciled Accounts.
+
 
 .. _Django: https://www.djangoproject.com/
 .. _Twitter Bootstrap: http://getbootstrap.com/

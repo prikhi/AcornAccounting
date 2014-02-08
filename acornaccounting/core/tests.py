@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
 from django.test import TestCase
 
@@ -24,6 +25,15 @@ def create_entry(date, memo):
 def create_transaction(entry, account, delta):
     return Transaction.objects.create(journal_entry=entry, account=account,
                                       detail=entry.memo, balance_delta=delta)
+
+
+def create_and_login_user(test_instance):
+    """Create a normal user and log them in."""
+    password = 'mypassword'
+    test_admin = User.objects.create_user('test_user',
+                                          'test@test.com',
+                                          password)
+    test_instance.client.login(username=test_admin.username, password=password)
 
 
 class CoreFilterTests(TestCase):

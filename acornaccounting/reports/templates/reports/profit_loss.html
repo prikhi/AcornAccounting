@@ -1,0 +1,84 @@
+{% extends 'site.html' %}
+
+{% load core_filters %}
+{% load core_tags %}
+
+
+{% block title %}
+Profit &amp; Loss Statement
+{% endblock %}
+
+
+{% block page_header %}
+  <h1>
+    Profit &amp; Loss Statement
+      <small class="hidden-print">{{ start_date|date:"m/d/Y" }} - {{ stop_date|date:"m/d/Y" }}</small>
+  </h1>
+  <h3 class="visible-print">{{ start_date|date:"m/d/Y" }} - {{ stop_date|date:"m/d/Y" }}</h3>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- Date Range Form -->
+<div class="hidden-print">
+  {% date_range_form form %}
+</div>
+
+<table summary="Trial Balances Table" class="table table-hover table-condensed">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th class="text-right">Account Debits</th>
+      <th class="text-right">Account Credits</th>
+      <th class="text-right">Header Totals</th>
+      <th class="text-right">Running Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% include 'reports/profit_loss_root_node.html' with header=headers.income %}
+    <tr><td colspan=5>&nbsp;</td></tr>
+    {% include 'reports/profit_loss_root_node.html' with header=headers.cost_of_goods_sold %}
+    <tr><td colspan=5>&nbsp;</td></tr>
+
+    <tr>
+      <td colspan=4><strong>Gross Profit</strong></td>
+      <td class="text-right">{{ gross_profit|currency }}</td>
+    </tr>
+
+    <tr><td colspan=5>&nbsp;</td></tr>
+    {% include 'reports/profit_loss_root_node.html' with header=headers.expenses %}
+    <tr><td colspan=5>&nbsp;</td></tr>
+
+    <tr>
+      <td colspan=4><strong>Operating Profit</strong></td>
+      <td class="text-right">{{ operating_profit|currency }}</td>
+    </tr>
+
+    <tr><td colspan=5>&nbsp;</td></tr>
+    {% include 'reports/profit_loss_root_node.html' with header=headers.other_income %}
+    <tr><td colspan=5>&nbsp;</td></tr>
+    {% include 'reports/profit_loss_root_node.html' with header=headers.other_expenses %}
+    <tr><td colspan=5>&nbsp;</td></tr>
+
+    <tr>
+      <td colspan=4><strong>Net Profit/(Loss)</strong></td>
+      <td class="text-right">{{ net_profit|currency }}</td>
+    </tr>
+  </tbody>
+</table>
+<br /><br />
+{% endblock %}
+
+
+{% block javascript %}
+  <script type="text/javascript">
+    // Show Generating Modal on form submit
+    $(document).ready(function() {
+        $('#date-range-submit').on('click', function(el) {
+            $('#generateReportModal').modal('show');
+            el.form.submit();
+        });
+    });
+  </script>
+{% endblock %}

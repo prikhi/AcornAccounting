@@ -110,11 +110,11 @@ spending.
     }
 
 Budgeters may access the Profit & Loss for a specific date range in the
-current year through the :ref:`Profit & Loss Reports <PL Reports>`. They may
-reference the historical Balances for Asset, Liability and Equity Accounts and
-the historical Profit & Loss amounts for Income and Expense Accounts via the
-:ref:`Account History Page`.
+current year through the :ref:`Profit & Loss Reports <Profit and Loss Report
+Page Design>`. They may reference the historical Balances for Asset, Liability
+and Equity Accounts and the historical Profit & Loss amounts for Income and
+Expense Accounts via the :ref:`Account History Page`.
 
 Budgeters can view an overview of all Events via the :ref:`Event Reports Page
-<Event Reports>` which shows information such as each Event's location and Net
+<Event Report Page Design>` which shows information such as each Event's location and Net
 Profit.
