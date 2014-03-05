@@ -69,6 +69,7 @@ Administration Tasks.
     rectangle Administration {
         acc -- (Create/Edit Event)
         acc -- (Create/Edit Account)
+        acc -- (Create/Edit Header)
         acc -- (Start New Fiscal Year)
     }
 
@@ -82,11 +83,11 @@ balance using the :ref:`Reconcile Account Page <Reconcile Account Page
 Design>`.
 
 Occasionally they will change an Account, Entry or Event's details and create
-new Accounts and Events. This can be as simple as fixing a spelling error or as
-destructive as deleting an Account. Accounts and Events are editable through
-their respective :ref:`Admin Pages <Admin Pages Design>`. Entries are created
-and edited through their respective :ref:`Add Entry Page <Add Journal Entry
-Page Design>`.
+new Accounts, Headers and Events. This can be as simple as fixing a spelling
+error or as destructive as deleting an Account. Accounts and Events are
+editable through their respective :ref:`Admin Pages <Admin Pages Design>`.
+Entries are created and edited through their respective :ref:`Add Entry Page
+<Add Journal Entry Page Design>`.
 
 Once a Year, Accountants will start a new Fiscal Year. Fiscal Years allow
 Accountants to archive a Year's data, removing old entries and resetting
@@ -106,14 +107,16 @@ spending.
     :Budgeter: as bud
     rectangle Reports {
         bud -- (View Profit & Loss)
+        bud -- (View Trial Balances)
         bud -- (View Events Overview)
     }
 
 Budgeters may access the Profit & Loss for a specific date range in the
 current year through the :ref:`Profit & Loss Reports <Profit and Loss Report
-Page Design>`. They may reference the historical Balances for Asset, Liability
-and Equity Accounts and the historical Profit & Loss amounts for Income and
-Expense Accounts via the :ref:`Account History Page`.
+Page Design>` or the Trial Balance through the :ref:`Trial Balance Report
+<Trial Balance Report Page Design>`. They may reference the historical Balances
+for Asset, Liability and Equity Accounts and the historical Profit & Loss
+amounts for Income and Expense Accounts via the :ref:`Account History Page`.
 
 Budgeters can view an overview of all Events via the :ref:`Event Reports Page
 <Event Report Page Design>` which shows information such as each Event's location and Net

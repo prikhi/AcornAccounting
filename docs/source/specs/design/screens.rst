@@ -465,8 +465,9 @@ selected Transaction.
 Account History Page
 ---------------------
 
-The Account History page will show Account Balances and Net Changes for each
-month in previous Fiscal Years.
+The Account History page is used to show purged data from previous Fiscal
+Years. The page will show either the Account Balance or Net Change for each
+month in previous Fiscal Years, depending on the type of the Account.
 
 .. note:: Historical Accounts are only generated after creating a second Fiscal
     Year. If Fiscal Years are not used or only one Fiscal Year has been
@@ -515,7 +516,10 @@ the next or previous month's Account History.
     :width: 700px
     :align: center
 
-    A Sample Account History Page.
+    A Sample Account History Page showing the Balances of the 2
+    Asset/Liability/Equity Accounts that existed in the 2012 Fiscal Year.
+    Clicking the Profit & Loss tab would display the Net Changes of all other
+    Account types.
 
 
 .. _Journal Entry Detail Pages Design:
@@ -529,8 +533,8 @@ about a specific Journal Entry and it's associated Transactions.
 There are three types of Journal Entries:
 
 * :ref:`Bank Receiving Entry <Bank Receiving Entry Detail Design>` - Entries
-  that put money into a Bank Account (checks, ACH payments, cash deposits,
-  etc.)
+  that put money into a Bank Account (checks, :term:`ACH` payments, cash
+  deposits, etc.)
 * :ref:`Bank Spending Entry <Bank Spending Entry Detail Design>` - Entries that
   take money out of a Bank Account (checks, cash withdrawals, etc.)
 * :ref:`General Journal Entry <General Journal Entry Detail Page Design>` -
@@ -654,7 +658,7 @@ Payee and Credit Amount.
 
 .. note::
      The Entry Number will be ``CD# <check_number>`` for entries with Check
-     Numbers and ``CD###ACH###`` for entries that are ACH Payments.
+     Numbers and ``CD###ACH###`` for entries that are :term:`ACH` Payments.
 
 A ``Created`` and ``Updated`` (if applicable) Date should be shown, along with
 a link for Accountants to Edit the Entry.
@@ -1346,10 +1350,10 @@ Page <Journal Entry Detail Pages Design>` will direct the User to this Page.
 This Page mimics the :ref:`Add Journal Entry Page <Add Journal Entry Page
 Design>`, except for some differences in fields.
 
-The entry fields will also include an Account, Payee, ACH Payment, Check Number
-and Amount. The Accounts field will be limited to Accounts that are Bank
-Accounts. The Transaction table will contain a single Amount field instead of
-Credit and Debit fields.
+The entry fields will also include an Account, Payee, :term:`ACH` Payment,
+Check Number and Amount. The Accounts field will be limited to Accounts that
+are Bank Accounts. The Transaction table will contain a single Amount field
+instead of Credit and Debit fields.
 
 *Case 2*
 
@@ -1361,7 +1365,7 @@ buttons.
 **Intermediate Conditions**
 
 A Bank Account, Date, Amount, Memo and at least one Transaction is required.
-The entry must either be specified as an ACH Payment or have a Check Number.
+The entry must either be specified as an :term:`ACH` Payment or have a Check Number.
 Check Numbers must be unique per Bank Account.
 
 Checking a row's Delete box will remove that row from the table.
@@ -1389,7 +1393,7 @@ be redirected to the :ref:`Bank Account's Journal <Bank Journal Page Design>`.
     :width: 700px
     :align: center
 
-    A Sample Add Bank Receiving Entry Page, showing a balanced ACH withdrawl.
+    A Sample Add Bank Receiving Entry Page, showing a balanced :term:`ACH` withdrawl.
 
 
 .. _Add Fiscal Year Page Design:

@@ -6,6 +6,11 @@ Glossary
 .. glossary::
     :sorted:
 
+    ACH
+        Automated Clearing House. An electronic network for credit and debit
+        Transactions, such as on-line bill payments or income from credit
+        cards. ACH Transactions do not have check numbers associated with them.
+
     API
         Application Programming Interface. Specifies how software components
         interact with each other. An API documents and specifies program

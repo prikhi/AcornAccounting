@@ -4,6 +4,7 @@
 Specification Explanation
 ==============================
 
+
 Use Cases
 ==========
 
@@ -15,6 +16,7 @@ In general, they describe "who uses this site" and "why?".
 
 Use Cases include diagrams and short narratives. Each Use Case will direct the
 reader to any relevant Screens.
+
 
 Use Case Diagrams
 ==================
@@ -28,7 +30,6 @@ Case. A hollow arrow between two actors means that the actor is based off of
 the actor the arrow is pointed at, and inherits the other actors Use Cases. A
 dashed arrow from one Use Case to another indicates the source Use Case depends
 on or includes the Use Case being pointed at.
-
 
 .. uml::
     :includegraphics: scale=.5
@@ -48,12 +49,28 @@ on or includes the Use Case being pointed at.
         (I depend on another Use Case) .> (A Use Case) : depends on
     }
 
+The following example shows the use cases for an application where an ``admin``
+creates Accounts and both ``admin`` and ``viewer`` view them:
+
+.. uml::
+    :includegraphics: scale=.5
+
+    left to right direction
+    :admin: as adm
+    :viewer: as vwr
+
+    adm -- (Create Account)
+    (View Account) as va
+    vwr -- va
+    adm -- va
+
+
 .. _Conditions Explanation:
 
 Screens and Conditions
 =======================
 
-A 'screen' is a specific page in the application.
+A ``screen`` is a specific page in the application.
 
 Every screen in the specification contains a description of the following
 Conditions:
@@ -68,6 +85,7 @@ Conditions:
 Each screen will contain a :term:`wireframe`, depicting the page's layout. The
 wireframe is not meant to depict the final appearance of a page, but acts as a
 rough guide or prototype.
+
 
 Activity Diagrams
 ==================
