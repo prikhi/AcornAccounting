@@ -295,32 +295,63 @@ upstream repository:
 Preparing a Release
 --------------------
 
-Quick overview(will be expanded and solidified before v1.0.0 release):
+A Release should be forked off of develop into its own branch once all
+associated features are completed. A ``release`` branch should contain only
+bugfixes and version bumps.
 
-#. Fork release off of the ``develop`` branch:
+#. Fork the ``release`` branch off of the ``develop`` branch:
 
    .. code-block:: bash
 
        $ git checkout -b release-1.2.0 develop
 
-#. Branch, Fix and Merge any bugs.
-#. Bump version number and year in ``setup.py`` and ``docs/source/conf.py``.
-#. Commit version changes:
+#. Branch, Fix and Merge any existing bugs.
+#. Bump the version number and year in ``setup.py`` and
+   ``docs/source/conf.py``.
+#. Commit the version changes:
 
    .. code-block:: bash
 
        $ git commit -a -m "Prepare v1.2.0 Release"
 
-#. Merge into master and push upstream:
+#. Create a new annotated and signed Tag for the commit:
+
+   .. code-block:: bash
+
+       $ git tag -s -a v1.2.0
+
+   The annotation should contain the release's name and number, and optionally
+   a short description::
+
+        Version 1.2.0 Release - Trip Entry Form
+
+        This release adds a Trip Entry form for Communards and a Trip Approving
+        form for Accountants.
+
+#. Merge the branch into the ``master`` branch and push it upstream:
 
    .. code-block:: bash
 
        $ git checkout master
        $ git merge release-1.2.0
-       $ git tag -s -a v1.2.0
-       $ git branch -d release-1.2.0
+       $ git checkout develop
        $ git push origin master
        $ git push --tags origin master
+
+#. Make sure to merge back into the ``develop`` branch as well:
+
+   .. code-block:: bash
+
+       $ git checkout develop
+       $ git merge release-1.2.0
+       $ git push origin develop
+
+#. You can then remove the ``release`` branch from your local repository:
+
+   .. code-block:: bash
+
+       $ git branch -d release-1.2.0
+
 
 
 Version Numbers
