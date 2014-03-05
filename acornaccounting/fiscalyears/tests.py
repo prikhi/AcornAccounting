@@ -265,6 +265,32 @@ class FiscalYearAccountsFormSetTests(TestCase):
         formset = FiscalYearAccountsFormSet()
         self.assertTrue(formset.forms[0].fields['exclude'].initial)
 
+    def test_sort_by_reconciled_then_number(self):
+        """
+        The formset should sort the Accounts by Reconciled Date then by number.
+        See Redmine #228
+        """
+        self.asset_account.last_reconciled = (datetime.date.today() -
+                                              datetime.timedelta(days=1))
+        self.asset_account.save()
+        higher_asset_account = create_account('lower by number',
+                                              self.asset_header, 0, 1)
+        higher_asset_account.last_reconciled = datetime.date.today()
+        higher_asset_account.save()
+        liability_header = create_header('liability')
+        lower_liability_account = create_account('ranked by name/number',
+                                                 liability_header, 0)
+        higher_liability_account = create_account('A makes me first',
+                                                  liability_header, 0)
+
+        formset = FiscalYearAccountsFormSet()
+        form_instances = [form.instance for form in formset]
+
+        self.assertSequenceEqual(
+            form_instances,
+            [self.asset_account, higher_asset_account,
+             higher_liability_account, lower_liability_account])
+
 
 class FiscalYearViewTests(TestCase):
     """

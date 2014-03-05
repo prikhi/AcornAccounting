@@ -144,6 +144,7 @@ class FiscalYearAccountsForm(forms.ModelForm):
         super(FiscalYearAccountsForm, self).__init__(*args, **kwargs)
         self.fields['exclude'].initial = bool(self.instance.last_reconciled)
 
+
 #: An FormSet of :class:`Accounts<accounts.models.Account>` using the
 #: :class:`FiscalYearAccountsForm` as the base form.
 FiscalYearAccountsFormSet = modelformset_factory(Account, extra=0,

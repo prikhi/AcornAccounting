@@ -187,5 +187,7 @@ def add_fiscal_year(request, template_name="fiscalyears/year_add.html"):
                 'accounts.views.show_accounts_chart'))
     else:
         fiscal_year_form = FiscalYearForm()
-        accounts_formset = FiscalYearAccountsFormSet()
+        accounts_formset = FiscalYearAccountsFormSet(
+            queryset=Account.objects.order_by('last_reconciled',
+                                              'full_number'))
     return render(request, template_name, locals())
