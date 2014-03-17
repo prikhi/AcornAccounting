@@ -144,7 +144,7 @@ class BaseAccountModelTests(TestCase):
         header.save()
         header.full_number = None
 
-        self.assertEqual('2-0000', header.get_full_number())
+        self.assertEqual('2-00000', header.get_full_number())
 
     def test_get_full_number_of_new_instance(self):
         """The full number of a new unsaved instance should be None."""
@@ -205,11 +205,11 @@ class HeaderModelTests(TestCase):
         liability_child = Header.objects.get(slug="me-too")
 
         self.assertEqual(asset_child.full_number,
-                         '{0}-0200'.format(asset_child.type))
+                         '{0}-02000'.format(asset_child.type))
         self.assertEqual(liability_child.full_number,
-                         '{0}-0200'.format(liability_child.type))
+                         '{0}-02000'.format(liability_child.type))
         self.assertEqual(asset_child2_child.full_number,
-                         '{0}-0100'.format(asset_child2_child.type))
+                         '{0}-01000'.format(asset_child2_child.type))
 
     def test_save_inherit_type(self):
         """
@@ -233,30 +233,63 @@ class HeaderModelTests(TestCase):
         Tests that a root Header number is it's type
         """
         asset = Header.objects.create(name='asset', slug='asset', type=1)
-        liability = Header.objects.create(name='liability', slug='liability', type=2)
-        self.assertEqual(Header.objects.all()[0].get_full_number(), '{0}-0000'.format(asset.type))
-        self.assertEqual(Header.objects.all()[1].get_full_number(), '{0}-0000'.format(liability.type))
+        liability = Header.objects.create(name='liability', slug='liability',
+                                          type=2)
+        self.assertEqual(Header.objects.all()[0].get_full_number(),
+                         '{0}-00000'.format(asset.type))
+        self.assertEqual(Header.objects.all()[1].get_full_number(),
+                         '{0}-00000'.format(liability.type))
 
     def test_child_node_get_number(self):
         """
         Tests that child Headers are numbered by type and alphabetical tree position
         """
         asset = Header.objects.create(name='asset', slug='asset', type=1)
-        asset_child = Header.objects.create(name='I will be second alphabetically', slug='asset-child', parent=asset)
-        self.assertEqual(Header.objects.get(id=asset.id).get_full_number(), '{0}-0000'.format(asset.type))
-        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0100'.format(asset_child.type))
-        asset_child2 = Header.objects.create(name='And I will be first alphabetically', slug='asset-child-2', parent=asset)
-        self.assertEqual(Header.objects.get(id=asset_child2.id).get_full_number(), '{0}-0100'.format(asset_child2.type))
-        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0200'.format(asset_child.type))
-        asset_child2_child = Header.objects.create(name='I will steal spot 2 since I am a child of spot 1', slug='asset-child-2-child', parent=asset_child2)
-        self.assertEqual(Header.objects.get(id=asset_child2.id).get_full_number(), '{0}-0100'.format(asset_child2.type))
-        self.assertEqual(Header.objects.get(id=asset_child2_child.id).get_full_number(), '{0}-0200'.format(asset_child2_child.type))
-        self.assertEqual(Header.objects.get(id=asset_child.id).get_full_number(), '{0}-0300'.format(asset_child.type))
+        asset_child = Header.objects.create(
+            name='I will be second alphabetically', slug='asset-child',
+            parent=asset)
+
+        self.assertEqual(
+            Header.objects.get(id=asset.id).get_full_number(),
+            '{0}-00000'.format(asset.type))
+        self.assertEqual(
+            Header.objects.get(id=asset_child.id).get_full_number(),
+            '{0}-01000'.format(asset_child.type))
+
+        asset_child2 = Header.objects.create(
+            name='And I will be first alphabetically', slug='asset-child-2',
+            parent=asset)
+
+        self.assertEqual(
+            Header.objects.get(id=asset_child2.id).get_full_number(),
+            '{0}-01000'.format(asset_child2.type))
+        self.assertEqual(
+            Header.objects.get(id=asset_child.id).get_full_number(),
+            '{0}-02000'.format(asset_child.type))
+
+        asset_child2_child = Header.objects.create(
+            name='I will steal spot 2 since I am a child of spot 1',
+            slug='asset-child-2-child', parent=asset_child2)
+
+        self.assertEqual(
+            Header.objects.get(id=asset_child2.id).get_full_number(),
+            '{0}-01000'.format(asset_child2.type))
+        self.assertEqual(
+            Header.objects.get(id=asset_child2_child.id).get_full_number(),
+            '{0}-02000'.format(asset_child2_child.type))
+        self.assertEqual(
+            Header.objects.get(id=asset_child.id).get_full_number(),
+            '{0}-03000'.format(asset_child.type))
 
         liability = create_header('I am not in the asset tree!', None)
         liability_child = create_header('me too', liability)
-        self.assertEqual(Header.objects.get(id=liability.id).get_full_number(), '{0}-0000'.format(liability.type))
-        self.assertEqual(Header.objects.get(id=liability_child.id).get_full_number(), '{0}-0100'.format(liability_child.type))
+
+        self.assertEqual(
+            Header.objects.get(id=liability.id).get_full_number(),
+            '{0}-00000'.format(liability.type))
+        self.assertEqual(
+            Header.objects.get(id=liability_child.id).get_full_number(),
+            '{0}-01000'.format(liability_child.type))
 
 
 class AccountModelTests(TestCase):
@@ -282,12 +315,12 @@ class AccountModelTests(TestCase):
         self.child_acc = Account.objects.get(name='child')
         self.gchild_acc = Account.objects.get(name='gChild')
         self.assertEqual(self.child_acc.get_full_number(),
-                         '{0}-{1:02d}{2:02d}'.format(
+                         '{0}-{1:02d}{2:03d}'.format(
                              self.child_acc.type,
                              self.child_acc.parent.account_number(),
                              self.child_acc.account_number()))
         self.assertEqual(self.gchild_acc.get_full_number(),
-                         '{0}-{1:02d}{2:02d}'.format(
+                         '{0}-{1:02d}{2:03d}'.format(
                              self.gchild_acc.type,
                              self.gchild_acc.parent.account_number(),
                              self.gchild_acc.account_number()))

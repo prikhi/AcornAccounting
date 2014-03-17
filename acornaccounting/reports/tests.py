@@ -312,7 +312,7 @@ class TrialBalanceReportViewTests(TestCase):
 
         # Balances are value balances so the asset's are flipped
         asset_info = {'name': "Asset Account",
-                      'number': "1-0001",
+                      'number': "1-00001",
                       'beginning_balance': 25,
                       'total_debits': 0,
                       'total_credits': 15,
@@ -321,7 +321,7 @@ class TrialBalanceReportViewTests(TestCase):
                       'url': self.asset_account.get_absolute_url()}
 
         liability_info = {'name': "Liability Account",
-                          'number': "2-0001",
+                          'number': "2-00001",
                           'beginning_balance': 25,
                           'total_debits': -15,
                           'total_credits': 0,
@@ -347,7 +347,7 @@ class TrialBalanceReportViewTests(TestCase):
         create_transaction(past_entry, self.liability_account, 25)
 
         asset_info = {'name': "Asset Account",
-                      'number': "1-0001",
+                      'number': "1-00001",
                       'beginning_balance': 25,
                       'total_debits': 0,
                       'total_credits': 0,
@@ -355,7 +355,7 @@ class TrialBalanceReportViewTests(TestCase):
                       'ending_balance': 25,
                       'url': self.asset_account.get_absolute_url()}
         liability_info = {'name': "Liability Account",
-                          'number': "2-0001",
+                          'number': "2-00001",
                           'beginning_balance': 25,
                           'total_debits': 0,
                           'total_credits': 0,
@@ -394,7 +394,7 @@ class TrialBalanceReportViewTests(TestCase):
         create_transaction(future_entry, self.liability_account, -100)
 
         asset_info = {'name': "Asset Account",
-                      'number': "1-0001",
+                      'number': "1-00001",
                       'beginning_balance': 50,
                       'total_debits': 0,
                       'total_credits': 23,
@@ -402,7 +402,7 @@ class TrialBalanceReportViewTests(TestCase):
                       'ending_balance': 27,
                       'url': self.asset_account.get_absolute_url()}
         liability_info = {'name': "Liability Account",
-                          'number': "2-0001",
+                          'number': "2-00001",
                           'beginning_balance': 50,
                           'total_debits': -23,
                           'total_credits': 0,
@@ -445,7 +445,7 @@ class TrialBalanceReportViewTests(TestCase):
         create_transaction(in_range_entry, self.liability_account, 15)
 
         liability_info = {'name': "Liability Account",
-                          'number': "2-0001",
+                          'number': "2-00001",
                           'beginning_balance': -25,
                           'total_debits': 0,
                           'total_credits': 15,
@@ -473,7 +473,7 @@ class TrialBalanceReportViewTests(TestCase):
         create_transaction(in_range_entry, self.asset_account, 15)
 
         asset_info = {'name': "Asset Account",
-                      'number': "1-0001",
+                      'number': "1-00001",
                       'beginning_balance': 25,
                       'total_debits': 0,
                       'total_credits': 15,

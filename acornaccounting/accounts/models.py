@@ -160,10 +160,10 @@ class Header(BaseAccountModel):
     def _calculate_full_number(self):
         """Use type and tree position to generate full account number"""
         if self.parent:
-            full_number = "{0}-{1:02d}00".format(self.type,
-                                                 self.account_number())
+            full_number = "{0}-{1:02d}000".format(self.type,
+                                                  self.account_number())
         else:
-            full_number = "{0}-0000".format(self.type)
+            full_number = "{0}-00000".format(self.type)
         return full_number
 
     def _get_change_tree(self):
@@ -303,8 +303,8 @@ class Account(BaseAccountModel):
 
     def _calculate_full_number(self):
         """Use parent and sibling positions to generate full account number."""
-        full_number = (self.parent._calculate_full_number()[:-2] +
-                       "{0:02d}".format(self.account_number()))
+        full_number = (self.parent._calculate_full_number()[:-3] +
+                       "{0:03d}".format(self.account_number()))
         return full_number
 
     def _get_change_tree(self):
