@@ -14,11 +14,11 @@
   <tr class="{% cycle main,alt %} clickable">
     <td><a href="{{ account.get_absolute_url }}">{{ account.level|int_to_tabs }}{{ account.name|capwords }}</a></td>
     {% if account.total < 0 %}
-      <td class="text-right">{{ account.total|currency }}</td>
+      <td class="text-right"><a href="{{ account.get_absolute_url }}">{{ account.total|currency }}</a></td>
       <td></td>
     {% else %}
       <td></td>
-      <td class="text-right">{{ account.total|currency }}</td>
+      <td class="text-right"><a href="{{ account.get_absolute_url }}">{{ account.total|currency }}</a></td>
     {% endif %}
     <td></td>
     <td></td>
@@ -38,5 +38,5 @@
   <td></td>
   <td></td>
   <td></td>
-  <td class="text-right">{{ header.total|currency }}</td>
+  <td class="text-right"><a href="{{ header.get_absolute_url }}">{{ header.total|currency }}</a></td>
 </tr>

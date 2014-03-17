@@ -69,15 +69,15 @@
     {% for transaction in transactions %}
       <tr class="{% cycle 'main' 'alt' %} clickable">
       <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_entry_number }}</a></td>
-      <td>{{ transaction.date|date:"m/d/Y" }}</td>
-      <td>{{ transaction.get_memo|capwords }}</td>
-      <td>{{ transaction.detail|capwords }}</td>
+      <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.date|date:"m/d/Y" }}</a></td>
+      <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.get_memo|capwords }}</a></td>
+      <td><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.detail|capwords }}</a></td>
       {% if transaction.balance_delta < 0 %}
-        <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+        <td class="text-right"><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.balance_delta|currency }}</a></td>
         <td class="text-right"></td>
       {% else %}
         <td class="text-right"></td>
-        <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+        <td class="text-right"><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.balance_delta|currency }}</a></td>
       {% endif %}
       <td class="text-right">
         {% if transaction.event %}
@@ -85,7 +85,7 @@
         {% endif %}
       </td>
       {% if show_balance %}
-        <td class="text-right">{{ transaction.final_balance|currency }}</td>
+        <td class="text-right"><a href="{{ transaction.get_journal_entry.get_absolute_url }}">{{ transaction.final_balance|currency }}</a></td>
       {% endif %}
       </tr>
     {% endfor %}

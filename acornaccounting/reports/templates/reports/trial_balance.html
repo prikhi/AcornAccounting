@@ -39,13 +39,13 @@ Trial Balance Report
   <tbody>
     {% for account in accounts %}
       <tr class="{% cycle main,alt %} clickable">
-        <td><a href="{{ account.url }}">{{ account.number }}<a></td>
-        <td>{{ account.name|capwords }}</td>
-        <td class="text-right">{{ account.beginning_balance|currency }}</td>
-        <td class="text-right">{{ account.total_debits|currency }}</td>
-        <td class="text-right">{{ account.total_credits|currency }}</td>
-        <td class="text-right">{{ account.net_change|currency }}</td>
-        <td class="text-right">{{ account.ending_balance|currency }}</td>
+        <td><a href="{{ account.url }}">{{ account.number }}</a></td>
+        <td><a href="{{ account.url }}">{{ account.name|capwords }}</a></td>
+        <td class="text-right"><a href="{{ account.url }}">{{ account.beginning_balance|currency }}</a></td>
+        <td class="text-right"><a href="{{ account.url }}">{{ account.total_debits|currency }}</a></td>
+        <td class="text-right"><a href="{{ account.url }}">{{ account.total_credits|currency }}</a></td>
+        <td class="text-right"><a href="{{ account.url }}">{{ account.net_change|currency }}</a></td>
+        <td class="text-right"><a href="{{ account.url }}">{{ account.ending_balance|currency }}</a></td>
       </tr>
     {% endfor %}
   </tbody>

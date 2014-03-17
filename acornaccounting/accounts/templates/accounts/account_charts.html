@@ -56,16 +56,16 @@ Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
           {% for node in root_node.descendants %}
             <tr class="header clickable">
               <td><a href="{{ node.get_absolute_url }}">{{ node.get_full_number }}</a></td>
-              <td>{{ node.level|int_to_tabs}}{{ node.name|capwords }}</td>
-              <td>{{ node.description }}</td>
-              <td class="text-right">{{ node.get_account_balance|currency }}</td>
+              <td><a href="{{ node.get_absolute_url }}">{{ node.level|int_to_tabs}}{{ node.name|capwords }}</a></td>
+              <td><a href="{{ node.get_absolute_url }}">{{ node.description }}</a></td>
+              <td class="text-right"><a href="{{ node.get_absolute_url }}">{{ node.get_account_balance|currency }}</a></td>
             </tr>
             {% for account in node.account_set.all %}
               <tr class="{% cycle 'main' 'alt' %} clickable">
                 <td><a href="{{ account.get_absolute_url }}">{{ account.get_full_number }}</a></td>
-                <td >{{ account.level|int_to_tabs}}{{ account.name|capwords }}</td>
-                <td >{{ account.description }}</td>
-                <td class="text-right">{{ account.get_balance|currency}}</td>
+                <td><a href="{{ account.get_absolute_url }}">{{ account.level|int_to_tabs}}{{ account.name|capwords }}</a></td>
+                <td><a href="{{ account.get_absolute_url }}">{{ account.description }}</a></td>
+                <td class="text-right"><a href="{{ account.get_absolute_url }}">{{ account.get_balance|currency}}</a></td>
               </tr>
             {% endfor %}
           {% endfor %}

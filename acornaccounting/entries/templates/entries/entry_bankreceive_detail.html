@@ -46,8 +46,8 @@
       {% for transaction in transactions %}
         <tr class="{% cycle 'main' 'alt' %} clickable">
           <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
-          <td>{{ transaction.detail|capwords }}</td>
-          <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+          <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.detail|capwords }}</a></td>
+          <td class="text-right"><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.balance_delta|currency }}</a></td>
           <td class="text-right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
         </tr>
       {% endfor %}

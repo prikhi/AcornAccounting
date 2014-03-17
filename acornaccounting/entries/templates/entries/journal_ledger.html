@@ -32,8 +32,8 @@
     <tbody>
       <tr class="header clickable">
         <td><a href="{{ entry.get_absolute_url }}">{{ entry.get_number }}</a></td>
-        <td>{{ entry.date|date:"m/d/Y" }}</td>
-        <td colspan="4" class="">{{ entry.memo|capwords }}</td>
+        <td><a href="{{ entry.get_absolute_url }}">{{ entry.date|date:"m/d/Y" }}</a></td>
+        <td colspan="4" class=""><a href="{{ entry.get_absolute_url }}">{{ entry.memo|capwords }}</a></td>
       </tr>
       <tr>
         <td></td>
@@ -47,13 +47,13 @@
         <tr class="{% cycle 'main' 'alt' %} clickable">
           <td></td>
           <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
-          <td>{{ transaction.detail }}</td>
+          <td><a href="{{ transaction.get_absolute_url }}">{{ transaction.detail }}</a></td>
           {% if transaction.balance_delta < 0 %}
-            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"><a href="{{ transaction.get_absolute_url }}">{{ transaction.balance_delta|currency }}</a></td>
             <td class="text-right"></td>
           {% else %}
             <td class="text-right"></td>
-            <td class="text-right">{{ transaction.balance_delta|currency }}</td>
+            <td class="text-right"><a href="{{ transaction.get_absolute_url }}">{{ transaction.balance_delta|currency }}</a></td>
           {% endif %}
           <td class="text-right">{% if transaction.event %}<a href="{{ transaction.event.get_absolute_url }}">{{ transaction.event }}</a>{% endif %}</td>
         </tr>

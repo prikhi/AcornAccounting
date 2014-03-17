@@ -33,11 +33,11 @@
 
     <tr class="{% cycle main,alt %} clickable">
         <td><a href="{{ event.get_absolute_url }}">{{ event.date|date:"m/d/Y" }}</a></td>
-        <td>{{ event.number }}</td>
-        <td>{{ event.name|capwords }}</td>
-        <td>{{ event.city|capwords }}</td>
-        <td>{{ event.state|capwords }}</td>
-        <td class="text-right">{{ event.get_net_change|currency }}</td>
+        <td><a href="{{ event.get_absolute_url }}">{{ event.number }}</a></td>
+        <td><a href="{{ event.get_absolute_url }}">{{ event.name|capwords }}</a></td>
+        <td><a href="{{ event.get_absolute_url }}">{{ event.city|capwords }}</a></td>
+        <td><a href="{{ event.get_absolute_url }}">{{ event.state|capwords }}</a></td>
+        <td class="text-right"><a href="{{ event.get_absolute_url }}">{{ event.get_net_change|currency }}</a></td>
     </tr>
 
     {% if forloop.last %}
