@@ -39,6 +39,7 @@ INSTALLED_APPS = (
 
     'constance.backends.database',
     'constance',
+    'localflavor',
     'mptt',
     'parsley',
     'south',

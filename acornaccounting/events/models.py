@@ -1,5 +1,5 @@
 from caching.base import CachingManager, CachingMixin
-from django.contrib.localflavor.us.models import USStateField
+from localflavor.us.models import USStateField
 from django.core.urlresolvers import reverse
 from django.db import models
 
