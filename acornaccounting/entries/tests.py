@@ -500,7 +500,8 @@ class JournalEntryViewTests(TestCase):
                                               0, 6)
         self.event = Event.objects.create(name='test event 1',
                                           date=datetime.date.today(),
-                                          number='1', city='min', state='VA')
+                                          abbreviation='TE1', city='min',
+                                          state='VA')
 
     def test_journal_add_view_initial(self):
         """

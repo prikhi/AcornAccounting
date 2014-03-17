@@ -20,10 +20,10 @@ class EventsReportViewTests(TestCase):
         liability_header = create_header('Liability Account')
         liability_account = create_account('Liability Account',
                                            liability_header, 0)
-        self.event1 = Event.objects.create(name="test", number=1201,
+        self.event1 = Event.objects.create(name="test", abbreviation="TBMD",
                                            date=datetime.date.today(),
                                            city="Baltimore", state="MD")
-        self.event2 = Event.objects.create(name="test", number=1202,
+        self.event2 = Event.objects.create(name="test", abbreviation="TRVA",
                                            date=datetime.date.today(),
                                            city="Richmond", state="VA")
         entry = create_entry(datetime.date.today(), 'test memo')

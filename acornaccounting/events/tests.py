@@ -16,7 +16,7 @@ class EventModelTests(TestCase):
         self.liability_header = create_header('Liability Account')
         self.liability_account = create_account('Liability Account',
                                                 self.liability_header, 0)
-        self.event = Event.objects.create(name="test", number=1201,
+        self.event = Event.objects.create(name="test", abbreviation="T",
                                           date=datetime.date.today(),
                                           city="Louisa", state="MD")
 
@@ -42,6 +42,29 @@ class EventModelTests(TestCase):
 
         self.assertEqual(net_change, 0)
 
+    def test_generate_number(self):
+        """The method should return the abbreviation + YY"""
+        event_date = datetime.date(2014, 3, 17)
+        event = Event(name="test", abbreviation="JUFHNFU", date=event_date,
+                      city="Mineral", state="VA")
+
+        number = event._generate_number()
+
+        self.assertEqual(number, "JUFHNFU14")
+
+    def test_generate_number_on_save(self):
+        """Events should generate their `number` field on save."""
+        event_date = datetime.date(2014, 3, 17)
+        event = Event(name="Test Event", abbreviation="TE", date=event_date,
+                      city="Mineral", state="VA")
+
+        self.assertEqual(event.number, "")
+
+        event.save()
+        event = Event.objects.get(id=event.id)
+
+        self.assertEqual(event.number, "TE14")
+
 
 class EventDetailViewTests(TestCase):
     """
@@ -56,7 +79,7 @@ class EventDetailViewTests(TestCase):
             'bank', self.asset_header, 0, 1, True)
         self.event = Event.objects.create(
             name='test event', city='mineral', state='VA',
-            date=datetime.date.today(), number=420)
+            date=datetime.date.today(), abbreviation="TE")
 
     def test_show_event_detail_view_initial(self):
         """
