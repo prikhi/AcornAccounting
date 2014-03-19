@@ -20,7 +20,7 @@ class Event(CachingMixin, models.Model):
         ordering = ['date']
 
     def __unicode__(self):
-        return self.name
+        return self.number
 
     def get_absolute_url(self):
         """Return the URL of the Event's Details Page."""
