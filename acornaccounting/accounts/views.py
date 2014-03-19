@@ -10,7 +10,7 @@ from django.shortcuts import render, get_object_or_404
 
 
 from core.core import today_in_american_format, process_date_range_form
-from fiscalyears.fiscalyears import get_current_fiscal_year_start
+from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
 
 from .forms import AccountReconcileForm, ReconcileTransactionFormSet
 from .models import Account, Header, HistoricalAccount
@@ -100,7 +100,7 @@ def show_account_detail(request, account_slug,
                                          'bankspend_entry',
                                          'bankreceivingentry',
                                          'bankreceive_entry')
-    current_fiscal_start_date = get_current_fiscal_year_start()
+    current_fiscal_start_date = get_start_of_current_fiscal_year()
     show_balance = (current_fiscal_start_date is None or
                     current_fiscal_start_date <= start_date)
     if not show_balance:

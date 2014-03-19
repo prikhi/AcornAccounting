@@ -4,7 +4,7 @@ from django.shortcuts import render
 
 from accounts.models import Account, Header
 from core.core import first_day_of_year, process_date_range_form
-from events.models import Event
+from events.models import Event, HistoricalEvent
 
 
 def events_report(request, template_name="reports/events.html"):
@@ -17,7 +17,8 @@ def events_report(request, template_name="reports/events.html"):
 
     """
     events = Event.objects.all()
-    return render(request, template_name, {'events': events})
+    historical_events = HistoricalEvent.objects.all()
+    return render(request, template_name, locals())
 
 
 def profit_loss_report(request, template_name="reports/profit_loss.html"):

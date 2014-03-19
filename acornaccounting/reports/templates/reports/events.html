@@ -15,38 +15,44 @@
 
 {% block content %}
 
-{% for event in events %}
-    {% if forloop.first %}
-      <table class="table table-condensed table-hover">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Number</th>
-            <th>Name</th>
-            <th>City</th>
-            <th>State</th>
-            <th class="text-right">Net Change</th>
-          </tr>
-        </thead>
-        <tbody>
-    {% endif %}
-
-    <tr class="{% cycle main,alt %} clickable">
-        <td><a href="{{ event.get_absolute_url }}">{{ event.date|date:"m/d/Y" }}</a></td>
-        <td><a href="{{ event.get_absolute_url }}">{{ event.number }}</a></td>
-        <td><a href="{{ event.get_absolute_url }}">{{ event.name|capwords }}</a></td>
-        <td><a href="{{ event.get_absolute_url }}">{{ event.city|capwords }}</a></td>
-        <td><a href="{{ event.get_absolute_url }}">{{ event.state|capwords }}</a></td>
-        <td class="text-right"><a href="{{ event.get_absolute_url }}">{{ event.get_net_change|currency }}</a></td>
+<table class="table table-condensed table-hover">
+<thead>
+    <tr>
+    <th>Date</th>
+    <th>Number</th>
+    <th>Name</th>
+    <th>City</th>
+    <th>State</th>
+    <th class="text-right">Net Change</th>
     </tr>
-
-    {% if forloop.last %}
-      </tbody>
-      </table>
-    {% endif %}
-{% empty %}
+</thead>
+<tbody>
+{% if events or historical_events %}
+  {% for event in events %}
+    <tr class="{% cycle main,alt %} clickable">
+      <td><a href="{{ event.get_absolute_url }}">{{ event.date|date:"m/d/Y" }}</a></td>
+      <td><a href="{{ event.get_absolute_url }}">{{ event.number }}</a></td>
+      <td><a href="{{ event.get_absolute_url }}">{{ event.name|capwords }}</a></td>
+      <td><a href="{{ event.get_absolute_url }}">{{ event.city|capwords }}</a></td>
+      <td><a href="{{ event.get_absolute_url }}">{{ event.state|capwords }}</a></td>
+      <td class="text-right"><a href="{{ event.get_absolute_url }}">{{ event.get_net_change|currency }}</a></td>
+    </tr>
+  {% endfor %}
+  {% for event in historical_events %}
+    <tr class="{% cycle main,alt %}">
+      <td>{{ event.date|date:"m/d/Y" }}</td>
+      <td>{{ event.number }}</td>
+      <td>{{ event.name|capwords }}</td>
+      <td>{{ event.city|capwords }}</td>
+      <td>{{ event.state|capwords }}</td>
+      <td class="text-right">{{ event.net_change|currency }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+{% else %}
   <p>Sorry, no Events were found. Please
   <a href="{% url admin:events_event_add %}">create an Event</a> first.</p>
-{% endfor %}
+{% endif %}
 
 {% endblock %}

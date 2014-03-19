@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
-from fiscalyears.fiscalyears import get_current_fiscal_year_start
+from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
 
 from .managers import TransactionManager
 
@@ -93,7 +93,7 @@ class BaseJournalEntry(CachingMixin, models.Model):
         :rtype: bool
 
         """
-        current_year_start = get_current_fiscal_year_start()
+        current_year_start = get_start_of_current_fiscal_year()
         if current_year_start is not None and current_year_start > self.date:
             return False
         return True
@@ -361,7 +361,8 @@ class Transaction(CachingMixin, models.Model):
                                         "credit, negative is a debit",
                                         max_digits=19, decimal_places=4,
                                         db_index=True)
-    event = models.ForeignKey('events.Event', blank=True, null=True)
+    event = models.ForeignKey('events.Event', blank=True, null=True,
+                              on_delete=models.SET_NULL)
     reconciled = models.BooleanField(default=False)
     date = models.DateField(blank=True, null=True, db_index=True)
 

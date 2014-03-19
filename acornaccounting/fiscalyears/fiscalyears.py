@@ -3,8 +3,7 @@ from dateutil.relativedelta import relativedelta
 from .models import FiscalYear
 
 
-def get_current_fiscal_year_start():
-
+def get_start_of_current_fiscal_year():
     """
     Determine the Start Date of the Latest :class:`~.models.FiscalYear`.
 

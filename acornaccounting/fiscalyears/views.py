@@ -12,9 +12,10 @@ from django.shortcuts import render
 from accounts.models import Account, HistoricalAccount
 from entries.models import (Transaction, JournalEntry, BankSpendingEntry,
                             BankReceivingEntry)
+from events.models import Event, HistoricalEvent
 
 
-from .fiscalyears import get_current_fiscal_year_start
+from .fiscalyears import get_start_of_current_fiscal_year
 from .forms import FiscalYearForm, FiscalYearAccountsFormSet
 from .models import FiscalYear
 
@@ -58,126 +59,45 @@ def add_fiscal_year(request, template_name="fiscalyears/year_add.html"):
     :rtype: HttpResponse or HttpResponseRedirect
 
     """
-    # TODO: Refactor this into FiscalYear.objects.get_latest_or_none()
-    try:
-        previous_year = FiscalYear.objects.latest()
-    except FiscalYear.DoesNotExist:
-        previous_year = False
+    previous_year = _get_previous_year_if_exists()
 
     if request.method == 'POST':
         fiscal_year_form = FiscalYearForm(request.POST)
         accounts_formset = FiscalYearAccountsFormSet(request.POST)
         valid = fiscal_year_form.is_valid() and accounts_formset.is_valid()
         if valid and previous_year:
-            # Create HistoricalAccounts
-            stop_date = previous_year.date
-            start_date = get_current_fiscal_year_start()
-            # TODO: Refactor into FiscalYear.objects.current_years_months()
-            for month in rrule.rrule(rrule.MONTHLY, dtstart=start_date,
-                                     until=stop_date):
-                last_day_of_month = month.replace(
-                    day=calendar.monthrange(month.year, month.month)[1]
-                ).date()
-                # TODO: Use bulk_create() instead of creating and saving each
-                # object, instantiate into a list or create a dictionary with
-                # the data instead
-                # Maybe use list comprehension + helper functions to generate
-                # objects?
-                for account in Account.objects.filter(type__in=(1, 2, 3)):
-                    # Amount is end of month balance
-                    amount = account.get_balance_by_date(
-                        date=last_day_of_month)
-                    if account.flip_balance():      # Flip back to credit/debit
-                        amount *= -1                # amount from value amount
-                    HistoricalAccount.objects.create(
-                        account=account, date=month,
-                        name=account.name, type=account.type,
-                        number=account.get_full_number(),
-                        amount=amount
-                    )
-                for account in Account.objects.filter(type__in=range(4, 9)):
-                    # Amount is net change for month
-                    amount = account.get_balance_change_by_month(month)
-                    if account.flip_balance():      # Flip back to credit/debit
-                        amount *= -1                # amount from value amount
-                    HistoricalAccount.objects.create(
-                        account=account, date=month,
-                        name=account.name, type=account.type,
-                        number=account.get_full_number(),
-                        amount=amount
-                    )
-            # Create Transaction exclusion list
-            # TODO: Make excluded_accounts a `set` then use set.intersection
-            # to check for inclusion
-            excluded_accounts = list()
-            for form in accounts_formset:
-                if form.cleaned_data.get('exclude'):
-                    excluded_accounts.append(form.instance)
-            excluded_transactions = Transaction.objects.filter(
-                account__in=excluded_accounts, reconciled=False)
-            # Purge Journal Entries
-            historical_year_end = previous_year.date.replace(
-                day=calendar.monthrange(previous_year.year,
-                                        previous_year.end_month)[1])
-            # TODO: turn into list comprehension + select related
-            general = JournalEntry.objects.filter(
-                date__lte=historical_year_end)
-            receiving = BankReceivingEntry.objects.filter(
-                date__lte=historical_year_end)
-            spending = BankSpendingEntry.objects.filter(
-                date__lte=historical_year_end)
-            for entries in (general, receiving, spending):
+            start_of_previous_year = get_start_of_current_fiscal_year()
+            end_of_previous_year = _get_last_day_of_month(previous_year.date)
+
+            [_archive_and_delete_event(event) for event in
+             Event.objects.filter(date__lte=end_of_previous_year)]
+
+            months_in_previous_year = _get_months_in_range(
+                start_of_previous_year, end_of_previous_year)
+            for month in months_in_previous_year:
+                last_day_of_month = _get_last_day_of_month(month)
+                HistoricalAccount.objects.bulk_create(
+                    [_build_historical_account(account, last_day_of_month) for
+                     account in Account.objects.all()]
+                )
+
+            excluded_transactions = _get_excluded_transactions(
+                accounts_formset)
+
+            journals = [Journal.objects.filter(date__lte=end_of_previous_year)
+                        for Journal in (JournalEntry, BankReceivingEntry,
+                                        BankSpendingEntry)]
+            for entries in journals:
                 for entry in entries:
-                    skip = False
-                    # TODO: make transaction a `set` and check for inclusion
-                    # using excluded_accounts.intersection
-                    for transaction in entry.transaction_set.all():
-                        if transaction in excluded_transactions:
-                            skip = True
-                            break
-                    if (hasattr(entry, 'main_transaction') and
-                            entry.main_transaction in excluded_transactions):
-                        skip = True
-                    if not skip:
-                        entry.transaction_set.all().delete()
-                        if hasattr(entry, 'main_transaction'):
-                            entry.main_transaction.delete()
-                        entry.delete()
-            # Set new Account Balances
-            # TODO: See if there is a way to do bulk updates for these
-            for account in Account.objects.filter(type__in=(1, 2, 3)):
-                # Balances will build upon last years
-                hist_acct = account.historicalaccount_set.latest()
-                new_year_sum = account.transaction_set.filter(
-                    date__gt=historical_year_end
-                ).aggregate(Sum('balance_delta'))
-                account.balance = (new_year_sum.get('balance_delta__sum') or 0
-                                   ) + hist_acct.amount
-                account.save()
-            for account in Account.objects.filter(type__in=range(4, 9)):
-                # Balances will reflect Transactions in new Year
-                new_year_sum = account.transaction_set.filter(
-                    date__gt=historical_year_end).aggregate(
-                        Sum('balance_delta'))
-                account.balance = new_year_sum.get('balance_delta__sum') or 0
-                account.save()
-            # Move balance of Current Year Earnings to Retained Earnings
-            # TODO: Refactor out into end_of_year_earnings_transfer()
-            current_earnings = Account.objects.get(
-                name='Current Year Earnings')
-            retained_earnings = Account.objects.get(name='Retained Earnings')
-            hist_current = current_earnings.historicalaccount_set.latest()
-            transfer_date = historical_year_end + datetime.timedelta(days=1)
-            entry = JournalEntry.objects.create(
-                date=transfer_date, memo='End of Fiscal Year Adjustment')
-            Transaction.objects.create(journal_entry=entry,
-                                       account=current_earnings,
-                                       balance_delta=hist_current.amount * -1)
-            Transaction.objects.create(journal_entry=entry,
-                                       account=retained_earnings,
-                                       balance_delta=hist_current.amount)
+                    _delete_entry_if_not_excluded(entry, excluded_transactions)
+            [_correct_account_balance(account, end_of_previous_year) for
+             account in Account.objects.all()]
+
+            _transfer_current_year_earnings(end_of_previous_year)
+
             fiscal_year_form.save()
-            messages.success(request, "A new fiscal year has been started.")
+            messages.success(request, "Your previous fiscal year has been "
+                             "closed and a new fiscal year has been started.")
             return HttpResponseRedirect(reverse(
                 'accounts.views.show_accounts_chart'))
         elif valid:
@@ -191,3 +111,113 @@ def add_fiscal_year(request, template_name="fiscalyears/year_add.html"):
             queryset=Account.objects.order_by('last_reconciled',
                                               'full_number'))
     return render(request, template_name, locals())
+
+
+def _get_previous_year_if_exists():
+    """Return the last FiscalYear or False if none exists."""
+    try:
+        previous_year = FiscalYear.objects.latest()
+    except FiscalYear.DoesNotExist:
+        previous_year = False
+    return previous_year
+
+
+def _archive_and_delete_event(event):
+    """Create a HistoricalEvent and delete the Event."""
+    debit_total, credit_total, net_change = event.transaction_set.get_totals(
+        net_change=True)
+
+    HistoricalEvent.objects.create(
+        name=event.name, number=event.number, date=event.date, city=event.city,
+        state=event.state, debit_total=debit_total, credit_total=credit_total,
+        net_change=net_change)
+    event.delete()
+
+
+def _get_months_in_range(start_date, stop_date):
+    """Return a list of datetime.date months between the start & stop dates."""
+    return rrule.rrule(rrule.MONTHLY, dtstart=start_date, until=stop_date)
+
+
+def _build_historical_account(account, month):
+    """Create a HistoricalAccount for the specified account and month."""
+    if account.type in (1, 2, 3):
+        amount = account.get_balance_by_date(date=month)
+    else:
+        amount = account.get_balance_change_by_month(month)
+
+    if account.flip_balance():      # Flip back to credit/debit
+        amount *= -1                # amount from value amount
+
+    historical_account = HistoricalAccount(
+        account=account, date=month, name=account.name, type=account.type,
+        number=account.get_full_number(), amount=amount)
+    return historical_account
+
+
+def _get_excluded_transactions(accounts_formset):
+    """
+    Process a FiscalYearAccountsFormSet and return a set of excluded
+    Transactions.
+
+    """
+    excluded_accounts = [form.instance for form in accounts_formset if
+                         form.cleaned_data.get('exclude')]
+    excluded_transactions = frozenset(Transaction.objects.filter(
+        account__in=excluded_accounts, reconciled=False))
+    return excluded_transactions
+
+
+def _get_last_day_of_month(month):
+    """Return the last day of the specified month."""
+    last_day_of_month = month.replace(
+        day=calendar.monthrange(month.year, month.month)[1])
+    return last_day_of_month
+
+
+def _get_all_transactions(entry):
+    """Get all Transactions of the Entry, including a main_transaction."""
+    entry_transactions = list(entry.transaction_set.all())
+    if hasattr(entry, 'main_transaction'):
+        entry_transactions.append(entry.main_transaction)
+    return entry_transactions
+
+
+def _delete_entry_if_not_excluded(entry, excluded_transactions):
+    """Delete an Entry if none of it's Transactions are excluded."""
+    entry_transactions = _get_all_transactions(entry)
+    entry_is_not_excluded = excluded_transactions.isdisjoint(
+        entry_transactions)
+    if entry_is_not_excluded:
+        [transaction.delete() for transaction in entry_transactions]
+        entry.delete()
+
+
+def _correct_account_balance(account, historical_year_end):
+    """
+    Set the Account balance to the latest HistoricalAccount balance plus any
+    Transactions after the end of the last Fiscal Year.
+
+    """
+    new_year_sum = account.transaction_set.filter(
+        date__gt=historical_year_end).aggregate(Sum('balance_delta'))
+    account.balance = new_year_sum.get('balance_delta__sum') or 0
+    if account.type in (1, 2, 3):
+        hist_acct = account.historicalaccount_set.latest()
+        account.balance += hist_acct.amount
+    account.save()
+
+
+def _transfer_current_year_earnings(entry_date):
+    """Transfer the Current Year Earnings balance into Retained Earnings."""
+    current_earnings = Account.objects.get(name='Current Year Earnings')
+    retained_earnings = Account.objects.get(name='Retained Earnings')
+    historical_current = current_earnings.historicalaccount_set.latest()
+    transfer_date = entry_date + datetime.timedelta(days=1)
+
+    entry = JournalEntry.objects.create(date=transfer_date,
+                                        memo='End of Fiscal Year Adjustment')
+    Transaction.objects.create(journal_entry=entry, account=current_earnings,
+                               balance_delta=historical_current.amount * -1)
+    Transaction.objects.create(journal_entry=entry, account=retained_earnings,
+                               balance_delta=historical_current.amount)

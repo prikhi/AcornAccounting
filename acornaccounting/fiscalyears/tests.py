@@ -5,10 +5,11 @@ from django.test import TestCase
 
 from accounts.models import Account, HistoricalAccount
 from entries.models import Transaction, BankSpendingEntry, BankReceivingEntry
+from events.models import Event, HistoricalEvent
 from core.tests import (create_header, create_entry, create_account,
                         create_transaction, create_and_login_user)
 
-from .fiscalyears import get_current_fiscal_year_start
+from .fiscalyears import get_start_of_current_fiscal_year
 from .forms import FiscalYearForm, FiscalYearAccountsFormSet
 from .models import FiscalYear
 
@@ -20,7 +21,7 @@ class FiscalYearModuleTests(TestCase):
         The ``current_start`` method should return ``None`` if there are no
         ``FiscalYears``.
         """
-        self.assertEqual(get_current_fiscal_year_start(), None)
+        self.assertEqual(get_start_of_current_fiscal_year(), None)
 
     def test_current_start_one_year(self):
         """
@@ -30,7 +31,7 @@ class FiscalYearModuleTests(TestCase):
         """
         FiscalYear.objects.create(year=2012, end_month=2, period=12)
         start = datetime.date(2011, 3, 1)
-        self.assertEqual(get_current_fiscal_year_start(), start)
+        self.assertEqual(get_start_of_current_fiscal_year(), start)
 
     def test_current_start_two_years(self):
         """
@@ -41,7 +42,7 @@ class FiscalYearModuleTests(TestCase):
         FiscalYear.objects.create(year=2012, end_month=2, period=12)
         FiscalYear.objects.create(year=2012, end_month=6, period=12)
         start = datetime.date(2012, 3, 1)
-        self.assertEqual(get_current_fiscal_year_start(), start)
+        self.assertEqual(get_start_of_current_fiscal_year(), start)
 
 
 class FiscalYearFormTests(TestCase):
@@ -383,6 +384,30 @@ class FiscalYearViewTests(TestCase):
             response, 'fiscal_year_form', 'period',
             'Select a valid choice. 11 is not one of the available choices.')
 
+    def test_add_fiscal_year_create_historical_events(self):
+        """
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and no
+        previous FiscalYear will not create any HistoricalEvent instances.
+        """
+        Event.objects.create(name="test", abbreviation="T", state="VA",
+                             city="this", date=datetime.date(2011, 2, 1))
+
+        self.client.post(reverse('fiscalyears.views.add_fiscal_year'),
+                         {'year': 2013,
+                          'end_month': 12,
+                          'period': 12,
+                          'form-TOTAL_FORMS': 2,
+                          'form-INITIAL_FORMS': 2,
+                          'form-MAX_NUM_FORMS': 2,
+                          'form-0-id': self.bank_account.id,
+                          'form-0-exclude': True,
+                          'form-1-id': self.expense_account.id,
+                          'form-1-exclude': False,
+                          'submit': 'Start New Year'})
+
+        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(HistoricalEvent.objects.count(), 0)
+
     def test_add_fiscal_year_create_historical_accounts(self):
         """
         A ``POST`` to the ``add_fiscal_year`` view with valid data and no
@@ -510,6 +535,115 @@ class FiscalYearViewTests(TestCase):
         self.assertRedirects(response,
                              reverse('accounts.views.show_accounts_chart'))
         self.assertEqual(FiscalYear.objects.count(), 2)
+
+    def test_add_fiscal_year_with_previous_create_historical_events(self):
+        """
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one or
+        more previous FiscalYears will create HistoricalEvents from Events
+        before the new Year's start date.
+        """
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        last_event = Event.objects.create(
+            name="test", abbreviation="T", state="VA", city="this",
+            date=datetime.date(2011, 2, 1))
+        this_event = Event.objects.create(
+            name="test this", abbreviation="TT", state="VA", city="this",
+            date=datetime.date(2012, 7, 12))
+        entry = create_entry(datetime.date(2012, 3, 2), 'event entry')
+
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.bank_account,
+                                   balance_delta=25, event=last_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-15, event=last_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.bank_account,
+                                   balance_delta=50, event=this_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-25, event=this_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-5, event=this_event)
+
+        self.client.post(reverse('fiscalyears.views.add_fiscal_year'),
+                         {'year': 2013,
+                          'end_month': 12,
+                          'period': 12,
+                          'form-TOTAL_FORMS': 2,
+                          'form-INITIAL_FORMS': 2,
+                          'form-MAX_NUM_FORMS': 2,
+                          'form-0-id': self.bank_account.id,
+                          'form-0-exclude': True,
+                          'form-1-id': self.expense_account.id,
+                          'form-1-exclude': False,
+                          'submit': 'Start New Year'})
+
+        self.assertEqual(Event.objects.count(), 0)
+        self.assertEqual(HistoricalEvent.objects.count(), 2)
+
+        historical_last_event = HistoricalEvent.objects.get(
+            name=last_event.name)
+        historical_this_event = HistoricalEvent.objects.get(
+            name=this_event.name)
+
+        self.assertEqual(historical_last_event.debit_total, -15)
+        self.assertEqual(historical_last_event.credit_total, 25)
+        self.assertEqual(historical_last_event.net_change, 10)
+        self.assertEqual(historical_this_event.debit_total, -30)
+        self.assertEqual(historical_this_event.credit_total, 50)
+        self.assertEqual(historical_this_event.net_change, 20)
+
+    def test_add_fiscal_year_with_previous_archive_only_past_events(self):
+        """
+        A ``POST`` to the ``add_fiscal_year`` view with valid data and one or
+        more previous FiscalYears will only create HistoricalEvents and delete
+        Events before the new Year's start date.
+        """
+        FiscalYear.objects.create(year=2012, end_month=12, period=12)
+        last_event = Event.objects.create(
+            name="test", abbreviation="T", state="VA", city="this",
+            date=datetime.date(2011, 2, 1))
+        this_event = Event.objects.create(
+            name="test this", abbreviation="TT", state="VA", city="this",
+            date=datetime.date(2012, 7, 12))
+        Event.objects.create(name="not archived", abbreviation="TT",
+                             state="VA", city="this",
+                             date=datetime.date(2014, 7, 12))
+        entry = create_entry(datetime.date(2012, 3, 2), 'event entry')
+
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.bank_account,
+                                   balance_delta=25, event=last_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-15, event=last_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.bank_account,
+                                   balance_delta=50, event=this_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-25, event=this_event)
+        Transaction.objects.create(journal_entry=entry,
+                                   account=self.expense_account,
+                                   balance_delta=-5, event=this_event)
+
+        self.client.post(reverse('fiscalyears.views.add_fiscal_year'),
+                         {'year': 2013,
+                          'end_month': 12,
+                          'period': 12,
+                          'form-TOTAL_FORMS': 2,
+                          'form-INITIAL_FORMS': 2,
+                          'form-MAX_NUM_FORMS': 2,
+                          'form-0-id': self.bank_account.id,
+                          'form-0-exclude': True,
+                          'form-1-id': self.expense_account.id,
+                          'form-1-exclude': False,
+                          'submit': 'Start New Year'})
+
+        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(HistoricalEvent.objects.count(), 2)
 
     def test_add_fiscal_year_with_previous_create_historical_accounts(self):
         """

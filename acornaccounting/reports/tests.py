@@ -7,7 +7,7 @@ from core.forms import DateRangeForm
 from core.tests import (create_header, create_account, create_entry,
                         create_transaction)
 from entries.models import Transaction
-from events.models import Event
+from events.models import Event, HistoricalEvent
 
 from .views import (_get_account_details, _get_profit_totals,
                     _get_profit_loss_header_totals)
@@ -36,15 +36,26 @@ class EventsReportViewTests(TestCase):
 
     def test_initial(self):
         """
-        A `GET` to the `events_report` view will retrieve all Events, ordered
-        by date.
+        A `GET` to the `events_report` view will retrieve all Events and
+        HistoricalEvents, ordered by date, then id.
         """
+        historical1 = HistoricalEvent.objects.create(
+            name="test", number="T14", date=datetime.date(2014, 2, 1),
+            city="Baltimore", state="MD", credit_total=12, debit_total=15,
+            net_change=-3)
+        historical2 = HistoricalEvent.objects.create(
+            name="test two", number="TT14", date=datetime.date(2014, 1, 1),
+            city="Baltimore", state="MD", credit_total=12, debit_total=15,
+            net_change=-3)
+
         response = self.client.get(reverse('reports.views.events_report'))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'reports/events.html')
         self.assertSequenceEqual(response.context['events'],
                                  [self.event1, self.event2])
+        self.assertSequenceEqual(response.context['historical_events'],
+                                 [historical1, historical2])
 
     def test_no_events(self):
         """
