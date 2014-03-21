@@ -70,8 +70,8 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         """
         if self.parent:
             self.type = self.parent.type
-        if self.id:
-            self.full_number = self._calculate_full_number()
+        #if self.id:
+        #    self.full_number = self._calculate_full_number()
         return super(BaseAccountModel, self).clean()
 
     def save(self, *args, **kwargs):
@@ -371,7 +371,7 @@ class HistoricalAccount(CachingMixin, models.Model):
     """
     account = models.ForeignKey(Account, on_delete=models.SET_NULL, blank=True,
                                 null=True)
-    number = models.CharField(max_length=6)
+    number = models.CharField(max_length=7)
     name = models.CharField(max_length=50)
     type = models.PositiveSmallIntegerField(
         choices=BaseAccountModel.TYPE_CHOICES)

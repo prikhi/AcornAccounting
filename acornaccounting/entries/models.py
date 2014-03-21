@@ -214,14 +214,6 @@ class BankSpendingEntry(BaseJournalEntry):
         if not (bool(self.ach_payment) ^ bool(self.check_number)):
             raise ValidationError('Either A Check Number or ACH status is '
                                   'required.')
-        if not self.ach_payment and self.check_number is not None:
-            # TODO: Refactor into same_check_number_exists() method (manager?)
-            same_check_number = BankSpendingEntry.objects.filter(
-                main_transaction__account=self.main_transaction.account,
-                check_number=self.check_number).exclude(id=self.id).exists()
-            if same_check_number:
-                raise ValidationError('The check number must be unique per '
-                                      'Bank Account.')
         super(BankSpendingEntry, self).clean()
 
     @cached_method

@@ -9,20 +9,24 @@ from .templatetags.core_filters import capitalize_words
 
 
 def create_header(name, parent=None, cat_type=2):
+    """Return a newly created Header."""
     return Header.objects.create(name=name, parent=parent, type=cat_type,
                                  slug=slugify(name))
 
 
 def create_account(name, parent, balance, cat_type=2, bank=False):
+    """Return a newly created Account."""
     return Account.objects.create(name=name, slug=slugify(name), parent=parent,
                                   balance=balance, type=cat_type, bank=bank)
 
 
 def create_entry(date, memo):
+    """Return a newly created JournalEntry."""
     return JournalEntry.objects.create(date=date, memo=memo)
 
 
 def create_transaction(entry, account, delta):
+    """Return a newly created Transaction."""
     return Transaction.objects.create(journal_entry=entry, account=account,
                                       detail=entry.memo, balance_delta=delta)
 

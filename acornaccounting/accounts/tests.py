@@ -2305,11 +2305,14 @@ class HistoricalAccountViewTests(TestCase):
         parameter will redirect to the next month's URL.
         """
         today = datetime.date.today()
-        next_month = today + datetime.timedelta(days=31)
         # Accessing this month with the ?next parameter...
-        this_month = datetime.date(year=today.year - 1, month=today.month, day=1)
-        # Will redirect to this month
-        future_month = datetime.date(year=next_month.year - 1, month=next_month.month,
+        this_month = datetime.date(year=today.year - 1,
+                                   month=today.month,
+                                   day=1)
+        # Will redirect to the future  month
+        next_month = this_month + datetime.timedelta(days=31)
+        future_month = datetime.date(year=next_month.year,
+                                     month=next_month.month,
                                      day=1)
 
         HistoricalAccount.objects.create(
