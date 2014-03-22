@@ -334,7 +334,6 @@ bugfixes and version bumps.
 
        $ git checkout master
        $ git merge release-1.2.0
-       $ git checkout develop
        $ git push origin master
        $ git push --tags origin master
 
