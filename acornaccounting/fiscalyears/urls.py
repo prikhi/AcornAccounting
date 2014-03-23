@@ -1,7 +1,7 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns
 
 urlpatterns = patterns(
     'fiscalyears.views',
 
-    (r'^add/$', 'add_fiscal_year'),
+    (r'^$', 'add_fiscal_year'),
 )
