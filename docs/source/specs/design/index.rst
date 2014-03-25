@@ -4,6 +4,13 @@
 Design Specifications
 =====================
 
+.. toctree::
+    :maxdepth: 1
+
+    usecases
+    screens
+    future
+
 Design Specifications describe the interface between the User and the
 Application, how the User interacts with the Application and how the Application
 responds.
@@ -28,9 +35,3 @@ for features not implemented in the current release.
 See the :ref:`Specification Explanation` for additional information on Use
 Cases and Screen Descriptions/Conditions.
 
-.. toctree::
-    :hidden:
-
-    usecases
-    screens
-    future
