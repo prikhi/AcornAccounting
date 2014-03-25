@@ -5,11 +5,10 @@ Installation & Configuration
 Downloading
 ============
 
-IN PROGRESS
-
 Pip Install Directions
 
-v1.0.0 should be hosted on `PyPi <https://pypi.python.org/pypi/>`_ so installing is as easy as:
+v1.0.0 should be hosted on `PyPi <https://pypi.python.org/pypi/>`_ so
+installing is as easy as:
 
 .. code-block:: bash
 
@@ -98,14 +97,6 @@ A set of dependencies may be installed via `pip`_:
 Configuration
 ==============
 
-IN PROGRESS
-
-Talk about setting up settings like Company Name, Address, Daily Payment
-Amount, etc.
-
-Also talk about how to specify settings in Environmental Variables instead of
-in files, especially for things like ``DJANGO_SECRET_KEY``.
-
 Some settings are set through environmental variables instead of files. These
 include settings with sensitive information, and allows us to keep the
 information out of version control.
@@ -120,28 +111,195 @@ virtualenv's ``activate`` script::
 The required environmental variables are ``DJANGO_SECRET_KEY``, ``DB_NAME`` and
 ``DB_USER``.
 
-
 Deployment
 ===========
 
-IN PROGRESS
+It is recommended to use `uWSGI`_ for serving the dynamic pages and either
+`Apache`_ or `Nginx`_ for serving your static files.
 
-1-step deploy script or indepth instuctions, with example apache config.
+Create and Initialize the Database
++++++++++++++++++++++++++++++++++++
 
-Talk about mod_python, apache + virtualenv
+You'll need a new Database and User, if you use PostgreSQL you may run:
 
-Look into `gunicorn <http://gunicorn.org/>`_, `uwsgi
-<https://github.com/unbit/uwsgi>`_ and `fabric
-<http://docs.fabfile.org/en/1.8/>`_ for automated deployment and serving.
+.. code-block:: bash
 
-v1.0.0 should include a 1-step build/deployment file.
+    su - postgres
+    createuser -DERPS accounting
+    createdb accounting -O accounting
 
-This is still stuff I have to figure out.
+Set configuration values for the account you just created:
 
+.. code-block:: bash
+
+    export DJANGO_SETTINGS_MODULE=accounting.settings.production
+    export DB_USER=accounting
+    export DB_PASS=<accounting user password>
+    export DB_NAME=accounting
+
+Then create the initial schema and migrate any database changes:
+
+.. code-block:: bash
+
+    cd acornaccounting
+    python manage.py syncdb
+    python manage.py migrate
+
+Collect Static Files
++++++++++++++++++++++
+
+Next collect all the static files into the directory you will serve them out
+of:
+
+.. code-block:: bash
+
+    python manage.py collectstatic
+
+Configure uWSGI
+++++++++++++++++
+
+You can use the following ini file to setup the uWSGI daemon:
+
+.. code-block:: ini
+
+    [uwsgi]
+    uid = <your accounting user>
+    gid = %(uid)
+    chdir = <acornaccounting project root>
+
+    plugin = python
+    pythonpath = %(chdir)
+    virtualenv = </path/to/virtualenv/>
+    module = django.core.handlers.wsgi:WSGIHandler()
+
+    socket = 127.0.0.1:3031
+    master = true
+    workers = 10
+    max-requests = 5000
+    vacuum = True
+
+    daemonize = /var/log/accounting/uwsgi.log
+    pidfile = /var/run/accounting.pid
+    touch-reload = /tmp/accounting.touch
+
+    env = DJANGO_SETTINGS_MODULE=accounting.settings.production
+    env = DB_NAME=<database name
+    env = DB_USER=<database user>
+    env = DB_PASS=<database password>
+    env = DB_HOST=
+    env = DB_PORT=
+    env = DJANGO_SECRET_KEY=<your unique secret key>
+    env = CACHE_LOCATION=127.0.0.1:11211
+
+Make sure to review this and replace the necessary variables.
+
+.. note::
+
+    If you do not have a secure, unique secret key, you may generate one by
+    running the following in the Python interpreter:
+
+    .. code-block:: python
+
+        import random
+        print(''.join(
+            [random.SystemRandom().choice(
+                'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)')
+             for i in range(50)])
+        )
+
+Depending on your OS, you may need to put this file in
+``/etc/uwsgi/apps-available`` then link it to ``/etc/uwsgi/apps-enabled/``. Or
+you may need to write an rc.d or init.d startup script:
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #
+    # Start/Stop/Restart the Accounting uWSGI server
+    #
+    # To make the server start at boot make this file executable:
+    #
+    #       chmod 755 /etc/rc.d/rc.accounting
+
+    INIFILE=/etc/uwsgi/accounting.ini
+    PIDFILE=/var/run/accounting.pid
+
+    case "$1" in
+        'start')
+            echo "Starting the Accounting uWSGI Process."
+            uwsgi -i $INIFILE
+            ;;
+        'stop')
+            echo "Stopping the Accounting uWSGI Process."
+            uwsgi --stop $PIDFILE
+            rm $PIDFILE
+            ;;
+        'restart')
+            echo "Restarting the Accounting uWSGI Process."
+            if [ -f $PIDFILE ]; then
+                uwsgi --reload $PIDFILE
+            else
+                echo "Error: No Accounting uWSGI Process Found."
+            fi
+            ;;
+        *)
+            echo "Usage: /etc/rc.d/rc.accounting {start|stop|restart}"
+            exit 1
+            ;;
+    esac
+
+    exit 0
+
+
+Apache VirtualHost
++++++++++++++++++++
+
+The Virtual Host should redirect every request, except those to ``/static``, to
+the uWSGI handler:
+
+.. code-block:: bash
+
+    <VirtualHost *:80>
+        ServerName accounting.yourdomain.com
+        DocumentRoot "/srv/accounting/"
+        Alias /static /srv/accounting/static/
+        <Directory "/srv/accounting/">
+            Options Indexes FollowSymLinks MultiViews
+            AllowOverride None
+            Require all granted
+        </Directory>
+        <Location />
+            Options FollowSymLinks Indexes
+            SetHandler uwsgi-handler
+            uWSGISocket 127.0.0.1:3031
+        </Location>
+        <Location /static>
+            SetHandler none
+        </Location>
+        ErrorLog "/var/log/httpd/accounting-error_log"
+        CustomLog "/var/log/httpd/accounting-access_log" common
+    </VirtualHost>
+
+Note that in the above setup, ``/srv/accounting/`` is linked to the Django
+project's root directory ``acornaccounting``.
+
+1-Step Deployment
+++++++++++++++++++
+
+1-step deploy script and indepth instuctions, with example apache and uwsgi
+configs.
+
+Look into `fabric <http://docs.fabfile.org/en/1.8/>`_ for automated deployment.
 `Deploying Django with Fabric
 <http://www.re-cycledair.com/deploying-django-with-fabric>`_
 
-Must exist before release of v1.0.0
+Ideally we would be able to run something like ``fab deploy_initial`` and ``fab
+deploy``.
+
+We can use fab templates, putting samples/templates in the ``/conf/``
+directory.
+
+v1.0.0 should include a 1-step build/deployment file.
 
 
 Building the Documentation
@@ -206,3 +364,9 @@ The output files will be located in ``docs/build/html`` and
 .. _virtualenv: https://github.com/pypa/virtualenv
 
 .. _virtualenvwrapper: https://github.com/bernardofire/virtualenvwrapper
+
+.. _uWSGI: http://uwsgi-docs.readthedocs.org/en/latest/
+
+.. _Apache: https://httpd.apache.org/
+
+.. _Nginx: http://nginx.org/en/

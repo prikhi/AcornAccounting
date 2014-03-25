@@ -12,6 +12,7 @@ Welcome to Acorn-Accounting's documentation!
     specs/about
     specs/design/index
     specs/technical/index
+    appendix/guides/index
     glossary
 
 
