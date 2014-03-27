@@ -161,7 +161,7 @@ class BankSpendingEntry(BaseJournalEntry):
     check_number = models.CharField(max_length=10, blank=True, null=True)
     ach_payment = models.BooleanField(default=False,
                                       help_text="Invalidates Check Number")
-    payee = models.CharField(max_length=20, blank=True, null=True)
+    payee = models.CharField(max_length=50, blank=True, null=True)
     void = models.BooleanField(default=False,
                                help_text="Refunds Associated Transactions.")
     main_transaction = models.OneToOneField('Transaction')
