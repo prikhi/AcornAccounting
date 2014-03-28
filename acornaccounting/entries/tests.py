@@ -171,50 +171,6 @@ class BankSpendingEntryModelTests(TestCase):
 
         self.assertEqual(Transaction.objects.count(), 2)
 
-    def test_unique_check_number_per_account(self):
-        """
-        A BankSpendingEntry's `check_number` should not be unique globally, but
-        per Account by the `main_transaction` attribute.
-        """
-        second_account = create_account('Account 2', self.header, 0)
-        main_transaction1 = Transaction.objects.create(account=self.account,
-                                                       balance_delta=25)
-        BankSpendingEntry.objects.create(check_number=1, ach_payment=False,
-                                         memo='check 1 account 1',
-                                         main_transaction=main_transaction1,
-                                         date=datetime.date.today())
-        main_transaction2 = Transaction.objects.create(account=second_account,
-                                                       balance_delta=25)
-        BankSpendingEntry.objects.create(check_number=1, ach_payment=False,
-                                         memo='check 1 account 2',
-                                         main_transaction=main_transaction2,
-                                         date=datetime.date.today())
-
-        self.assertEqual(BankSpendingEntry.objects.count(), 2)
-
-    def test_unique_check_number_per_account_fail(self):
-        """
-        A BankSpendingEntry's `check_number` should not be unique globally, but
-        per Account by the `main_transaction` attribute.
-        A BankSpendingEntry with the same `check_number` as another
-        BankSpendingEntry whose main_transactions have the same Account, is
-        invalid.
-        """
-        main_transaction1 = Transaction.objects.create(account=self.account,
-                                                       balance_delta=25)
-        BankSpendingEntry.objects.create(check_number=1, ach_payment=False,
-                                         memo='check 1 account 1',
-                                         main_transaction=main_transaction1,
-                                         date=datetime.date.today())
-        main_transaction2 = Transaction.objects.create(account=self.account,
-                                                       balance_delta=25)
-        second_entry = BankSpendingEntry(check_number=1, ach_payment=False,
-                                         memo='check 1 account 2',
-                                         main_transaction=main_transaction2,
-                                         date=datetime.date.today())
-
-        self.assertRaises(ValidationError, second_entry.save)
-
 
 class BankReceivingEntryModelTests(TestCase):
     """Test the custom BankSpendingEntry model methods"""
