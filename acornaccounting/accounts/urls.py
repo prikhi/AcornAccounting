@@ -5,7 +5,7 @@ urlpatterns = patterns(
 
     (r'^$', 'show_accounts_chart'),
 
-    url(r'^(?P<account_slug>[-\w]+)/$', 'show_account_detail',
+    url(r'^detail/(?P<account_slug>[-\w]+)/$', 'show_account_detail',
         name='show_account_detail'),
     (r'^(?P<account_slug>[-\w]+)/reconcile/$', 'reconcile_account'),
 
