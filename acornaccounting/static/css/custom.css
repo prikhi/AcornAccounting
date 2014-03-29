@@ -12,7 +12,7 @@
 /* Table Striping */
 .main a, .alt a { color: #333333; }
 .main a:hover, .alt a:hover { text-decoration: none; }
-.alt { background-color: #F9F9F9; }
+.alt { background-color: #D9D9D9; }
 
 /* Make Table Scrollable */
 #fiscal-year-accounts {
