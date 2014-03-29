@@ -70,8 +70,8 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         """
         if self.parent:
             self.type = self.parent.type
-        #if self.id:
-        #    self.full_number = self._calculate_full_number()
+        if self.id:
+            self.full_number = self._calculate_full_number()
         return super(BaseAccountModel, self).clean()
 
     def save(self, *args, **kwargs):
@@ -85,8 +85,6 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         parent_has_changed = self._has_parent_changed()
         if parent_has_changed:
             items_to_change = self._get_change_tree()
-        if self.pk:
-            self.full_number = self._calculate_full_number()
         self.full_clean()
         super(BaseAccountModel, self).save(*args, **kwargs)
         self.__class__.objects.rebuild()
