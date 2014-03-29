@@ -1887,7 +1887,7 @@ class AccountDetailViewTests(TestCase):
     def test_show_account_detail_view_initial(self):
         """
         A `GET` to the `show_account_detail` view with an `account_slug` should
-        return a DateRangeForm, start and stop_date from the 1st of Month to
+        return a DateRangeForm, start and stop_date from the 1st of Year to
         Today, an Account and all Transactions within the initial range.
         The balance counters `startbalance`, `endbalance`, `net_change`,
         `debit_total` and `credit_total` should also be returned and flipped if
@@ -1896,7 +1896,9 @@ class AccountDetailViewTests(TestCase):
         in_range_date = datetime.date.today()
         out_range_date = datetime.date(in_range_date.year + 20, 1, 1)
         out_range_date2 = datetime.date(in_range_date.year - 20, 1, 1)
-        date_range = (datetime.date(in_range_date.year, in_range_date.month, 1), in_range_date)
+        date_range = (
+            datetime.date(in_range_date.year, 1, 1),
+            in_range_date)
 
         # In range entries
         general = create_entry(in_range_date, 'general entry')

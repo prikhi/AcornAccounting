@@ -25,7 +25,7 @@ def _american_format(date):
     return date.strftime('%m/%d/%Y')
 
 
-def process_date_range_form(request):
+def process_month_start_date_range_form(request):
     """
     Returns a :class:`~.forms.DateRangeForm`, ``start_date`` and ``stop_date``
     based on the request ``GET`` data.  Defaults to using beginning of this
@@ -41,6 +41,25 @@ def process_date_range_form(request):
             start_date = form.cleaned_data.get('start_date', start_date)
             stop_date = form.cleaned_data.get('stop_date', stop_date)
     return form, start_date, stop_date
+
+
+def process_year_start_date_range_form(request):
+    """
+    Returns a :class:`~.forms.DateRangeForm`, ``start_date`` and ``stop_date``
+    based on the request ``GET`` data.  Defaults to using beginning of this
+    year to today.
+    """
+    form, start_date, stop_date = process_month_start_date_range_form(request)
+    form, start_date = _set_start_date_to_first_of_year(form, start_date)
+    return form, start_date, stop_date
+
+
+def _set_start_date_to_first_of_year(form, start_date):
+    """Set the start_date to the first of the year if form is unbound."""
+    if not form.is_bound:
+        form.initial['start_date'] = first_day_of_year()
+        start_date = datetime.date(datetime.date.today().year, 1, 1)
+    return form, start_date
 
 
 def process_quick_search_form(get_dictionary, get_variable, form):

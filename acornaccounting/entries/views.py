@@ -7,7 +7,8 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
-from core.core import today_in_american_format, process_date_range_form
+from core.core import (today_in_american_format,
+                       process_month_start_date_range_form)
 
 from .forms import (JournalEntryForm, BankSpendingForm, BankReceivingForm,
                     TransactionFormSet, TransferFormSet,
@@ -27,7 +28,7 @@ def journal_ledger(request, template_name="entries/journal_ledger.html"):
     :rtype: :class:`~django.http.HttpResponse`
 
     """
-    form, start_date, stop_date = process_date_range_form(request)
+    form, start_date, stop_date = process_month_start_date_range_form(request)
     journal_entries = JournalEntry.objects.filter(date__lte=stop_date,
                                                   date__gte=start_date
                                                   ).order_by('date')
@@ -146,7 +147,8 @@ def add_journal_entry(request, entry_id=None,
                     for form in transaction_formset.forms:
                         if (form.is_valid() and form.has_changed() and
                                 form not in transaction_formset.deleted_forms):
-                        # TODO: Why work on the instance instead ofmodelform
+                            # TODO: Why work on the instance instead of
+                            #       the modelform?
                             form.instance.journal_entry = entry
                             form.instance.balance_delta = form.cleaned_data.  \
                                 get('balance_delta')
@@ -260,8 +262,8 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                                                 prefix='transaction',
                                                 instance=entry)
             if entry_form.is_valid():
-                transaction_formset.entry_form = entry_form     # Used by clean
-                                                                # function
+                # Set attribute for formset's clean method
+                transaction_formset.entry_form = entry_form
                 if transaction_formset.is_valid():
                     entry_form.save()
                     transaction_formset.save(commit=False)

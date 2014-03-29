@@ -411,7 +411,7 @@ class Transaction(CachingMixin, models.Model):
         acct_balance = self.account.balance
         # TODO: Refactor query + newer_transactions into manager method
         query = (models.Q(date__gt=self.date) |
-                (models.Q(date=self.date) & models.Q(id__gt=self.id)))
+                 (models.Q(date=self.date) & models.Q(id__gt=self.id)))
         newer_transactions = self.account.transaction_set.filter(
             query).aggregate(models.Sum('balance_delta'))
         acct_balance -= newer_transactions.get('balance_delta__sum') or 0

@@ -9,7 +9,9 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 
 
-from core.core import today_in_american_format, process_date_range_form
+from core.core import (today_in_american_format,
+                       process_month_start_date_range_form,
+                       process_year_start_date_range_form)
 from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
 
 from .forms import AccountReconcileForm, ReconcileTransactionFormSet
@@ -90,7 +92,7 @@ def show_account_detail(request, account_slug,
             balance counters.
     :rtype: HttpResponse
     """
-    form, start_date, stop_date = process_date_range_form(request)
+    form, start_date, stop_date = process_year_start_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug)
     date_range_query = (Q(date__lte=stop_date) & Q(date__gte=start_date))
     debit_total, credit_total, net_change = account.transaction_set.filter(
@@ -219,7 +221,7 @@ def show_account_history(request, month=None, year=None,
 
 def bank_journal(request, account_slug,
                  template_name="accounts/bank_journal.html"):
-    form, start_date, stop_date = process_date_range_form(request)
+    form, start_date, stop_date = process_month_start_date_range_form(request)
     account = get_object_or_404(Account, slug=account_slug, bank=True)
     # TODO: Refactor into Account method, get_bank_transactions_by_date()
     in_range_bank_query = ((Q(bankspendingentry__isnull=False) |

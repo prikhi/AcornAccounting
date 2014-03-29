@@ -3,7 +3,7 @@ import datetime
 from django.shortcuts import render
 
 from accounts.models import Account, Header
-from core.core import first_day_of_year, process_date_range_form
+from core.core import process_year_start_date_range_form
 from events.models import Event, HistoricalEvent
 
 
@@ -54,8 +54,7 @@ def profit_loss_report(request, template_name="reports/profit_loss.html"):
     :rtype: HttpResponse
 
     """
-    form, start_date, stop_date = process_date_range_form(request)
-    form, start_date = _set_start_date_to_first_of_year(form, start_date)
+    form, start_date, stop_date = process_year_start_date_range_form(request)
     headers_and_types = _get_profit_loss_header_keys_and_types()
     headers = {
         header_key: _get_profit_loss_header_totals(
@@ -164,8 +163,7 @@ def trial_balance_report(request, template_name="reports/trial_balance.html"):
     :returns: HTTP Response with start and stop dates and an ``accounts`` list.
     :rtype: HttpResponse
     """
-    form, start_date, stop_date = process_date_range_form(request)
-    form, start_date = _set_start_date_to_first_of_year(form, start_date)
+    form, start_date, stop_date = process_year_start_date_range_form(request)
     accounts = [_get_account_details(x, start_date, stop_date) for x in
                 list(Account.objects.all().order_by('full_number'))]
 
@@ -173,14 +171,6 @@ def trial_balance_report(request, template_name="reports/trial_balance.html"):
                                            'stop_date': stop_date,
                                            'accounts': accounts,
                                            'form': form})
-
-
-def _set_start_date_to_first_of_year(form, start_date):
-    """Set the start_date to the first of the year if form is unbound."""
-    if not form.is_bound:
-        form.initial['start_date'] = first_day_of_year()
-        start_date = datetime.date(datetime.date.today().year, 1, 1)
-    return form, start_date
 
 
 def _get_account_details(account, start_date, stop_date):
