@@ -2142,6 +2142,54 @@ class BankEntryViewTests(TestCase):
                                     data={'delete': 'Delete'})
         self.assertEqual(response.status_code, 404)
 
+    def test_bank_spending_add_view_void(self):
+        """
+        A `POST` to the `add_bank_entry` view with request data containing an
+        `entry_id`, a `journal_type` of 'CD', and `Void` will append "VOID" to
+        the Entry's memo, change the `main_transaction` balance_delta to 0 and
+        delete all other Transactions.
+        """
+        self.test_bank_spending_add_view_success()
+        entry = BankSpendingEntry.objects.all()[0]
+
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(Account.objects.get(name='bank').balance, 20)
+        self.assertEqual(Account.objects.get(name='expense').balance, -20)
+
+        response = self.client.post(reverse('entries.views.add_bank_entry',
+                                            kwargs={'entry_id': entry.id,
+                                                    'journal_type': 'CD'}),
+                                    data={'void': 'Void'})
+
+        self.assertRedirects(response, reverse('entries.views.show_bank_entry',
+                                               kwargs={'journal_type': 'CD',
+                                                       'entry_id': entry.id}))
+
+        self.assertEqual(BankSpendingEntry.objects.count(), 1)
+        self.assertEqual(Transaction.objects.count(), 1)
+        self.assertEqual(Account.objects.get(name='bank').balance, 0)
+        self.assertEqual(Account.objects.get(name='expense').balance, 0)
+
+        entry = BankSpendingEntry.objects.all()[0]
+        main_transaction = Transaction.objects.get()
+
+        self.assertEqual(True, entry.void)
+        self.assertIn('VOID', entry.memo)
+        self.assertEqual(0, main_transaction.balance_delta)
+
+    def test_bank_spending_add_view_void_fail(self):
+        """
+        A `POST` to the `add_bank_entry` view with an invalid `entry_id`,
+        `Void` and `journal_type` of 'CD' will return a 404
+        """
+        self.assertEqual(BankSpendingEntry.objects.count(), 0)
+        response = self.client.post(reverse('entries.views.add_bank_entry',
+                                            kwargs={'entry_id': 9001,
+                                                    'journal_type': 'CD'}),
+                                    data={'void': 'Void'})
+        self.assertEqual(response.status_code, 404)
+
     def test_bank_spending_add_view_edit(self):
         """
         A `GET` to the `add_bank_entry` view with a `journal_type` of `CD` and

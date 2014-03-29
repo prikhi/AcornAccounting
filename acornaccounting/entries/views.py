@@ -310,6 +310,16 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                             kwargs={'account_slug': bank_account.slug}))
             else:
                 raise Http404
+        elif request.POST.get('void') == 'Void' and journal_type == 'CD':
+            if entry.pk:
+                entry.void = True
+                entry.save()
+                return HttpResponseRedirect(
+                    reverse('entries.views.show_bank_entry',
+                            kwargs={'entry_id': entry.id,
+                                    'journal_type': journal_type}))
+            else:
+                raise Http404
         else:
             raise Http404
     else:
