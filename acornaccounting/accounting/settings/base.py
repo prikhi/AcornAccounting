@@ -23,6 +23,7 @@ def project_root(path):
 SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
 
 STATIC_URL = '/static/'
+STATIC_ROOT = 'static/'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -110,11 +111,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 TEMPLATE_DIRS = (project_root('templates'),)
 
 STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
-
-STATICFILES_DIRS = (project_root('static'),)
 
 
 MIDDLEWARE_CLASSES = (
