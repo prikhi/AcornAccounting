@@ -288,7 +288,7 @@ class BankSpendingForm(BaseBankForm):
     class Meta:
         model = BankSpendingEntry
         fields = ('account', 'date', 'ach_payment', 'check_number', 'payee',
-                  'amount', 'memo', 'comments')
+                  'memo', 'amount', 'comments')
         # TODO: Move to basebankform?
         widgets = {
             'date': forms.DateInput(attrs={'data-americandate': True,
