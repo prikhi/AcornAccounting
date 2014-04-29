@@ -60,7 +60,7 @@ Chart of Accounts{% if header %} - {{ header.name|capwords }}{% endif %}
               <td><a href="{{ node.get_absolute_url }}">{{ node.description }}</a></td>
               <td class="text-right"><a href="{{ node.get_absolute_url }}">{{ node.get_account_balance|currency }}</a></td>
             </tr>
-            {% for account in node.account_set.all %}
+            {% for account in node.account_set.all|dictsort:"full_number" %}
               <tr class="{% cycle 'main' 'alt' %} clickable">
                 <td><a href="{{ account.get_absolute_url }}">{{ account.get_full_number }}</a></td>
                 <td><a href="{{ account.get_absolute_url }}">{{ account.level|int_to_tabs}}{{ account.name|capwords }}</a></td>
