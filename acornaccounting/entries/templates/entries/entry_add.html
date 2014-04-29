@@ -250,7 +250,7 @@
 
 
 {% block javascript %}
-<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.formset.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.formset.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 <script type="text/javascript">
@@ -261,30 +261,17 @@
         $('#transaction-table tbody tr').formset({
             prefix: '{{ transaction_formset.prefix }}',
             extraClasses: ['main','alt'],
+            addText: 'add more',
             deleteText: '<span class="glyphicon glyphicon-remove"></span>',
             deleteCssClass: 'delete-row',
             added: addActions,
             removed: removeRow});
     });
-    /* Integrate Parsley.JS validation with Bootstrap3 CSS classes */
-    $(document).ready( function () {
-        $('#entry_form').parsley({
-            successClass: 'has-success',
-            errorClass: 'has-error',
-            errors: {
-                classHandler: function (el) {
-                    return $(el).closest('.form-group');
-                },
-                errorsWrapper: '<ul></ul>',
-                errorElem: '<li></li>'
-            }
-        });
-    });
     /*
-    Pressing `Enter` on a `.enter-mod` input  in the `transaction-table` table
-    should move the cursor to the next row.
+    Pressing `Enter` on a `.enter-mod` input  in the `transaction-table`
+    table should move the cursor to the next row.
     */
-    $(document).ready(function() {
+    assignEnterKey = function() {
         $('#transaction-table .enter-mod').each(function() {
             var that = this;
             $(this).keypress(function(e) {
@@ -298,13 +285,29 @@
                 }
             });
         });
+    };
+
+    $(document).ready(function () {
+        /* Integrate Parsley.JS validation with Bootstrap3 CSS classes */
+        $('#entry_form').parsley({
+            successClass: 'has-success',
+            errorClass: 'has-error',
+            errors: {
+                classHandler: function (el) {
+                    return $(el).closest('.form-group');
+                },
+                errorsWrapper: '<ul></ul>',
+                errorElem: '<li></li>'
+            }
+        });
+        addActions();
+        assignEnterKey();
     });
 
 {% if journal_type == 'GJ' %}
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         newSum();
-        addActions();
         $(".credit").each(function() {
             var that = this;
             assignRequired.call(that);
@@ -333,6 +336,7 @@
                 assignRequired.call(that);
             });
         });
+        assignEnterKey();
     }
     function assignRequired() {
         /* Add validation for Account widget if debit or credit is entered */
@@ -383,7 +387,6 @@
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         newSum();
-        addActions();
         $(".amount").each(function() {
             var that = this;
             assignRequired.call(that);
@@ -406,6 +409,7 @@
             });
         });
         $("#entry_amount").keyup(function(){newSum()});
+        assignEnterKey();
     }
     function assignRequired() {
         /* Set Account and Amount widgets to required if either is set */
@@ -450,7 +454,6 @@
     {# Transfer Entries #}
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
-        addActions();
         $(".amount").each(function() {
             var that = this;
             assignRequired.call(that);
@@ -475,6 +478,7 @@
                 assignRequired.call(that);
             });
         });
+        assignEnterKey();
     }
     function assignRequired() {
         /* Set Account and Amount widgets to required if either is set */
