@@ -718,11 +718,14 @@ class JournalEntryViewTests(TestCase):
         """
         A `POST` to the `add_journal_entry` view with valid data and a submit
         value of 'Submit & Add More' will create a JournalEntry and it's
-        respective Transactions, redirecting back to the Add page.
+        respective Transactions, redirecting back to the Add page initializing
+        the entry form with last Entry's date.
         """
+        entry_date = datetime.date(2014, 4, 20)
+        american_entry_date = entry_date.strftime('%m/%d/%Y')
         response = self.client.post(
             reverse('entries.views.add_journal_entry'),
-            data={'entry-date': datetime.date.today(),
+            data={'entry-date': entry_date,
                   'entry-memo': 'test GJ entry',
                   'transaction-TOTAL_FORMS': 20,
                   'transaction-INITIAL_FORMS': 0,
@@ -738,7 +741,11 @@ class JournalEntryViewTests(TestCase):
                   'transaction-1-credit': 5,
                   'subbtn': 'Submit & Add More'})
         self.assertRedirects(response,
-                             reverse('entries.views.add_journal_entry'))
+                             (reverse('entries.views.add_journal_entry') +
+                              '?date={0}'.format(american_entry_date)))
+        response = self.client.get(response._headers['location'][1])
+        self.assertEqual(response.context['entry_form'].initial['date'],
+                         american_entry_date)
         self.assertEqual(JournalEntry.objects.count(), 1)
         self.assertEqual(Transaction.objects.count(), 2)
         self.assertEqual(Account.objects.all()[0].balance, -5)
@@ -1304,6 +1311,39 @@ class TransferEntryViewTests(TestCase):
         self.assertEqual(Account.objects.all()[0].balance, -15)
         self.assertEqual(Account.objects.all()[1].balance, 15)
 
+    def test_transfer_add_view_add_another(self):
+        """
+        A `POST` to the `add_transfer_entry` view with valid data and a submit
+        value of 'Submit & Add More' will create a JournalEntry and it's
+        respective Transactions, redirecting back to the Add page initializing
+        the entry form with last Entry's date.
+        """
+        entry_date = datetime.date(2014, 4, 20)
+        american_entry_date = entry_date.strftime('%m/%d/%Y')
+        response = self.client.post(
+            reverse('entries.views.add_transfer_entry'),
+            data={'entry-date': entry_date,
+                  'entry-memo': 'test transfer entry',
+                  'transfer-TOTAL_FORMS': 20,
+                  'transfer-INITIAL_FORMS': 0,
+                  'transfer-MAX_NUM_FORMS': '',
+                  'transfer-0-id': '',
+                  'transfer-0-journal_entry': '',
+                  'transfer-0-source': self.asset_account.id,
+                  'transfer-0-destination': self.expense_account.id,
+                  'transfer-0-amount': 15,
+                  'subbtn': 'Submit & Add More'})
+        self.assertRedirects(response,
+                             (reverse('entries.views.add_transfer_entry') +
+                              '?date={0}'.format(american_entry_date)))
+        response = self.client.get(response._headers['location'][1])
+        self.assertEqual(response.context['entry_form'].initial['date'],
+                         american_entry_date)
+        self.assertEqual(Transaction.objects.count(), 2)
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        self.assertEqual(Account.objects.all()[0].balance, -15)
+        self.assertEqual(Account.objects.all()[1].balance, 15)
+
     def test_transfer_add_view_fail_entry(self):
         """
         A `POST` to the `add_transfer_entry` view with invalid Entry data
@@ -1528,13 +1568,15 @@ class BankEntryViewTests(TestCase):
         A `POST` to the 'add_bank_entry' view with a `journal_type` of `CR` and
         submit value of `Submit & Add Another` should create a new
         BankReceivingEntry and issue redirect back to the Add page,
-        initializing the entry form with last Entries bank_account.
+        initializing the entry form with last Entries bank_account and date.
         """
+        entry_date = datetime.date(2014, 4, 20)
+        american_entry_date = entry_date.strftime('%m/%d/%Y')
         response = self.client.post(
             reverse('entries.views.add_bank_entry',
                     kwargs={'journal_type': 'CR'}),
             data={'entry-account': self.bank_account.id,
-                  'entry-date': '2013-03-12',
+                  'entry-date': american_entry_date,
                   'entry-payor': 'test payor',
                   'entry-amount': 20,
                   'entry-memo': 'test memo',
@@ -1553,11 +1595,14 @@ class BankEntryViewTests(TestCase):
             response,
             (reverse('entries.views.add_bank_entry',
                      kwargs={'journal_type': 'CR'}
-                     ) + '?bank_account={0}'.format(self.bank_account.id))
+                     ) + '?bank_account={0}&date={1}'.format(
+                         self.bank_account.id, american_entry_date))
         )
         response = self.client.get(response._headers['location'][1])
         self.assertEqual(response.context['entry_form'].initial['account'],
                          str(self.bank_account.id))
+        self.assertEqual(response.context['entry_form'].initial['date'],
+                         american_entry_date)
         self.assertEqual(BankReceivingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, -20)
         self.assertEqual(Account.objects.get(bank=False).balance, 20)
@@ -2022,13 +2067,15 @@ class BankEntryViewTests(TestCase):
         A `POST` to the 'add_bank_entry' view with a `journal_type` of `CD` and
         submit value of `Submit & Add Another` should create a new
         BankSpendingEntry and issue redirect back to the Add page, initializing
-        the entry form with last Entries bank_account.
+        the entry form with last Entries bank_account and date.
         """
+        entry_date = datetime.date(2014, 4, 20)
+        american_entry_date = entry_date.strftime('%m/%d/%Y')
         response = self.client.post(
             reverse('entries.views.add_bank_entry',
                     kwargs={'journal_type': 'CD'}),
             data={'entry-account': self.bank_account.id,
-                  'entry-date': '2013-03-12',
+                  'entry-date': american_entry_date,
                   'entry-ach_payment': True,
                   'entry-payee': 'test payee',
                   'entry-amount': 20,
@@ -2048,11 +2095,14 @@ class BankEntryViewTests(TestCase):
             response,
             (reverse('entries.views.add_bank_entry',
                      kwargs={'journal_type': 'CD'}) +
-             '?bank_account={0}'.format(self.bank_account.id))
+             '?bank_account={0}&date={1}'.format(self.bank_account.id,
+                                                 american_entry_date))
         )
         response = self.client.get(response._headers['location'][1])
         self.assertEqual(response.context['entry_form'].initial['account'],
                          str(self.bank_account.id))
+        self.assertEqual(response.context['entry_form'].initial['date'],
+                         american_entry_date)
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, 20)
         self.assertEqual(Account.objects.get(bank=False).balance, -20)

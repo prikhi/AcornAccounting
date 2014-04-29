@@ -158,8 +158,10 @@ def add_journal_entry(request, entry_id=None,
                     else:
                         messages.success(request, "The entry was modified.")
                     if request.POST.get('subbtn') == 'Submit & Add More':
+                        entrys_american_date = entry.date.strftime('%m/%d/%Y')
                         return HttpResponseRedirect(
-                            reverse('entries.views.add_journal_entry'))
+                            reverse('entries.views.add_journal_entry') +
+                            '?date={0}'.format(entrys_american_date))
                     return HttpResponseRedirect(
                         reverse('entries.views.show_journal_entry',
                                 kwargs={'entry_id': entry.id}))
@@ -182,6 +184,8 @@ def add_journal_entry(request, entry_id=None,
         if entry_form.instance.pk:
             entry_form.initial['date'] = entry_form.instance.date.strftime(
                 '%m/%d/%Y')
+        elif 'date' in request.GET:
+            entry_form.initial['date'] = request.GET.get('date')
         else:
             entry_form.initial['date'] = today_in_american_format()
         for form in transaction_formset.forms:
@@ -231,12 +235,10 @@ def add_bank_entry(request, entry_id=None, journal_type='',
             `~django.http.HttpResponseRedirect`
 
     """
-    # TODO: Better variable names, key_to_value for dicts
     journal_type_to_entry = {'CR': BankReceivingEntry, 'CD': BankSpendingEntry}
     journal_type_to_form = {'CR': BankReceivingForm, 'CD': BankSpendingForm}
     journal_type_to_formset = {'CR': BankReceivingTransactionFormSet,
                                'CD': BankSpendingTransactionFormSet}
-    # TODO: Check for invalid journal_type. Use .get() and test for None
     entry_type = journal_type_to_entry[journal_type]
     EntryTypeForm = journal_type_to_form[journal_type]
     InlineFormSet = journal_type_to_formset[journal_type]
@@ -289,12 +291,13 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                     else:
                         messages.success(request, "The entry was modified.")
                     if request.POST.get('subbtn') == 'Submit & Add More':
+                        entrys_american_date = entry.date.strftime('%m/%d/%Y')
                         return HttpResponseRedirect(
                             reverse('entries.views.add_bank_entry',
-                                    kwargs={'journal_type': journal_type}
-                                    )
-                            + '?bank_account={0}'.format(
-                                entry.main_transaction.account.id)
+                                    kwargs={'journal_type': journal_type}) +
+                            '?bank_account={0}&date={1}'.format(
+                                entry.main_transaction.account.id,
+                                entrys_american_date)
                         )
                     return HttpResponseRedirect(
                         reverse('entries.views.show_bank_entry',
@@ -337,10 +340,12 @@ def add_bank_entry(request, entry_id=None, journal_type='',
             for form in transaction_formset.forms:
                 if not form.empty_permitted:
                     form.initial['amount'] = abs(form.instance.balance_delta)
+        elif 'date' in request.GET:
+            entry_form.initial['date'] = request.GET.get('date')
         else:
             entry_form.initial['date'] = today_in_american_format()
-            if 'bank_account' in request.GET:
-                entry_form.initial['account'] = request.GET.get('bank_account')
+        if 'bank_account' in request.GET:
+            entry_form.initial['account'] = request.GET.get('bank_account')
     return render(request, template_name,
                   {'entry_form': entry_form,
                    'journal_type': journal_type,
@@ -401,8 +406,10 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
 
                 messages.success(request, "A new entry was created.")
                 if request.POST.get('subbtn') == 'Submit & Add More':
+                    entrys_american_date = entry.date.strftime('%m/%d/%Y')
                     return HttpResponseRedirect(
-                        reverse('entries.views.add_transfer_entry'))
+                        reverse('entries.views.add_transfer_entry') +
+                        '?date={0}'.format(entrys_american_date))
                 return HttpResponseRedirect(
                     reverse('entries.views.show_journal_entry',
                             kwargs={'entry_id': entry.id}))
@@ -412,6 +419,8 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
         # TODO: DO this in the forms init method?
         if entry.pk:
             entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
+        elif 'date' in request.GET:
+            entry_form.initial['date'] = request.GET.get('date')
         else:
             entry_form.initial['date'] = today_in_american_format()
     return render(request, template_name,
