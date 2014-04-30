@@ -476,11 +476,32 @@ class TransactionFormTests(TestCase):
 
         credit_form = TransactionForm(instance=self.credit_transaction)
         self.assertIn('credit', credit_form.initial)
-        self.assertEqual(credit_form.initial['credit'], 50)
+        self.assertEqual(credit_form.initial['credit'], '50.00')
 
         debit_form = TransactionForm(instance=self.debit_transaction)
         self.assertIn('debit', debit_form.initial)
-        self.assertEqual(debit_form.initial['debit'], 50)
+        self.assertEqual(debit_form.initial['debit'], '50.00')
+
+    def test_trailing_zeroes_are_stripped(self):
+        """
+        Any trailing zeroes making a credit or debit's decimal more than 2
+        places should be stripped.
+        """
+        two_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                               '51.2500')
+        three_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                                 '51.2570')
+        four_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                                '51.2578')
+
+        two_decimal_form = TransactionForm(instance=two_decimal_trans)
+        three_decimal_form = TransactionForm(instance=three_decimal_trans)
+        four_decimal_form = TransactionForm(instance=four_decimal_trans)
+
+        self.assertEqual(str(two_decimal_form.initial['credit']), '51.25')
+        self.assertEqual(str(three_decimal_form.initial['credit']), '51.257')
+        self.assertEqual(str(four_decimal_form.initial['credit']), '51.2578')
+
 
 
 class JournalEntryFormTests(TestCase):
@@ -546,6 +567,18 @@ class BankSpendingFormTests(TestCase):
         self.assertIn('account', form.initial)
         self.assertIn('amount', form.initial)
 
+    def test_trailing_zeroes_are_stripped(self):
+        """
+        Any trailing zeroes making a credit or debit's decimal more than 2
+        places should be stripped.
+        """
+        self.main_transaction.balance_delta = '-51.2570'
+        self.main_transaction.save()
+
+        form = BankSpendingForm(instance=self.entry)
+
+        self.assertEqual(str(form.initial['amount']), '51.257')
+
 
 class BankTransactionFormTests(TestCase):
     """Test the BankTransactionForm class."""
@@ -570,7 +603,7 @@ class BankTransactionFormTests(TestCase):
             form.fields['account'].widget.choices.queryset,
             [self.asset_account])
 
-    def test_balance_delta_is_converted_to_debit_and_credit_fields(self):
+    def test_balance_delta_is_converted_to_the_amount_field(self):
         """
         If created with an instance, the absolute value of the balance_delta
         should be set to the `amount` field.
@@ -580,12 +613,31 @@ class BankTransactionFormTests(TestCase):
 
         credit_form = BankTransactionForm(instance=self.credit_transaction)
         self.assertIn('amount', credit_form.initial)
-        self.assertEqual(credit_form.initial['amount'], 50)
+        self.assertEqual(credit_form.initial['amount'], '50.00')
 
         debit_form = BankTransactionForm(instance=self.debit_transaction)
         self.assertIn('amount', debit_form.initial)
-        self.assertEqual(debit_form.initial['amount'], 50)
+        self.assertEqual(debit_form.initial['amount'], '50.00')
 
+    def test_trailing_zeroes_are_stripped(self):
+        """
+        Any trailing zeroes making a credit or debit's decimal more than 2
+        places should be stripped.
+        """
+        two_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                               '51.2500')
+        three_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                                 '51.2570')
+        four_decimal_trans = create_transaction(self.entry, self.asset_account,
+                                                '-51.2578')
+
+        two_decimal_form = BankTransactionForm(instance=two_decimal_trans)
+        three_decimal_form = BankTransactionForm(instance=three_decimal_trans)
+        four_decimal_form = BankTransactionForm(instance=four_decimal_trans)
+
+        self.assertEqual(str(two_decimal_form.initial['amount']), '51.25')
+        self.assertEqual(str(three_decimal_form.initial['amount']), '51.257')
+        self.assertEqual(str(four_decimal_form.initial['amount']), '51.2578')
 
 class JournalEntryViewTests(TestCase):
     """
@@ -1103,10 +1155,10 @@ class JournalEntryViewTests(TestCase):
             entry.transaction_set.all()[1])
         self.assertEqual(
             response.context['transaction_formset'].forms[0].initial['debit'],
-            5)
+            '5.00')
         self.assertEqual(
             response.context['transaction_formset'].forms[1].initial['credit'],
-            5)
+            '5.00')
 
     def test_add_journal_entry_view_edit_in_fiscal_year(self):
         """
@@ -1815,7 +1867,7 @@ class BankEntryViewTests(TestCase):
                                    BankReceivingTransactionFormSet))
         self.assertEqual(response.context['entry_form'].instance, entry)
         self.assertEqual(response.context['entry_form'].initial['amount'],
-                         -1 * entry.main_transaction.balance_delta)
+                         '20.00')
         self.assertEqual(response.context['entry_form'].initial['account'],
                          entry.main_transaction.account)
         self.assertEqual(
@@ -1823,7 +1875,7 @@ class BankEntryViewTests(TestCase):
             entry.transaction_set.all()[0])
         self.assertEqual(
             response.context['transaction_formset'].forms[0].initial['amount'],
-            entry.transaction_set.all()[0].balance_delta)
+            '20.00')
 
     def test_bank_receiving_add_view_edit_success(self):
         """
@@ -2362,7 +2414,7 @@ class BankEntryViewTests(TestCase):
                                    BankSpendingTransactionFormSet))
         self.assertEqual(response.context['entry_form'].instance, entry)
         self.assertEqual(response.context['entry_form'].initial['amount'],
-                         entry.main_transaction.balance_delta)
+                         '20.00')
         self.assertEqual(response.context['entry_form'].initial['account'],
                          entry.main_transaction.account)
         self.assertEqual(
@@ -2370,7 +2422,7 @@ class BankEntryViewTests(TestCase):
             entry.transaction_set.all()[0])
         self.assertEqual(
             response.context['transaction_formset'].forms[0].initial['amount'],
-            -1 * entry.transaction_set.all()[0].balance_delta)
+            '20.00')
 
     def test_bank_spending_add_view_edit_in_fiscal_year(self):
         """
