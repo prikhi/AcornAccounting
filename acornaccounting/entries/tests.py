@@ -14,9 +14,10 @@ from events.models import Event
 from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
 from fiscalyears.models import FiscalYear
 
-from .forms import (JournalEntryForm, TransactionFormSet, TransferFormSet,
-                    BankReceivingForm, BankReceivingTransactionFormSet,
-                    BankSpendingForm, BankSpendingTransactionFormSet)
+from .forms import (JournalEntryForm, TransactionForm, TransactionFormSet,
+                    TransferFormSet, BankReceivingForm, BankSpendingForm,
+                    BankTransactionForm, BankReceivingTransactionFormSet,
+                    BankSpendingTransactionFormSet)
 from .models import (Transaction, JournalEntry, BankSpendingEntry,
                      BankReceivingEntry)
 
@@ -438,6 +439,152 @@ class TransactionModelTests(TestCase):
                             balance_delta=15)
 
         self.assertRaises(ValidationError, trans.save)
+
+
+class TransactionFormTests(TestCase):
+    """Test the ModelForm for the Transaction class."""
+    def setUp(self):
+        """Create initial Headers, Accounts and Transactions."""
+        self.asset_header = create_header('asset', cat_type=1)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+        self.entry = create_entry(datetime.date.today(), 'test memo')
+        self.credit_transaction = create_transaction(self.entry,
+                                                     self.asset_account, 50)
+        self.debit_transaction = create_transaction(self.entry,
+                                                    self.asset_account, -50)
+
+    def test_only_active_accounts_shown(self):
+        """Only Accounts marked `active` should be in the `account` widget."""
+        other_account = create_account('other', self.asset_header, 0, 1)
+        other_account.active = False
+        other_account.save()
+
+        form = TransactionForm(instance=self.credit_transaction)
+        self.assertSequenceEqual(
+            form.fields['account'].widget.choices.queryset,
+            [self.asset_account])
+
+    def test_balance_delta_is_converted_to_debit_and_credit_fields(self):
+        """
+        If created with an instance, the absolute value of the balance_delta
+        should be set to either the `credit` or `debit` field, depending on
+        whether the balance_delta is positive or negative, respectively.
+        """
+        no_instance_form = TransactionForm()
+        self.assertNotIn('credit', no_instance_form.initial)
+        self.assertNotIn('debit', no_instance_form.initial)
+
+        credit_form = TransactionForm(instance=self.credit_transaction)
+        self.assertIn('credit', credit_form.initial)
+        self.assertEqual(credit_form.initial['credit'], 50)
+
+        debit_form = TransactionForm(instance=self.debit_transaction)
+        self.assertIn('debit', debit_form.initial)
+        self.assertEqual(debit_form.initial['debit'], 50)
+
+
+class JournalEntryFormTests(TestCase):
+    """Test the JournalEntry's ModelForm."""
+    def setUp(self):
+        """Create some Headers, Accounts and an Entry."""
+        self.asset_header = create_header('asset', cat_type=1)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+        day = datetime.date(2014, 4, 20)
+        self.entry = create_entry(day, 'test memo')
+        self.credit_transaction = create_transaction(self.entry,
+                                                     self.asset_account, 50)
+        self.debit_transaction = create_transaction(self.entry,
+                                                    self.asset_account, -50)
+
+    def test_new_entry_date_initialized_to_today_in_mmddyyyy_format(self):
+        """
+        The Form should set the initial date to today in MM/DD/YYYY format if
+        there is no existing instance.
+        """
+        form = JournalEntryForm()
+        today = datetime.date.today().strftime('%m/%d/%Y')
+        self.assertIn('date', form.initial)
+        self.assertEqual(form.initial['date'], today)
+
+    def test_existing_entry_date_initialized_to_mmddyyyy_format(self):
+        """
+        The form should set the initial date to MM/DD/YYYY format if there is
+        an existing instance.
+        """
+        form = JournalEntryForm(instance=self.entry)
+        self.assertIn('date', form.initial)
+        self.assertEqual(form.initial['date'], '04/20/2014')
+
+
+class BankSpendingFormTests(TestCase):
+    """Test the BankSpendingEntry's ModelForm."""
+    def setUp(self):
+        """Create some Headers, Accounts and an Entry."""
+        self.asset_header = create_header('asset', cat_type=1)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+        day = datetime.date(2014, 4, 20)
+        self.main_transaction = Transaction.objects.create(
+            account=self.asset_account, balance_delta=-50)
+        self.entry = BankSpendingEntry.objects.create(
+            main_transaction=self.main_transaction, date=day, memo="test",
+            ach_payment=True)
+        self.transaction = Transaction.objects.create(
+            bankspend_entry=self.entry, account=self.asset_account,
+            balance_delta=50)
+
+    def test_initialize_account_and_amount(self):
+        """
+        Set the initial Account and Amount from the main_transaction, if one
+        exists. The amount should be the absolute value of the
+        main_transaction's balance_delta.
+        """
+        no_instance_form = BankSpendingForm()
+        self.assertNotIn('account', no_instance_form.initial)
+        self.assertNotIn('amount', no_instance_form.initial)
+
+        form = BankSpendingForm(instance=self.entry)
+        self.assertIn('account', form.initial)
+        self.assertIn('amount', form.initial)
+
+
+class BankTransactionFormTests(TestCase):
+    """Test the BankTransactionForm class."""
+    def setUp(self):
+        """Create initial Headers, Accounts and Transactions."""
+        self.asset_header = create_header('asset', cat_type=1)
+        self.asset_account = create_account('asset', self.asset_header, 0, 1)
+        self.entry = create_entry(datetime.date.today(), 'test memo')
+        self.credit_transaction = create_transaction(self.entry,
+                                                     self.asset_account, 50)
+        self.debit_transaction = create_transaction(self.entry,
+                                                    self.asset_account, -50)
+
+    def test_only_active_accounts_shown(self):
+        """Only Accounts marked `active` should be in the `account` widget."""
+        other_account = create_account('other', self.asset_header, 0, 1)
+        other_account.active = False
+        other_account.save()
+
+        form = BankTransactionForm(instance=self.credit_transaction)
+        self.assertSequenceEqual(
+            form.fields['account'].widget.choices.queryset,
+            [self.asset_account])
+
+    def test_balance_delta_is_converted_to_debit_and_credit_fields(self):
+        """
+        If created with an instance, the absolute value of the balance_delta
+        should be set to the `amount` field.
+        """
+        no_instance_form = BankTransactionForm()
+        self.assertNotIn('amount', no_instance_form.initial)
+
+        credit_form = BankTransactionForm(instance=self.credit_transaction)
+        self.assertIn('amount', credit_form.initial)
+        self.assertEqual(credit_form.initial['amount'], 50)
+
+        debit_form = BankTransactionForm(instance=self.debit_transaction)
+        self.assertIn('amount', debit_form.initial)
+        self.assertEqual(debit_form.initial['amount'], 50)
 
 
 class JournalEntryViewTests(TestCase):

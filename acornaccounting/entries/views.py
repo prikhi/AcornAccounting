@@ -7,8 +7,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
-from core.core import (today_in_american_format,
-                       process_month_start_date_range_form)
+from core.core import process_month_start_date_range_form
 
 from .forms import (JournalEntryForm, BankSpendingForm, BankReceivingForm,
                     TransactionFormSet, TransferFormSet,
@@ -118,16 +117,9 @@ def add_journal_entry(request, entry_id=None,
         if not entry.in_fiscal_year():
             raise Http404
         entry.updated_at = timezone.now()
-        for transaction in entry.transaction_set.all():
-            # TODO: Do this in the form instead
-            if transaction.balance_delta < 0:
-                transaction.debit = -1 * transaction.balance_delta
-            elif transaction.balance_delta > 0:
-                transaction.credit = transaction.balance_delta
         is_new = False
     except JournalEntry.DoesNotExist:
         entry = JournalEntry()
-        entry.date = datetime.date.today
         is_new = True
 
     if request.method == 'POST':
@@ -180,20 +172,8 @@ def add_journal_entry(request, entry_id=None,
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transaction_formset = TransactionFormSet(prefix='transaction',
                                                  instance=entry)
-        # TODO: Do these in the form instead
-        if entry_form.instance.pk:
-            entry_form.initial['date'] = entry_form.instance.date.strftime(
-                '%m/%d/%Y')
-        elif 'date' in request.GET:
+        if 'date' in request.GET:
             entry_form.initial['date'] = request.GET.get('date')
-        else:
-            entry_form.initial['date'] = today_in_american_format()
-        for form in transaction_formset.forms:
-            if form.instance.pk:
-                if form.instance.balance_delta > 0:
-                    form.initial['credit'] = form.instance.balance_delta
-                elif form.instance.balance_delta < 0:
-                    form.initial['debit'] = -1 * form.instance.balance_delta
     request_data = {'entry_form': entry_form,
                     'journal_type': 'GJ',
                     'transaction_formset': transaction_formset}
@@ -247,13 +227,9 @@ def add_bank_entry(request, entry_id=None, journal_type='',
         if not entry.in_fiscal_year():
             raise Http404
         entry.updated_at = timezone.now()
-        for transaction in entry.transaction_set.all():
-            # TODO: Do this in the form
-            transaction.amount = abs(transaction.balance_delta)
         is_new = False
     except entry_type.DoesNotExist:
         entry = entry_type()
-        entry.date = datetime.date.today
         is_new = True
     if request.method == 'POST':
         if request.POST.get("subbtn") in ("Submit", "Submit & Add More"):
@@ -331,19 +307,8 @@ def add_bank_entry(request, entry_id=None, journal_type='',
         entry_form = EntryTypeForm(prefix='entry', instance=entry)
         transaction_formset = InlineFormSet(prefix='transaction',
                                             instance=entry)
-        if entry.pk:
-            # TODO: Look into moving this to the Form's __init__ method
-            entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
-            entry_form.initial['account'] = entry.main_transaction.account
-            entry_form.initial['amount'] = abs(
-                entry.main_transaction.balance_delta)
-            for form in transaction_formset.forms:
-                if not form.empty_permitted:
-                    form.initial['amount'] = abs(form.instance.balance_delta)
-        elif 'date' in request.GET:
+        if 'date' in request.GET:
             entry_form.initial['date'] = request.GET.get('date')
-        else:
-            entry_form.initial['date'] = today_in_american_format()
         if 'bank_account' in request.GET:
             entry_form.initial['account'] = request.GET.get('bank_account')
     return render(request, template_name,
@@ -416,13 +381,8 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
     else:
         entry_form = JournalEntryForm(prefix='entry', instance=entry)
         transfer_formset = TransferFormSet(prefix='transfer')
-        # TODO: DO this in the forms init method?
-        if entry.pk:
-            entry_form.initial['date'] = entry.date.strftime('%m/%d/%Y')
-        elif 'date' in request.GET:
+        if 'date' in request.GET:
             entry_form.initial['date'] = request.GET.get('date')
-        else:
-            entry_form.initial['date'] = today_in_american_format()
     return render(request, template_name,
                   {'entry_form': entry_form,
                    'transaction_formset': transfer_formset,

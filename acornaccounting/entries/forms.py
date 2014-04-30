@@ -6,6 +6,7 @@ from django.forms.models import inlineformset_factory
 from parsley.decorators import parsleyfy
 
 from accounts.models import Account
+from core.core import today_in_american_format
 from core.forms import RequiredBaseFormSet, RequiredBaseInlineFormSet
 from events.models import Event     # Needed for Sphinx
 from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
@@ -14,8 +15,34 @@ from .models import (Transaction, JournalEntry, BankSpendingEntry,
                      BankReceivingEntry)
 
 
+class BaseEntryForm(object):
+    """An abstraction of General and Bank Entries."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the date to today and put it in MM/DD/YYYY format."""
+        super(BaseEntryForm, self).__init__(*args, **kwargs)
+        self._initialize_date()
+
+    def _initialize_date(self):
+        """Default to today, formatted as MM/DD/YYYY."""
+        if hasattr(self, 'instance') and self.instance.pk:
+            formatted_date = self.instance.date.strftime('%m/%d/%Y')
+            self.initial['date'] = formatted_date
+        else:
+            self.initial['date'] = today_in_american_format()
+
+    def clean_date(self):
+        """The date must be in the Current :class:`FiscalYear`."""
+        input_date = self.cleaned_data.get('date')
+        fiscal_year_start = get_start_of_current_fiscal_year()
+        if fiscal_year_start is not None and input_date < fiscal_year_start:
+            raise forms.ValidationError("The date must be in the current "
+                                        "Fiscal Year.")
+        return input_date
+
+
 @parsleyfy
-class JournalEntryForm(forms.ModelForm):
+class JournalEntryForm(BaseEntryForm, forms.ModelForm):
     """A form for :class:`JournalEntries<.models.JournalEntry>`."""
 
     class Meta:
@@ -27,16 +54,6 @@ class JournalEntryForm(forms.ModelForm):
                                               'class': 'form-control'}),
             'memo': forms.TextInput(attrs={'class': 'form-control'})
         }
-
-    def clean_date(self):
-        """The date must be in the Current :class:`FiscalYear`."""
-        # TODO: Refactor out into subclass from this and BaseBankForm
-        input_date = self.cleaned_data.get('date')
-        fiscal_year_start = get_start_of_current_fiscal_year()
-        if fiscal_year_start is not None and input_date < fiscal_year_start:
-            raise forms.ValidationError("The date must be in the current "
-                                        "Fiscal Year.")
-        return input_date
 
 
 @parsleyfy
@@ -77,11 +94,15 @@ class TransactionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.active().order_by(
-            'name')
+        _allow_only_active_accounts(self, 'account')
+        self._assign_balance_delta_to_debit_or_credit_field()
 
     def clean(self):
-        """Make sure only a credit or debit is entered."""
+        """
+        Make sure only a credit or debit is entered and set it to the
+        balance_delta.
+
+        """
         super(TransactionForm, self).clean()
         if any(self.errors) or self.cleaned_data.get('DELETE', False):
             return self.cleaned_data
@@ -99,6 +120,27 @@ class TransactionForm(forms.ModelForm):
             raise forms.ValidationError("Either a credit or a debit is "
                                         "required")
         return cleaned_data
+
+    def _assign_balance_delta_to_debit_or_credit_field(self):
+        """
+        If the form's :class:`~.models.Transaction` instance has a
+        `balance_delta` set either the `credit` or `debit` field to it's
+        absolute value, depending on if the balance_delta is positive or
+        negative, respectively.
+
+        """
+        balance_delta = self.instance.balance_delta
+        if balance_delta is not None:
+            if balance_delta < 0:
+                self.initial['debit'] = abs(balance_delta)
+            else:
+                self.initial['credit'] = balance_delta
+
+
+def _allow_only_active_accounts(form_instance, field):
+    """Modify the form's field to only display active Accounts."""
+    active_accounts = Account.objects.active().order_by('name')
+    form_instance.fields[field].queryset = active_accounts
 
 
 class BaseTransactionFormSet(RequiredBaseInlineFormSet):
@@ -132,7 +174,7 @@ TransactionFormSet = inlineformset_factory(JournalEntry, Transaction,
 
 
 @parsleyfy
-class TransferForm(forms.Form):
+class TransferForm(BaseEntryForm, forms.Form):
     """
     A form for Transfer Entries, a specialized :class:`~.models.JournalEntry`.
 
@@ -198,7 +240,7 @@ TransferFormSet = formset_factory(TransferForm, extra=20, can_delete=True,
                                   formset=RequiredBaseFormSet)
 
 
-class BaseBankForm(forms.ModelForm):
+class BaseBankForm(BaseEntryForm, forms.ModelForm):
     """
     A Base form for common elements between the :class:`BankSpendingForm` and
     the :class:`BankReceivingForm`.
@@ -226,14 +268,21 @@ class BaseBankForm(forms.ModelForm):
                                       'class': 'form-control'})
     )
 
-    def clean_date(self):
-        """The date must be in the Current :class:`FiscalYear`."""
-        date = self.cleaned_data.get('date')
-        start = get_start_of_current_fiscal_year()
-        if start is not None and date < start:
-            raise forms.ValidationError("The date must be in the current "
-                                        "Fiscal Year.")
-        return date
+    def __init__(self, *args, **kwargs):
+        """
+        Pull the initial ``account`` and ``amount`` fields from the
+        ``main_transaction``.
+        """
+        super(BaseBankForm, self).__init__(*args, **kwargs)
+        self._initialize_account_and_amount_from_main_transaction()
+
+    def _initialize_account_and_amount_from_main_transaction(self):
+        """Use the main_transaction's account and amount."""
+        if hasattr(self.instance, 'main_transaction'):
+            main_transaction = self.instance.main_transaction
+            if main_transaction is not None:
+                self.initial['account'] = main_transaction.account
+                self.initial['amount'] = abs(main_transaction.balance_delta)
 
     def clean(self):
         """
@@ -248,23 +297,28 @@ class BaseBankForm(forms.ModelForm):
         super(BaseBankForm, self).clean()
         if any(self.errors):
             return self.cleaned_data
-        cleaned_data = self.cleaned_data
-        # TODO: Factor out following into a update_main_transaction() method
+        cleaned_data = self._update_or_add_main_transaction(self.cleaned_data)
+        return cleaned_data
+
+    def _update_or_add_main_transaction(self, cleaned_data):
+        """
+        Update the form's main_transaction, instantiating one if it does not
+        exist.
+
+        """
         account = cleaned_data.get('account')
         amount = cleaned_data.get('amount')
         memo = cleaned_data.get('memo')
         date = cleaned_data.get('date')
         try:
-            # TODO: Use "if hasattr(...):"?
             self.instance.main_transaction.account = account
             self.instance.main_transaction.balance_delta = amount
             self.instance.main_transaction.detail = memo
             self.instance.main_transaction.date = date
             cleaned_data['main_transaction'] = self.instance.main_transaction
         except Transaction.DoesNotExist:
-            main_transaction = Transaction(account=account,
-                                           balance_delta=amount, detail=memo,
-                                           date=date)
+            main_transaction = Transaction(account=account, detail=memo,
+                                           balance_delta=amount, date=date)
             cleaned_data['main_transaction'] = main_transaction
             self.instance.main_transaction = main_transaction
         return cleaned_data
@@ -362,8 +416,8 @@ class BankTransactionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(BankTransactionForm, self).__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.active().order_by(
-            'name')
+        _allow_only_active_accounts(self, 'account')
+        self._assign_balance_delta_to_amount_field()
 
     def clean(self):
         """Set the ``balance_delta`` to the entered ``amount``."""
@@ -374,6 +428,16 @@ class BankTransactionForm(forms.ModelForm):
         # TODO: Can we use balance_delta instead of also creating an amount?
         cleaned_data['balance_delta'] = cleaned_data.get('amount')
         return cleaned_data
+
+    def _assign_balance_delta_to_amount_field(self):
+        """
+        If the instance has a balance_delta, set the amount field to it's
+        absolute value.
+
+        """
+        balance_delta = self.instance.balance_delta
+        if balance_delta is not None:
+            self.initial['amount'] = abs(balance_delta)
 
 
 class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
