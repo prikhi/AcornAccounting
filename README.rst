@@ -12,43 +12,43 @@ as paying stipends, entering town trips and tracking membership.
 Quickstart
 ===========
 
-Install virtualenv:
+Install virtualenv::
 
     $ pip install virtualenv virtualenvwrapper
 
-Configure virtualenvwrapper:
+Configure virtualenvwrapper::
 
     $ export WORKON_HOME=~/.virtualenvs
     $ mkdir -p $WORKON_HOME
     $ source /usr/bin/virtualenvwrapper.sh      # Or add this to your .bashrc
 
-Create a new virtual environment:
+Create a new virtual environment::
 
     $ mkvirtualenv AcornAccounting
     $ workon AcornAccounting
 
-Install the prerequisites:
+Install the prerequisites::
 
     $ pip install -r requirements/base.txt
 
-Specify some environmental variables:
+Specify some environmental variables::
 
     $ export DJANGO_SECRET_KEY="A Random 50 Character String"
     $ export DB_NAME="<database name>"
     $ export DB_USER="<database username>"
 
-Create all necessary tables:
+Create all necessary tables::
 
     $ python manage.py syncdb --settings=accounting.settings.base
     $ python manage.py migrate --settings=accounting.settings.base
 
-Run the development server:
+Run the development server::
 
     $ cd acornaccounting
     $ python manage.py runserver --settings=accounting.settings.base
 
 You can omit the ``settings`` flag by setting the ``DJANGO_SETTINGS_MODULE``
-environmental variable:
+environmental variable::
 
     $ export DJANGO_SETTINGS_MODULE=accounting.settings.base
     $ python manage.py runserver
@@ -57,11 +57,11 @@ environmental variable:
 Running Tests
 ==============
 
-Install the prerequisites:
+Install the prerequisites::
 
     $ pip install -r requirements/test.txt
 
-Run the tests:
+Run the tests::
 
     $ cd acornaccounting
     $ python manage.py test --settings=accounting.settings.test
@@ -70,11 +70,11 @@ Run the tests:
 Building the Full Documentation
 ================================
 
-Install the prerequisites:
+Install the prerequisites::
 
     $ pip install -r requirements/local.txt
 
-Build the documentation:
+Build the documentation::
 
     $ cd docs
     $ make html
