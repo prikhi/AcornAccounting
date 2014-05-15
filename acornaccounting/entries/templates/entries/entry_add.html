@@ -53,8 +53,18 @@
 
 {% block content %}
 
+<!-- Info Alert -->
+<div class="alert alert-info">
+  <p><span class="glyphicon glyphicon-info-sign"></span> If you edit or add
+  Accounts after visiting this page and you wish to update the fields on this
+  page, do not refresh the page but instead submit an invalid form. This will
+  allow you to retain the form's data while updating the Accounts.</p>
+</div>
+
 <form action="." method="POST" id="entry_form" role="form">
   {% csrf_token %}
+
+  <!-- Entry Form -->
   <div class="form-horizontal">
   {% for field in entry_form %}
     {% if not forloop.last %}

@@ -13,6 +13,17 @@
 
 {% block content %}
 
+{% if transaction_formset %}
+  <!-- Info Alert -->
+  <div class="alert alert-info">
+    <p><span class="glyphicon glyphicon-info-sign"></span> If you edit any
+    Entries after visiting this page and you wish to update this page, do not
+    refresh the page, but instead submit an invalid form. This will allow you
+    to retain the form's data while updating the Entries.</p>
+  </div>
+{% endif %}
+
+
 <!-- Statement Form -->
 <form action="." method="POST" id="reconcile_form">
 {% csrf_token %}
