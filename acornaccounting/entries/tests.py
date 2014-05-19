@@ -489,7 +489,8 @@ class TransactionFormTests(TestCase):
         """
         two_decimal_trans = create_transaction(self.entry, self.asset_account,
                                                '51.2500')
-        three_decimal_trans = create_transaction(self.entry, self.asset_account,
+        three_decimal_trans = create_transaction(self.entry,
+                                                 self.asset_account,
                                                  '51.2570')
         four_decimal_trans = create_transaction(self.entry, self.asset_account,
                                                 '51.2578')
@@ -501,7 +502,6 @@ class TransactionFormTests(TestCase):
         self.assertEqual(str(two_decimal_form.initial['credit']), '51.25')
         self.assertEqual(str(three_decimal_form.initial['credit']), '51.257')
         self.assertEqual(str(four_decimal_form.initial['credit']), '51.2578')
-
 
 
 class JournalEntryFormTests(TestCase):
@@ -626,7 +626,8 @@ class BankTransactionFormTests(TestCase):
         """
         two_decimal_trans = create_transaction(self.entry, self.asset_account,
                                                '51.2500')
-        three_decimal_trans = create_transaction(self.entry, self.asset_account,
+        three_decimal_trans = create_transaction(self.entry,
+                                                 self.asset_account,
                                                  '51.2570')
         four_decimal_trans = create_transaction(self.entry, self.asset_account,
                                                 '-51.2578')
@@ -638,6 +639,7 @@ class BankTransactionFormTests(TestCase):
         self.assertEqual(str(two_decimal_form.initial['amount']), '51.25')
         self.assertEqual(str(three_decimal_form.initial['amount']), '51.257')
         self.assertEqual(str(four_decimal_form.initial['amount']), '51.2578')
+
 
 class JournalEntryViewTests(TestCase):
     """
@@ -2266,7 +2268,8 @@ class BankEntryViewTests(TestCase):
         A `POST` to the 'add_bank_entry' view with a `journal_type` of `CD` and
         submit value of `Submit & Add Another` should create a new
         BankSpendingEntry and issue redirect back to the Add page, initializing
-        the entry form with last Entries bank_account and date.
+        the entry form with last Entries bank_account and date while guessing
+        the next check number.
         """
         entry_date = datetime.date(2014, 4, 20)
         american_entry_date = entry_date.strftime('%m/%d/%Y')
@@ -2275,7 +2278,7 @@ class BankEntryViewTests(TestCase):
                     kwargs={'journal_type': 'CD'}),
             data={'entry-account': self.bank_account.id,
                   'entry-date': american_entry_date,
-                  'entry-ach_payment': True,
+                  'entry-check_number': 9000,
                   'entry-payee': 'test payee',
                   'entry-amount': 20,
                   'entry-memo': 'test memo',
@@ -2294,14 +2297,16 @@ class BankEntryViewTests(TestCase):
             response,
             (reverse('entries.views.add_bank_entry',
                      kwargs={'journal_type': 'CD'}) +
-             '?bank_account={0}&date={1}'.format(self.bank_account.id,
-                                                 american_entry_date))
+             '?bank_account={0}&date={1}&check_number={2}'.format(
+                 self.bank_account.id, american_entry_date, 9001))
         )
+
         response = self.client.get(response._headers['location'][1])
-        self.assertEqual(response.context['entry_form'].initial['account'],
-                         str(self.bank_account.id))
-        self.assertEqual(response.context['entry_form'].initial['date'],
-                         american_entry_date)
+        initial_fields = response.context['entry_form'].initial
+
+        self.assertEqual(initial_fields['account'], str(self.bank_account.id))
+        self.assertEqual(initial_fields['date'], american_entry_date)
+        self.assertEqual(initial_fields['check_number'], '9001')
         self.assertEqual(BankSpendingEntry.objects.count(), 1)
         self.assertEqual(Account.objects.get(bank=True).balance, 20)
         self.assertEqual(Account.objects.get(bank=False).balance, -20)

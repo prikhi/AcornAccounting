@@ -268,12 +268,19 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                         messages.success(request, "The entry was modified.")
                     if request.POST.get('subbtn') == 'Submit & Add More':
                         entrys_american_date = entry.date.strftime('%m/%d/%Y')
+                        get_parameters = '?bank_account={0}&date={1}'.format(
+                            entry.main_transaction.account.id,
+                            entrys_american_date)
+                        if entry_type is BankSpendingEntry:
+                            try:
+                                get_parameters += '&check_number={0}'.format(
+                                    int(entry.check_number) + 1)
+                            except ValueError:
+                                pass
                         return HttpResponseRedirect(
                             reverse('entries.views.add_bank_entry',
                                     kwargs={'journal_type': journal_type}) +
-                            '?bank_account={0}&date={1}'.format(
-                                entry.main_transaction.account.id,
-                                entrys_american_date)
+                            get_parameters
                         )
                     return HttpResponseRedirect(
                         reverse('entries.views.show_bank_entry',
@@ -310,7 +317,19 @@ def add_bank_entry(request, entry_id=None, journal_type='',
         if 'date' in request.GET:
             entry_form.initial['date'] = request.GET.get('date')
         if 'bank_account' in request.GET:
-            entry_form.initial['account'] = request.GET.get('bank_account')
+            bank_account = request.GET.get('bank_account')
+            entry_form.initial['account'] = bank_account
+            if 'check_number' in request.GET:
+                next_check = request.GET.get('check_number')
+                entry_form.initial['check_number'] = next_check
+                check_exists = BankSpendingEntry.objects.filter(
+                    main_transaction__account=bank_account,
+                    check_number=next_check).exists()
+                if check_exists:
+                    messages.error(
+                        request, 'The "Check number" field has been '
+                        'automatically filled, but a Check with this number '
+                        'already exists for this Account.')
     return render(request, template_name,
                   {'entry_form': entry_form,
                    'journal_type': journal_type,
