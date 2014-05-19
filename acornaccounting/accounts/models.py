@@ -82,7 +82,7 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         ``change_tree``) to be saved once the pending changes have been saved.
 
         """
-        parent_has_changed = self._has_parent_changed()
+        parent_has_changed = self._has_field_changed("parent")
         if parent_has_changed:
             items_to_change = self._get_change_tree()
         self.full_clean()
@@ -103,14 +103,14 @@ class BaseAccountModel(MPTTModel, CachingMixin):
                 return None
     get_full_number.short_description = "Number"
 
-    def _has_parent_changed(self):
-        """Determine if the ``parent`` has changed."""
+    def _has_field_changed(self, field):
+        """Determine if this instance's field has changed."""
         if self.id:
             database_copy = self.__class__.objects.get(id=self.id)
-            parent_has_changed = (database_copy.parent != self.parent)
+            has_changed = getattr(database_copy, field) != getattr(self, field)
         else:
-            parent_has_changed = True
-        return parent_has_changed
+            has_changed = True
+        return has_changed
 
     def _resave_items_and_self(self, items):
         """Save each item then save this object's database copy."""

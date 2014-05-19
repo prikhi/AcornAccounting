@@ -83,27 +83,27 @@ class BaseAccountModelTests(TestCase):
         self.assertEqual(oth_expense_acc.get_balance(), -20)
         self.assertEqual(oth_expense_header.get_account_balance(), -20)
 
-    def test_has_parent_changed_new(self):
+    def test_new_instances_have_a_changed_parent(self):
         """Test that new instances have had their parent changed."""
         header = Header(name="header", slug="header", parent=None, type=2)
         account = Account(name="account", slug="account", parent=header,
                           balance=0)
 
-        self.assertTrue(header._has_parent_changed())
-        self.assertTrue(account._has_parent_changed())
+        self.assertTrue(header._has_field_changed("parent"))
+        self.assertTrue(account._has_field_changed("parent"))
 
-    def test_has_parent_changed_no_change(self):
-        """Tests that unchanged instances have not had their parent changed."""
+    def test_has_field_changed_no_change(self):
+        """Tests that unchanged instances have not had their field changed."""
         header = create_header("header")
         account = create_account("account", header, 0)
 
-        self.assertFalse(header._has_parent_changed())
-        self.assertFalse(account._has_parent_changed())
+        self.assertFalse(header._has_field_changed("parent"))
+        self.assertFalse(account._has_field_changed("parent"))
 
-    def test_has_parent_changed_parent_change(self):
+    def test_has_field_changed_parent_change(self):
         """
-        The _has_parent_changed method should return True if the parent has
-        been changed.
+        The _has_field_changed method should return True if the field has been
+        changed.
         """
         header = create_header("header")
         account = create_account("account", header, 0)
@@ -112,13 +112,13 @@ class BaseAccountModelTests(TestCase):
         header.parent = other_parent
         account.parent = other_parent
 
-        self.assertTrue(header._has_parent_changed())
-        self.assertTrue(account._has_parent_changed())
+        self.assertTrue(header._has_field_changed("parent"))
+        self.assertTrue(account._has_field_changed("parent"))
 
-    def test_has_parent_changed_other_change(self):
+    def test_has_field_changed_other_change(self):
         """
-        The _has_parent_changed method should return False values other than
-        the parent have been changed.
+        The _has_field_changed method should return False when values other
+        than the field have been changed.
         """
         header = create_header("header")
         account = create_account("account", header, 0)
@@ -135,8 +135,8 @@ class BaseAccountModelTests(TestCase):
         account.bank = True
         account.last_reconciled = datetime.date.today()
 
-        self.assertFalse(header._has_parent_changed())
-        self.assertFalse(account._has_parent_changed())
+        self.assertFalse(header._has_field_changed("parent"))
+        self.assertFalse(account._has_field_changed("parent"))
 
     def test_get_full_number_calculate_if_none(self):
         """If a saved instance has no number, it should be calculated."""
