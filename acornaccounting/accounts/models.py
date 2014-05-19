@@ -82,13 +82,14 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         ``change_tree``) to be saved once the pending changes have been saved.
 
         """
-        parent_has_changed = self._has_field_changed("parent")
-        if parent_has_changed:
+        tree_has_changed = (self._has_field_changed("parent") or
+                            self._has_field_changed("name"))
+        if tree_has_changed:
             items_to_change = self._get_change_tree()
         self.full_clean()
         super(BaseAccountModel, self).save(*args, **kwargs)
         self.__class__.objects.rebuild()
-        if parent_has_changed:
+        if tree_has_changed:
             items_to_change += self._get_change_tree()
             self._resave_items_and_self(items_to_change)
 

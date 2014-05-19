@@ -153,6 +153,37 @@ class BaseAccountModelTests(TestCase):
 
         self.assertEqual(None, account.get_full_number())
 
+    def test_recalculate_full_number_after_name_change(self):
+        """Tests that the Full Number is correctly set when an Account or
+        Header's name changes."""
+        root_header = create_header("Root Header")
+        first_header = create_header("First Header", root_header)
+        second_header = create_header("Second Header", root_header)
+        first_account = create_account("First Account", first_header, 0)
+        second_account = create_account("Second Account", first_header, 0)
+
+        self.assertEqual(first_account.get_full_number(), '2-01001')
+        self.assertEqual(second_account.get_full_number(), '2-01002')
+
+        first_account.name = "This is now the Second Number"
+        first_account.save()
+        first_account = Account.objects.get(id=first_account.id)
+        second_account = Account.objects.get(id=second_account.id)
+
+        self.assertEqual(first_account.full_number, '2-01002')
+        self.assertEqual(second_account.full_number, '2-01001')
+
+        self.assertEqual(first_header.get_full_number(), '2-01000')
+        self.assertEqual(second_header.get_full_number(), '2-02000')
+
+        first_header.name = "This is now the Second Number"
+        first_header.save()
+        first_header = Header.objects.get(id=first_header.id)
+        second_header = Header.objects.get(id=second_header.id)
+
+        self.assertEqual(first_header.get_full_number(), '2-02000')
+        self.assertEqual(second_header.get_full_number(), '2-01000')
+
 
 class HeaderModelTests(TestCase):
     def test_get_account_balance(self):
