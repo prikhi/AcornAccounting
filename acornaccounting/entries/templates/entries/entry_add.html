@@ -460,6 +460,27 @@
         $('#entry_form').parsley('removeItem', $amount);
         newSum();
     }
+    {% if journal_type == 'CD' %}
+        $(document).ready(function () {
+            var ach_payment = document.getElementById('id_entry-ach_payment');
+            var check_number = document.getElementById('id_entry-check_number');
+
+            /* Disable the Check Number field if ACH is checked */
+            if (ach_payment.value == true) {
+                check_number.disabled = true;
+            }
+
+            /* Clear and Disable/Enable the Check Number when ACH Payment is checked */
+            ach_payment.onchange = function() {
+                if (check_number.disabled) {
+                    check_number.disabled = false;
+                } else {
+                    check_number.value = "";
+                    check_number.disabled = true;
+                }
+            };
+        });
+    {% endif %}
 {% else %}
     {# Transfer Entries #}
     /* Update Total and Out of Balance amounts on input change or delete */
