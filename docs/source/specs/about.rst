@@ -32,7 +32,7 @@ dashed arrow from one Use Case to another indicates the source Use Case depends
 on or includes the Use Case being pointed at.
 
 .. uml::
-    :includegraphics: scale=.5
+    :scale: 50%
 
     left to right direction
     :Sample Actor: as act
@@ -53,7 +53,7 @@ The following example shows the use cases for an application where an ``admin``
 creates Accounts and both ``admin`` and ``viewer`` view them:
 
 .. uml::
-    :includegraphics: scale=.5
+    :scale: 50%
 
     left to right direction
     :admin: as adm
@@ -96,7 +96,7 @@ represent decisions. Continue down only one path from a decision point. Repeat
 until you reach the end, represented by the bottom circle.
 
 .. uml::
-    :includegraphics: scale=.6
+    :scale: 60%
 
     (*) --> Start Here
     -> Then Do This

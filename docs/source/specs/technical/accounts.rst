@@ -31,4 +31,3 @@ accounts Package
 
 .. automodule:: accounts.signals
     :members:
-

@@ -4,7 +4,7 @@ Use Cases
 ===========
 
 .. uml::
-    :includegraphics: scale=.55
+    :scale: 55%
 
     left to right direction
     :Accountant: as acc
@@ -63,7 +63,7 @@ application like Communards, but will also be involved in additional Entry and
 Administration Tasks.
 
 .. uml::
-    :includegraphics: scale=.6
+    :scale: 60%
 
     :Accountant: as acc
     rectangle Administration {
@@ -102,7 +102,7 @@ Budgeters are Communards who are also responsible for analyzing and planning
 spending.
 
 .. uml::
-    :includegraphics: scale=.55
+    :scale: 55%
 
     :Budgeter: as bud
     rectangle Reports {

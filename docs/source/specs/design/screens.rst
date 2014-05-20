@@ -965,7 +965,7 @@ Transactions against a statement.
 after a Statement Balance and Date are entered.
 
 .. uml::
-    :includegraphics: scale=.55
+    :scale: 55%
 
     title Account Reconciliation Process
 
@@ -1096,7 +1096,7 @@ The Journal Entry Creation Pages will be responsible for creating/editing and
 validating new Entries and Transactions.
 
 .. uml::
-    :includegraphics: scale=.55
+    :scale: 55%
 
     title General Entry Creation Workflow
 
@@ -1405,7 +1405,7 @@ This Page will be used to start new Fiscal Years, purging Transactions from
 previous years and resetting Income and Expense balances.
 
 .. uml::
-    :includegraphics: scale=.4
+    :scale: 40%
 
     title Fiscal Year Creation Process
 
