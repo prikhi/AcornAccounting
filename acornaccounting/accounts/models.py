@@ -179,11 +179,12 @@ class Account(BaseAccountModel):
     """Holds information on Accounts."""
     balance = models.DecimalField(help_text="The balance is the credit/debit "
                                   "balance, not the value balance.",
-                                  max_digits=19, decimal_places=4,
-                                  default="0.00", editable=False)
+                                  max_digits=19, default="0.00",
+                                  verbose_name="Current Balance",
+                                  decimal_places=4)
     reconciled_balance = models.DecimalField(
         help_text="The Account's currently reconciled balance.",
-        max_digits=19, decimal_places=4, default="0.00", editable=False)
+        max_digits=19, decimal_places=4, default="0.00")
 
     parent = models.ForeignKey(Header)
     active = models.BooleanField(default=True)
