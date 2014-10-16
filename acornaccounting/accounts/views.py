@@ -290,6 +290,9 @@ def reconcile_account(request, account_slug,
             if account_form.is_valid():
                 transaction_formset.reconciled_balance = reconciled_balance
                 transaction_formset.account_form = account_form
+                # Flip the reconciled balance for display in case of formset
+                # error
+                reconciled_balance *= (-1 if account.flip_balance() else 1)
                 if transaction_formset.is_valid():
                     transaction_formset.save()
                     account.last_reconciled = account_form.cleaned_data.get(

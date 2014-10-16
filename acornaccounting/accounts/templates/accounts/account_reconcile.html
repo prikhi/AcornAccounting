@@ -66,13 +66,23 @@
   {{ transaction_formset.management_form }}
 
   <!-- Error Alert -->
-  {% if transaction_formset.non_form_errors %}
+  {% if transaction_formset.errors %}
     <br />
     <div class="alert alert-danger">
       <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong> Please correct the following issues before continuing:
       <ul>
         {% for error in transaction_formset.non_form_errors %}
             <li>{{ error }}</li>
+        {% endfor %}
+        {% for form in transaction_formset %}
+          {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+            {% for field in form %}
+              <li>{{ field.errors }}</li>
+            {% endfor %}
+          {% endif%}
         {% endfor %}
       </ul>
     </div>
@@ -179,20 +189,24 @@
 {% if transaction_formset %}
   <script type="text/javascript">
       /* Recalculate credit/debit totals and net change on checkbox change */
-      $(document).ready( function() {
-        // Counters and Click-All Checkbox
+      $(document).ready(function() {
+        // Recalculate counters on checkbox and Statement Balance changes.
         $('#reconcile_form input:checkbox').change(function() {recalcCounters()});
         $('#id_account-statement_balance').keyup(function() {recalcCounters()});
         recalcCounters();
+
+        // Toggle all rows when the checkbox in the Table Header is changed.
         $('.checkall').change(function () {
           $(this).closest('table').find(':checkbox').prop('checked', this.checked);
           recalcCounters();
         });
       });
+
+      // Recalculate the Credit, Debit & Net Change counters in the table footer.
       var recalcCounters = function () {
           // Calculate and set the Credit Total
           var credit_sum = 0;
-          $(".credit").each( function(){
+          $(".credit").each(function(){
               if($(this).closest('tr').find('input:checkbox').is(':checked') == true) {
                   var trimmed = $(this).html().replace('$', '').replace(',', '');
                   if(!isNaN(trimmed) && trimmed.length != 0) {
@@ -205,7 +219,7 @@
 
           // Calculate and set the Debit Total
           var debit_sum = 0;
-          $(".debit").each( function(){
+          $(".debit").each(function(){
               if( $(this).closest('tr').find('input:checkbox').is(':checked') == true) {
                   var trimmed = $(this).html().replace('($', '').replace(')', '').replace(',', '');
                   if(!isNaN(trimmed) && trimmed.length != 0) {
@@ -217,35 +231,42 @@
 
           // Calculate and set the Net Change
           var net_change = (credit_sum - debit_sum).toFixed(2);
-          if(net_change < 0) {
-              $('#net_change').text('($' + Math.abs(net_change) + ')');
-          } else if (net_change > 0) {
-              $('#net_change').text('$' + net_change);
-          } else {
-              $('#net_change').text('$0.00');
-          }
+          $('#net_change').text(formatCurrency(net_change));
 
-          // Calculate and set the Out of Balance amount
           var statement_balance = parseFloat($('#id_account-statement_balance').val());
           if (isNaN(statement_balance)) {
               statement_balance = 0;
           }
-          if ( {{ account.flip_balance|lower }} ) {
-              statement_balance = -1 * parseFloat(statement_balance);
-          }
+          statement_balance = convertToCreditBalance(statement_balance);
 
-          var reconciled_balance = {{ reconciled_balance }};
+          var reconciled_balance = convertToCreditBalance({{ reconciled_balance }});
+
+          // Calculate and Set the Out of Balance Amount
           var statement_change = statement_balance - reconciled_balance;
           var out_of_balance = (statement_change - net_change).toFixed(2);
+          $('#out_of_balance').text(formatCurrency(out_of_balance));
+      };
 
-          if(out_of_balance < 0) {
-              $('#out_of_balance').text('($' + Math.abs(out_of_balance) + ')');
-          } else if (out_of_balance > 0) {
-              $('#out_of_balance').text('$' + out_of_balance);
-          } else {
-              $('#out_of_balance').text('$0.00');
+      // Convert a Value Balance to a Credit Balance for this Account.
+      function convertToCreditBalance(value_balance) {
+          if ( {{ account.flip_balance|lower }} ) {
+              value_balance = -1 * parseFloat(value_balance);
           }
-      }
+          return value_balance;
+      };
+
+      // Display Negative Numbers in Parenthesis.
+      function formatCurrency(amount) {
+          var result;
+          if (amount < 0) {
+              result = '($' + Math.abs(amount) + ')';
+          } else if (amount > 0) {
+              result = '$' + amount;
+          } else {
+              result = '$0.00';
+          }
+          return result
+      };
   </script>
 {% endif %}
 

@@ -1854,6 +1854,43 @@ class AccountReconcileViewTests(TestCase):
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'The selected Transactions are out of balance with the Statement Amount.')
 
+    def test_reconcile_account_view_flipped_fail_reconciled_value_balance(self):
+        """Ensure the Reconciled Value Balance is Returned instead of the credit.
+
+        The Reconciled Balance in the context should be the Value Balance, even
+        if a formset error occurs. See Bug #284.
+
+        """
+        self.bank_account.reconciled_balance = 20
+        self.bank_account.save()
+
+        response = self.client.get(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reconciled_balance"], -20)
+
+        entry = create_entry(datetime.date.today(), 'test memo')
+        trans1 = create_transaction(entry, self.bank_account, 50)
+        trans2 = create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.liability_account, -100)
+        response = self.client.post(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.bank_account.slug}),
+            data={'account-statement_date': datetime.date.today(),
+                  'account-statement_balance': '100',
+                  'form-TOTAL_FORMS': 2,
+                  'form-INITIAL_FORMS': 2,
+                  'form-0-id': trans1.id,
+                  'form-0-reconciled': True,
+                  'form-1-id': trans2.id,
+                  'form-1-reconciled': False,
+                  'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reconciled_balance"], -20)
+
     def test_reconcile_account_view_change_last_reconciled_date(self):
         """
         A successful Reconciliation should cause the `last_reconciled` and `reconciled_balance`

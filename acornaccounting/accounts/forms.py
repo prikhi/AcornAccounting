@@ -1,5 +1,3 @@
-import datetime
-
 from django import forms
 from django.forms.models import (modelformset_factory,
                                  BaseModelFormSet)
@@ -43,12 +41,14 @@ class AccountReconcileForm(forms.ModelForm):
         fields = ('statement_date', 'statement_balance')
 
     def clean_statement_balance(self):
+        """Convert from a value balance to a credit/debit balance."""
         balance = self.cleaned_data.get('statement_balance')
         if self.instance.flip_balance():
             balance *= -1
         return balance
 
     def clean_statement_date(self):
+        """Ensure the Statement Date is after the Last Reconciled Date."""
         statement_date = self.cleaned_data.get('statement_date')
         if (self.instance.last_reconciled is not None and
                 statement_date < self.instance.last_reconciled):
