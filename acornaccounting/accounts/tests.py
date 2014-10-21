@@ -146,12 +146,23 @@ class BaseAccountModelTests(TestCase):
 
         self.assertEqual('2-00000', header.get_full_number())
 
-    def test_get_full_number_of_new_instance(self):
-        """The full number of a new unsaved instance should be None."""
+    def test_guess_full_number_of_new_instance(self):
+        """The full number of a new instance should be guessed correctly."""
         header = create_header("header")
         account = Account(name="this", slug="this", type=2, parent=header)
 
-        self.assertEqual(None, account.get_full_number())
+        self.assertEqual('2-00001', account.get_full_number())
+
+        account.save()
+        account2 = Account(name="that", slug="that", type=2, parent=header)
+
+        self.assertEqual('2-00001', account2.get_full_number())
+
+        account2.save()
+        account3 = Account(name="then", slug="then", type=2, parent=header)
+
+        self.assertEqual('2-00002', account3.get_full_number())
+
 
     def test_recalculate_full_number_after_name_change(self):
         """Tests that the Full Number is correctly set when an Account or
@@ -326,10 +337,14 @@ class HeaderModelTests(TestCase):
 class AccountModelTests(TestCase):
     def setUp(self):
         self.top_head = create_header('Initial')
-        self.child_head = Header.objects.create(name='Child', parent=self.top_head, slug='child')
-        self.gchild_head = Header.objects.create(name='gChild', parent=self.child_head, slug='gchild')
-        self.child_acc = Account.objects.create(name='child', parent=self.child_head, balance=0, slug='child')
-        self.gchild_acc = Account.objects.create(name='gChild', parent=self.gchild_head, balance=0, slug='gchild')
+        self.child_head = Header.objects.create(
+            name='Child', parent=self.top_head, slug='child')
+        self.gchild_head = Header.objects.create(
+            name='gChild', parent=self.child_head, slug='gchild')
+        self.child_acc = Account.objects.create(
+            name='child', parent=self.child_head, balance=0, slug='child')
+        self.gchild_acc = Account.objects.create(
+            name='gChild', parent=self.gchild_head, balance=0, slug='gchild')
 
     def test_save_inherit_type(self):
         """
@@ -337,6 +352,45 @@ class AccountModelTests(TestCase):
         """
         self.assertEqual(self.child_acc.type, self.top_head.type)
         self.assertEqual(self.gchild_acc.type, self.top_head.type)
+
+    def test_changing_accounts_parent_changes_full_number(self):
+        """
+        Tests that an Account's full_number is changed when it's parent Header
+        is changed. See Bug #313.
+        """
+        self.assertEqual(self.child_acc.get_full_number(), '2-01001')
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-02001')
+
+        self.child_acc.parent = self.gchild_head
+        self.child_acc.save()
+        self.child_acc = Account.objects.get(id=self.child_acc.id)
+        self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
+        self.assertEqual(self.child_acc.parent, self.gchild_head)
+        self.assertEqual(self.child_acc.get_full_number(), '2-02001')
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-02002')
+
+        self.gchild_acc.parent = self.child_head
+        self.gchild_acc.save()
+        self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-01001')
+
+        self.gchild_acc.parent = self.top_head
+        self.gchild_acc.save()
+        self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-00001')
+
+        self.child_acc.parent = self.top_head
+        self.child_acc.save()
+        self.child_acc = Account.objects.get(id=self.child_acc.id)
+        self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
+        self.assertEqual(self.child_acc.get_full_number(), '2-00001')
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-00002')
+
+        self.child_acc.parent = self.child_head
+        self.child_acc.save()
+        self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
+        self.assertEqual(self.gchild_acc.get_full_number(), '2-00001')
+
 
     def test_account_get_number(self):
         """

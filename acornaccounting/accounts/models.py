@@ -5,11 +5,11 @@ from decimal import Decimal
 from caching.base import CachingManager, CachingMixin, cached_method
 from django.core.urlresolvers import reverse
 from django.db import models
-from mptt.models import MPTTModel, TreeForeignKey
+from mptt.models import MPTTModel, TreeForeignKey, TreeManager
 
 from entries.models import Transaction
 
-from .managers import CachingTreeManager, AccountManager
+from .managers import AccountManager
 
 
 class BaseAccountModel(MPTTModel, CachingMixin):
@@ -84,14 +84,17 @@ class BaseAccountModel(MPTTModel, CachingMixin):
         """
         tree_has_changed = (self._has_field_changed("parent") or
                             self._has_field_changed("name"))
-        if tree_has_changed:
-            items_to_change = self._get_change_tree()
+        if tree_has_changed and self.id:
+            db_copy = self.__class__.objects.get(id=self.id)
+            items_to_change = db_copy._get_change_tree()
+        else:
+            items_to_change = []
         self.full_clean()
         super(BaseAccountModel, self).save(*args, **kwargs)
         self.__class__.objects.rebuild()
         if tree_has_changed:
             items_to_change += self._get_change_tree()
-            self._resave_items_and_self(items_to_change)
+            self._resave_items(items_to_change)
 
     def get_full_number(self):
         """Retrieve the Full Number from the model field."""
@@ -113,14 +116,12 @@ class BaseAccountModel(MPTTModel, CachingMixin):
             has_changed = True
         return has_changed
 
-    def _resave_items_and_self(self, items):
-        """Save each item then save this object's database copy."""
+    def _resave_items(self, items):
+        """Save each item."""
         if self in items:
             items.remove(self)
         for item in items:
             item.save()
-        database_copy = self.__class__.objects.get(id=self.id)
-        database_copy.save()
 
 
 class Header(BaseAccountModel):
@@ -129,7 +130,7 @@ class Header(BaseAccountModel):
     parent = TreeForeignKey('self', blank=True, null=True)
     active = models.BooleanField(default=True)
 
-    objects = CachingTreeManager()
+    objects = TreeManager()
 
     def __unicode__(self):
         return self.name
@@ -168,11 +169,25 @@ class Header(BaseAccountModel):
         return full_number
 
     def _get_change_tree(self):
-        """Get the entire Header Tree."""
-        if self.id:
-            return list(self.get_root().get_descendants())
+        """Get extra :class:`Headers<Header>` and :class:`Accounts<Account>`.
+
+        A change in a :class:`Header` may cause changes in the number of Headers
+        up to it's grandfather.
+
+        We only save one :class:`Account` under each :class:`Header` because
+        each :class:`Account` will save it's siblings.
+
+        :returns: Additional instances to save.
+        :rtype: list of :class:`Headers<Header>` and :class:`Accounts<Account>`
+
+        """
+        if self.parent and self.parent.parent:
+            headers_to_change = list(self.parent.parent.get_descendants())
         else:
-            return list()
+            headers_to_change = list(Header.objects.filter(type=self.type))
+        accounts_to_change = [account for header in headers_to_change for
+                              account in list(header.account_set.all())[-1:]]
+        return headers_to_change + accounts_to_change
 
 
 class Account(BaseAccountModel):
@@ -202,7 +217,11 @@ class Account(BaseAccountModel):
 
     def account_number(self):
         siblings = self.get_siblings(include_self=True).order_by('name')
-        number = list(siblings).index(self) + 1
+        if self in siblings:
+            number = list(siblings).index(self) + 1
+        else:
+            siblings = list(siblings) + [self]
+            number = sorted(siblings, key=lambda x: x.name).index(self) + 1
         return number
 
     # TODO: get_value_balance()?
@@ -305,16 +324,13 @@ class Account(BaseAccountModel):
 
     def _calculate_full_number(self):
         """Use parent and sibling positions to generate full account number."""
-        full_number = (self.parent._calculate_full_number()[:-3] +
+        full_number = (self.parent.get_full_number()[:-3] +
                        "{0:03d}".format(self.account_number()))
         return full_number
 
     def _get_change_tree(self):
-        """Get this instance's siblings or an empty list."""
-        if self.id:
-            return list(self.get_siblings())
-        else:
-            return list()
+        """Get this instance's siblings."""
+        return list(Account.objects.filter(parent=self.parent))
 
 
 class HistoricalAccount(CachingMixin, models.Model):
