@@ -1,7 +1,7 @@
 {% load core_filters %}
 
 <!-- Header row -->
-<tr class="{% cycle main,alt %} clickable">
+<tr class="clickable header">
   <td><a href="{{ descendant.get_absolute_url }}">{{ descendant.level|int_to_tabs }}{{ descendant.name|capwords }}</a></td>
   <td></td>
   <td></td>

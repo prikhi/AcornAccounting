@@ -41,7 +41,7 @@ Profit &amp; Loss Statement
     {% include 'reports/profit_loss_root_node.html' with header=headers.cost_of_goods_sold %}
     <tr><td colspan=5>&nbsp;</td></tr>
 
-    <tr>
+    <tr class="header">
       <td colspan=4><strong>Gross Profit</strong></td>
       <td class="text-right">{{ gross_profit|currency }}</td>
     </tr>
@@ -50,7 +50,7 @@ Profit &amp; Loss Statement
     {% include 'reports/profit_loss_root_node.html' with header=headers.expenses %}
     <tr><td colspan=5>&nbsp;</td></tr>
 
-    <tr>
+    <tr class="header">
       <td colspan=4><strong>Operating Profit</strong></td>
       <td class="text-right">{{ operating_profit|currency }}</td>
     </tr>
@@ -61,7 +61,7 @@ Profit &amp; Loss Statement
     {% include 'reports/profit_loss_root_node.html' with header=headers.other_expenses %}
     <tr><td colspan=5>&nbsp;</td></tr>
 
-    <tr>
+    <tr class="header">
       <td colspan=4><strong>Net Profit/(Loss)</strong></td>
       <td class="text-right">{{ net_profit|currency }}</td>
     </tr>

@@ -1,7 +1,7 @@
 {% load core_filters %}
 
 <!-- Root Header -->
-<tr class="{% cycle main,alt %} clickable">
+<tr class="clickable header">
   <td><a href="{{ header.get_absolute_url }}">{{ header.name|capwords }}</a></td>
   <td></td>
   <td></td>
@@ -33,7 +33,7 @@
 {% endfor %}
 
 <!-- Root Header Total -->
-<tr class="{% cycle main,alt %} clickable">
+<tr class="clickable header">
   <td><a href="{{ header.get_absolute_url }}">{{ header.name|capwords }} Total</a></td>
   <td></td>
   <td></td>
