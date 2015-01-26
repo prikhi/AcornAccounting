@@ -142,6 +142,9 @@
 <script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
 <script type="text/javascript">
     $(document).ready( function () {
+        /* Automatically Select the Start Date Field */
+        $("input#id_start_date").focus();
+        /* Validate the date range form w/ parsley */
         $('#date_range_form').parsley({
             successClass: 'has-success',
             errorClass: 'has-error',

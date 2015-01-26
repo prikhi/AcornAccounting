@@ -298,6 +298,13 @@
     };
 
     $(document).ready(function () {
+        {% if journal_type == 'GJ' or journal_type == "Transfer" or request.GET.bank_account %}
+          /* Auto-select the Date field */
+          $("input[name='entry-date']").focus();
+        {% else %}
+          /* Auto-select the Bank Account field */
+          $("select[name='entry-account']").focus();
+        {% endif %}
         /* Integrate Parsley.JS validation with Bootstrap3 CSS classes */
         $('#entry_form').parsley({
             successClass: 'has-success',
@@ -315,9 +322,10 @@
     });
 
 {% if journal_type == 'GJ' %}
-    /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
+        /* Calculate Initial counters */
         newSum();
+        /* Add event actions to each input row */
         $(".credit").each(function() {
             var that = this;
             assignRequired.call(that);
