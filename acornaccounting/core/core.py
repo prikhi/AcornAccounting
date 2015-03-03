@@ -3,6 +3,22 @@ import datetime
 from .forms import DateRangeForm
 
 
+def remove_trailing_zeroes(number):
+    """Reduce any trailing zeroes down to two decimal places.
+
+    :param number: The number to reduce.
+    :type number: A number or string representing a number.
+    :returns: The number with zeroes past the 2nd decimal place removed.
+    :rtype: String
+
+    """
+    number_string = str(float(number)).rstrip('0')
+    decimal_places = len(number_string.split('.')[1])
+    if decimal_places < 2:
+        number_string += '0' * (2 - decimal_places)
+    return number_string
+
+
 def today_in_american_format():
     """Return the Today's Date in ``MM/DD/YYYY`` format."""
     return _american_format(datetime.date.today())

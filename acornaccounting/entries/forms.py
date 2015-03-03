@@ -6,7 +6,7 @@ from django.forms.models import inlineformset_factory
 from parsley.decorators import parsleyfy
 
 from accounts.models import Account
-from core.core import today_in_american_format
+from core.core import today_in_american_format, remove_trailing_zeroes
 from core.forms import RequiredBaseFormSet, RequiredBaseInlineFormSet
 from events.models import Event     # Needed for Sphinx
 from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
@@ -132,26 +132,17 @@ class TransactionForm(forms.ModelForm):
         balance_delta = self.instance.balance_delta
         if balance_delta is not None:
             if balance_delta < 0:
-                self.initial['debit'] = _remove_trailing_zeroes(
+                self.initial['debit'] = remove_trailing_zeroes(
                     abs(balance_delta)
                 )
             else:
-                self.initial['credit'] = _remove_trailing_zeroes(balance_delta)
+                self.initial['credit'] = remove_trailing_zeroes(balance_delta)
 
 
 def _allow_only_active_accounts(form_instance, field):
     """Modify the form's field to only display active Accounts."""
     active_accounts = Account.objects.active().order_by('name')
     form_instance.fields[field].queryset = active_accounts
-
-
-def _remove_trailing_zeroes(number):
-    """Remove any unneccesary zeroes and decimal points."""
-    number_string = str(float(number)).rstrip('0')
-    decimal_places = len(number_string.split('.')[1])
-    if decimal_places < 2:
-        number_string += '0' * (2 - decimal_places)
-    return number_string
 
 
 class BaseTransactionFormSet(RequiredBaseInlineFormSet):
@@ -293,7 +284,7 @@ class BaseBankForm(BaseEntryForm, forms.ModelForm):
             main_transaction = self.instance.main_transaction
             if main_transaction is not None:
                 self.initial['account'] = main_transaction.account
-                self.initial['amount'] = _remove_trailing_zeroes(
+                self.initial['amount'] = remove_trailing_zeroes(
                     abs(main_transaction.balance_delta)
                 )
 
@@ -450,7 +441,7 @@ class BankTransactionForm(forms.ModelForm):
         """
         balance_delta = self.instance.balance_delta
         if balance_delta is not None:
-            self.initial['amount'] = _remove_trailing_zeroes(
+            self.initial['amount'] = remove_trailing_zeroes(
                 abs(balance_delta)
             )
 

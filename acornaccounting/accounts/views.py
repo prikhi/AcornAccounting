@@ -10,6 +10,7 @@ from django.shortcuts import render, get_object_or_404
 
 
 from core.core import (today_in_american_format,
+                       remove_trailing_zeroes,
                        process_month_start_date_range_form,
                        process_year_start_date_range_form)
 from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
@@ -308,8 +309,12 @@ def reconcile_account(request, account_slug,
             raise Http404
     else:
         reconciled_balance *= (-1 if account.flip_balance() else 1)
+        if reconciled_balance == 0 and '-' in str(reconciled_balance):
+            reconciled_balance *= -1
         account_form = AccountReconcileForm(
             prefix='account', instance=account,
-            initial={'statement_date': today_in_american_format(),
-                     'statement_balance': reconciled_balance})
+            initial={
+                'statement_date': today_in_american_format(),
+                'statement_balance': remove_trailing_zeroes(reconciled_balance)
+            })
     return render(request, template_name, locals())

@@ -1174,7 +1174,7 @@ class AccountReconcileViewTests(TestCase):
                     kwargs={'account_slug': self.bank_account.slug}))
 
         account_form = response.context['account_form']
-        self.assertEqual(account_form.initial['statement_balance'], 0)
+        self.assertEqual(account_form.initial['statement_balance'], '0.00')
 
     def test_reconcile_account_initial_statement_balance_reconciled(self):
         """
@@ -1188,7 +1188,7 @@ class AccountReconcileViewTests(TestCase):
                     kwargs={'account_slug': self.bank_account.slug}))
 
         account_form = response.context['account_form']
-        self.assertEqual(account_form.initial['statement_balance'], 275)
+        self.assertEqual(account_form.initial['statement_balance'], '275.00')
 
     def test_reconcile_account_view_initial_account_slug_fail(self):
         """ A `GET` to the `reconcile_account` view with an invalid
