@@ -14,12 +14,12 @@
     {% include 'tags/navigation.html' %}
 
     <div id="content" class="container">
-      <div class="visible-print text-center">
-        <h3>{{ config.COMPANY }}</h3>
-        <h4>{{ config.ADDRESS }}<br />
-            {{ config.CITY_STATE_ZIP }}<br />
-            {{ config.PHONE }}</h4>
-      </div>
+      <address class="visible-print text-center">
+        <strong>{{ config.COMPANY }}</strong><br />
+        {{ config.ADDRESS }}<br />
+        {{ config.CITY_STATE_ZIP }}<br />
+        {{ config.PHONE }}
+      </address>
 
       <div class="page-header">
         {% block page_header %}{% endblock %}
