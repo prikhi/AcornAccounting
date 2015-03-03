@@ -2525,7 +2525,9 @@ class HistoricalAccountViewTests(TestCase):
         parameter will retrieve the Historical Accounts for the last month.
         """
         today = datetime.date.today()
-        last_month = today + datetime.timedelta(days=-31)
+        first_of_month = datetime.date(
+            year=today.year, month=today.month, day=1)
+        last_month = (first_of_month - datetime.timedelta(days=1))
         # Accessing this month with the ?previous parameter...
         this_month = datetime.date(year=today.year - 1,
                                    month=today.month,

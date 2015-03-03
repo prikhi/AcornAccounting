@@ -74,6 +74,8 @@ def process_quick_search_form(get_dictionary, get_variable, form):
     object. Otherwise, the function will return tuple containing an unbound
     form and :obj:`None`.
 
+    For usage, see :func:`core.templatetags.core_tags`.
+
     :param get_dictionary: The request's ``GET`` dictionary.
     :param get_variable: The ``GET`` variable to search the request for, it's
                          presence indicates form submission.
@@ -84,10 +86,12 @@ def process_quick_search_form(get_dictionary, get_variable, form):
     :rtype: :obj:`tuple`
 
     """
-    form = form()
     object_id = None
-    if get_variable in get_dictionary:
-        form = form(get_dictionary)
-        if form.is_valid():
+    form_was_submit = get_variable in get_dictionary
+    if form_was_submit:
+        form_instance = form(get_dictionary)
+        if form_instance.is_valid():
             object_id = form.cleaned_data.get(get_variable)
-    return form, object_id
+    else:
+        form_instance = form()
+    return form_instance, object_id
