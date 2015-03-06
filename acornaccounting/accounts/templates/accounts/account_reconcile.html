@@ -188,14 +188,13 @@
 
 {% if transaction_formset %}
   <script type="text/javascript">
-      /* Recalculate credit/debit totals and net change on checkbox change */
       $(document).ready(function() {
-        // Recalculate counters on checkbox and Statement Balance changes.
+        /* Recalculate counters on checkbox and Statement Balance changes. */
         $('#reconcile_form input:checkbox').change(function() {recalcCounters()});
         $('#id_account-statement_balance').keyup(function() {recalcCounters()});
         recalcCounters();
 
-        // Toggle all rows when the checkbox in the Table Header is changed.
+        /* Toggle all rows when the checkbox in the Table Header is changed. */
         $('.checkall').change(function () {
           $(this).closest('table').find(':checkbox').prop('checked', this.checked);
           if (this.checked) {
@@ -205,12 +204,16 @@
           }
           recalcCounters();
         });
+
+        /* Toggle the 'info' class on a table body row when the row's checkbox
+         * is changed.
+         */
         $('tbody tr').find(':checkbox').on("change", function() {
           $(this).closest('tr').toggleClass('info');
         });
       });
 
-      // Recalculate the Credit, Debit & Net Change counters in the table footer.
+      /* Recalculate the Credit, Debit & Net Change counters in the table footer. */
       var recalcCounters = function () {
           // Calculate and set the Credit Total
           var credit_sum = 0;
