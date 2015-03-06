@@ -198,7 +198,15 @@
         // Toggle all rows when the checkbox in the Table Header is changed.
         $('.checkall').change(function () {
           $(this).closest('table').find(':checkbox').prop('checked', this.checked);
+          if (this.checked) {
+            $(this).closest('table').find('tbody tr').addClass('info');
+          } else {
+            $(this).closest('table').find('tbody tr').removeClass('info');
+          }
           recalcCounters();
+        });
+        $('tbody tr').find(':checkbox').on("change", function() {
+          $(this).closest('tr').toggleClass('info');
         });
       });
 
