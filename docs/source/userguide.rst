@@ -35,5 +35,9 @@ While the user guide is incomplete, this list will exist for important tips
 that maybe not be immediately obvious:
 
 * No dates require leading zeros. `1/5/15` is the same as `01/05/2015`.
+* You can press `Enter` in the tables of the `Add/Edit Entry` pages to go down
+  to the next row.
 * For Bank Spending & Receiving Entries, you can leave the memo blank & it will
   be automatically filled with the first Account you select.
+* Chrome does odd things like popping open any dropdown when you hit
+  `Spacebar`. Using Firefox is highly recommended.

@@ -85,7 +85,7 @@ class TransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
         widgets = {
             'account': forms.Select(
-                attrs={'class': 'account form-control'}),
+                attrs={'class': 'account form-control enter-mod'}),
             'detail': forms.TextInput(
                 attrs={'class': 'form-control enter-mod'}),
             'event': forms.Select(
@@ -204,11 +204,12 @@ class TransferForm(BaseEntryForm, forms.Form):
     """
     source = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name'),
-        widget=forms.Select(attrs={'class': 'source form-control'})
+        widget=forms.Select(attrs={'class': 'source form-control enter-mod'})
     )
     destination = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name'),
-        widget=forms.Select(attrs={'class': 'destination form-control'})
+        widget=forms.Select(
+            attrs={'class': 'destination form-control enter-mod'})
     )
     # TODO: This is repeated in BaseBankForm & AccountReconcileForm and ugly
     amount = forms.DecimalField(
@@ -411,7 +412,7 @@ class BankTransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {
             'account': forms.Select(
-                attrs={'class': 'account form-control'}),
+                attrs={'class': 'account form-control enter-mod'}),
             'detail': forms.TextInput(
                 attrs={'class': 'form-control enter-mod'}),
             'event': forms.Select(
