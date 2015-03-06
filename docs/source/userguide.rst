@@ -31,7 +31,9 @@ This is very low priority
 Tips
 -----
 
-While the user guide is incomplete, this will be a list of specific important
-tips all users should know:
+While the user guide is incomplete, this list will exist for important tips
+that maybe not be immediately obvious:
 
-* No dates need leading zeros. `1/5/15` is the same as `01/05/2015`.
+* No dates require leading zeros. `1/5/15` is the same as `01/05/2015`.
+* For Bank Spending & Receiving Entries, you can leave the memo blank & it will
+  be automatically filled with the first Account you select.

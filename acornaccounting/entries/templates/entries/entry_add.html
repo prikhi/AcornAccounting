@@ -411,6 +411,7 @@
         });
     });
     function addActions(){
+        assignAutofillMemo();
         $(".amount").each(function() {
             var that = this;
             $(this).keyup(function(){
@@ -428,6 +429,31 @@
         });
         $("#entry_amount").keyup(function(){newSum()});
         assignEnterKey();
+    }
+    function assignAutofillMemo() {
+      /* Automatically fill the memo field using the first account, if the
+         memo is blank.
+
+         If the memo field is set to the first account, clear the memo field
+         when re-selecting the first account. This lets the user change the
+         account without having to also change the memo.
+       */
+      var first_account_field = $('.account').filter(':first');
+      first_account_field.blur(function() {
+        var entry_memo = $('input#id_entry-memo');
+        if (entry_memo.val() == '') {
+          var selected_text = $(this).find('option:selected').text();
+          entry_memo.val(selected_text);
+        }
+      });
+      first_account_field.focusin(function() {
+        var selected_text = $(this).find('option:selected').text();
+        var entry_memo = $('input#id_entry-memo');
+        if (selected_text == entry_memo.val()) {
+          entry_memo.val("");
+        }
+      });
+
     }
     function assignRequired() {
         /* Set Account and Amount widgets to required if either is set */
