@@ -20,8 +20,8 @@
   overflow: auto;
 }
 
-/* For making clickable rows appear clickable */
-.clickable { cursor: pointer; }
+/* For making clickable/markable rows appear clickable */
+.clickable, .markable { cursor: pointer; }
 
 /* Fix Bootstrap3 navbar spacing */
 body { padding-top: 30px; }

@@ -103,7 +103,7 @@
     </thead>
     <tbody>
       {% for form in transaction_formset %}
-        <tr class="{% cycle 'main' 'alt' %}">
+        <tr class="{% cycle 'main' 'alt' %} markable">
           {% for hidden in form.hidden_fields %}
             {{ hidden }}
           {% endfor %}
@@ -198,9 +198,9 @@
         $('.checkall').change(function () {
           $(this).closest('table').find(':checkbox').prop('checked', this.checked);
           if (this.checked) {
-            $(this).closest('table').find('tbody tr').addClass('info');
+            $(this).closest('table').find('.markable').addClass('info');
           } else {
-            $(this).closest('table').find('tbody tr').removeClass('info');
+            $(this).closest('table').find('.markable').removeClass('info');
           }
           recalcCounters();
         });
@@ -208,8 +208,15 @@
         /* Toggle the 'info' class on a table body row when the row's checkbox
          * is changed.
          */
-        $('tbody tr').find(':checkbox').on("change", function() {
+        $('.markable').find(':checkbox').on("change", function() {
           $(this).closest('tr').toggleClass('info');
+        });
+
+        /* Make entire table rows clickable, so you don't have to aim for the
+         * checkbox.
+         */
+        $('.markable').on('click', function() {
+          $(this).find(':checkbox').click();
         });
       });
 
