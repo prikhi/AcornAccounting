@@ -1,5 +1,7 @@
 import datetime
 
+from fiscalyears.fiscalyears import get_start_of_current_fiscal_year
+
 from .forms import DateRangeForm
 
 
@@ -71,10 +73,12 @@ def process_year_start_date_range_form(request):
 
 
 def _set_start_date_to_first_of_year(form, start_date):
-    """Set the start_date to the first of the year if form is unbound."""
+    """Set start_date to the start of the fiscal year if form is unbound."""
     if not form.is_bound:
-        form.initial['start_date'] = first_day_of_year()
-        start_date = datetime.date(datetime.date.today().year, 1, 1)
+        fiscal_start = get_start_of_current_fiscal_year()
+        start_date = (fiscal_start if fiscal_start is not None else
+                      datetime.date(datetime.date.today().year, 1, 1))
+        form.initial['start_date'] = _american_format(start_date)
     return form, start_date
 
 
