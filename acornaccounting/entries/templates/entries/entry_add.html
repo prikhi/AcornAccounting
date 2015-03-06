@@ -412,6 +412,7 @@
     });
     function addActions(){
         assignAutofillMemo();
+        assignAutofillAmount();
         $(".amount").each(function() {
             var that = this;
             $(this).keyup(function(){
@@ -455,6 +456,23 @@
       });
 
     }
+    function assignAutofillAmount() {
+      /* Automatically fill the first table row's amount field using the
+         entry's amount.
+       */
+      $('input#entry_amount').keyup(function() {
+        var entry_amount = $(this).val();
+        var $transaction_amount_field = $('.amount').filter(':first');
+        var transaction_amount = $transaction_amount_field.val();
+        var off_by_one_character =
+          entry_amount == chopLastChar(transaction_amount) ||
+          transaction_amount == chopLastChar(entry_amount);
+        if (off_by_one_character) {
+          $transaction_amount_field.val(entry_amount);
+        }
+
+      });
+    }
     function assignRequired() {
         /* Set Account and Amount widgets to required if either is set */
         $acct = $(this).closest('tr').find('select');
@@ -493,6 +511,10 @@
         $('#entry_form').parsley('removeItem', $acct);
         $('#entry_form').parsley('removeItem', $amount);
         newSum();
+    }
+    function chopLastChar(input_string) {
+      /* Remove the last character from a string */
+      return input_string.substring(0, input_string.length - 1);
     }
     {% if journal_type == 'CD' %}
         $(document).ready(function () {
