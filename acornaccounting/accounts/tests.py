@@ -163,7 +163,6 @@ class BaseAccountModelTests(TestCase):
 
         self.assertEqual('2-00002', account3.get_full_number())
 
-
     def test_recalculate_full_number_after_name_change(self):
         """Tests that the Full Number is correctly set when an Account or
         Header's name changes."""
@@ -193,6 +192,31 @@ class BaseAccountModelTests(TestCase):
         second_header = Header.objects.get(id=second_header.id)
 
         self.assertEqual(first_header.get_full_number(), '2-02000')
+        self.assertEqual(second_header.get_full_number(), '2-01000')
+
+    def test_recalculate_full_number_after_delete(self):
+        """Tests that the Full Number is correctly set when an Account or
+        Header is deleted."""
+        root_header = create_header("Root Header")
+        first_header = create_header("First Header", root_header)
+        second_header = create_header("Second Header", root_header)
+        first_account = create_account("First Account", second_header, 0)
+        second_account = create_account("Second Account", second_header, 0)
+
+        self.assertEqual(first_account.get_full_number(), '2-02001')
+        self.assertEqual(second_account.get_full_number(), '2-02002')
+
+        first_account.delete()
+        second_account = Account.objects.get(id=second_account.id)
+
+        self.assertEqual(second_account.full_number, '2-02001')
+
+        self.assertEqual(first_header.get_full_number(), '2-01000')
+        self.assertEqual(second_header.get_full_number(), '2-02000')
+
+        first_header.delete()
+        second_header = Header.objects.get(id=second_header.id)
+
         self.assertEqual(second_header.get_full_number(), '2-01000')
 
 

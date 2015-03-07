@@ -74,6 +74,14 @@ class BaseAccountModel(MPTTModel, CachingMixin):
             self.full_number = self._calculate_full_number()
         return super(BaseAccountModel, self).clean()
 
+    def delete(self, *args, **kwargs):
+        """Renumber Headers or Accounts when deleted."""
+        items_to_change = self._get_change_tree()
+        if self in items_to_change:
+            items_to_change.remove(self)
+        super(BaseAccountModel, self).delete(*args, **kwargs)
+        self._resave_items(items_to_change)
+
     def save(self, *args, **kwargs):
         """Resave Headers or Accounts if the ``parent`` has changed.
 
