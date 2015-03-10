@@ -415,7 +415,6 @@ class AccountModelTests(TestCase):
         self.gchild_acc = Account.objects.get(id=self.gchild_acc.id)
         self.assertEqual(self.gchild_acc.get_full_number(), '2-00001')
 
-
     def test_account_get_number(self):
         """
         Tests that Accounts are numbered according to parent number and
