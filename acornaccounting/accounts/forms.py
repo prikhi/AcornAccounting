@@ -1,4 +1,5 @@
 from django import forms
+from django.forms.formsets import (INITIAL_FORM_COUNT, TOTAL_FORM_COUNT)
 from django.forms.models import (modelformset_factory,
                                  BaseModelFormSet)
 from parsley.decorators import parsleyfy
@@ -77,6 +78,15 @@ class BaseReconcileTransactionFormSet(BaseModelFormSet):
         if balance != 0:
             raise forms.ValidationError("The selected Transactions are out of "
                                         "balance with the Statement Amount.")
+
+    def add_form(self, instance):
+        """Add a new form instance to a bound Formset."""
+        if self.is_bound:
+            self.forms.append(self._construct_form(
+                self.total_form_count(), instance=instance))
+            self.management_form.cleaned_data[INITIAL_FORM_COUNT] += 1
+            self.management_form.cleaned_data[TOTAL_FORM_COUNT] += 1
+
 
 ReconcileTransactionFormSet = modelformset_factory(
     Transaction, extra=0, can_delete=False, fields=('reconciled',),

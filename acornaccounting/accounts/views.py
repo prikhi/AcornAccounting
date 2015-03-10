@@ -305,6 +305,17 @@ def reconcile_account(request, account_slug,
                     return HttpResponseRedirect(
                         reverse('accounts.views.show_account_detail',
                                 kwargs={'account_slug': account.slug}))
+                else:
+                    stop_date = account_form.cleaned_data.get('statement_date')
+                    pre_statement_transactions = (
+                        account.transaction_set.filter(
+                            reconciled=False).filter(date__lte=stop_date))
+                    form_instances = set(form.instance for form in
+                                         transaction_formset.forms)
+                    missing_transactions = (set(pre_statement_transactions) -
+                                            form_instances)
+                    _ = [transaction_formset.add_form(instance) for instance in
+                         missing_transactions]
         else:
             raise Http404
     else:

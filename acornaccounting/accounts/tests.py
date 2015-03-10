@@ -1932,6 +1932,38 @@ class AccountReconcileViewTests(TestCase):
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'The selected Transactions are out of balance with the Statement Amount.')
 
+    def test_adds_new_transactions_on_form_error(self):
+        """
+        A `POST` to the `reconcile_account` view with out of balances
+        Transactions will fill the bound formset with any missing Transactions.
+        """
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        trans3 = create_transaction(entry, self.liability_account, -50)
+        trans4 = create_transaction(entry, self.liability_account, -50)
+        trans5 = create_transaction(entry, self.liability_account, -50)
+        response = self.client.post(
+            reverse('accounts.views.reconcile_account',
+                    kwargs={'account_slug': self.liability_account.slug}),
+            data={'account-statement_date': datetime.date.today(),
+                  'account-statement_balance': '100',
+                  'form-TOTAL_FORMS': 2,
+                  'form-INITIAL_FORMS': 2,
+                  'form-0-id': trans3.id,
+                  'form-0-reconciled': True,
+                  'form-1-id': trans4.id,
+                  'submit': 'Reconcile Transactions'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Transaction.objects.all()[3].reconciled)
+        self.assertFalse(Transaction.objects.all()[4].reconciled)
+        self.assertFalse(Transaction.objects.all()[5].reconciled)
+        self.assertEqual(len(response.context['transaction_formset'].forms), 3)
+        self.assertEqual(
+            response.context['transaction_formset'].forms[2].instance, trans5)
+
     def test_reconcile_account_view_flipped_fail_reconciled_value_balance(self):
         """Ensure the Reconciled Value Balance is Returned instead of the credit.
 
