@@ -198,18 +198,18 @@
         $('.checkall').change(function () {
           $(this).closest('table').find(':checkbox').prop('checked', this.checked);
           if (this.checked) {
-            $(this).closest('table').find('.markable').addClass('info');
+            $(this).closest('table').find('.markable').addClass('danger');
           } else {
-            $(this).closest('table').find('.markable').removeClass('info');
+            $(this).closest('table').find('.markable').removeClass('danger');
           }
           recalcCounters();
         });
 
-        /* Toggle the 'info' class on a table body row when the row's checkbox
-         * is changed.
+        /* Toggle the 'danger' class on a table body row when the row's
+           checkbox is changed.
          */
         $('.markable').find(':checkbox').on("change", function() {
-          $(this).closest('tr').toggleClass('info');
+          $(this).closest('tr').toggleClass('danger');
         });
 
         /* Make entire table rows clickable, so you don't have to aim for the
