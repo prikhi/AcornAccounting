@@ -215,8 +215,10 @@
         /* Make entire table rows clickable, so you don't have to aim for the
          * checkbox.
          */
-        $('.markable').on('click', function() {
-          $(this).find(':checkbox').click();
+        $('.markable').on('click', function(e) {
+          if (e.target.type !== 'checkbox') {
+            $(this).find(':checkbox').click();
+          }
         });
       });
 
