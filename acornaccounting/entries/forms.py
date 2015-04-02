@@ -85,7 +85,8 @@ class TransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'debit', 'credit', 'event',)
         widgets = {
             'account': forms.Select(
-                attrs={'class': 'account form-control enter-mod'}),
+                attrs={'class': 'account account-autocomplete '
+                                'form-control enter-mod'}),
             'detail': forms.TextInput(
                 attrs={'class': 'form-control enter-mod'}),
             'event': forms.Select(
@@ -94,7 +95,7 @@ class TransactionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)
-        _allow_only_active_accounts(self, 'account')
+        _set_minimal_queryset_for_account(self, 'account')
         self._assign_balance_delta_to_debit_or_credit_field()
 
     def clean(self):
@@ -139,10 +140,24 @@ class TransactionForm(forms.ModelForm):
                 self.initial['credit'] = remove_trailing_zeroes(balance_delta)
 
 
-def _allow_only_active_accounts(form_instance, field):
-    """Modify the form's field to only display active Accounts."""
-    active_accounts = Account.objects.active().order_by('name')
-    form_instance.fields[field].queryset = active_accounts
+def _set_minimal_queryset_for_account(form, field_name):
+    """Show Only a Pre-Existing Selection for a ModelChoiceField.
+
+    This replaces the `queryset` of the `field_name` on the `form` with a
+    queryset containing only it's instance's Account or an empty queryset -
+    depending on if `form` has an instance or not.
+
+    This is used to limit the size of HTML when the options for `field_name`
+    are loaded by AJAX.
+
+    """
+    if form.is_bound:
+        return
+    if hasattr(form, 'instance') and form.instance.account_id is not None:
+        form.fields[field_name].queryset = Account.objects.filter(
+            id=form.instance.account_id)
+    else:
+        form.fields[field_name].queryset = Account.objects.none()
 
 
 class BaseTransactionFormSet(RequiredBaseInlineFormSet):
@@ -204,12 +219,14 @@ class TransferForm(BaseEntryForm, forms.Form):
     """
     source = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name'),
-        widget=forms.Select(attrs={'class': 'source form-control enter-mod'})
+        widget=forms.Select(attrs={'class': 'source account-autocomplete '
+                                            'form-control enter-mod'})
     )
     destination = forms.ModelChoiceField(
         queryset=Account.objects.active().order_by('name'),
         widget=forms.Select(
-            attrs={'class': 'destination form-control enter-mod'})
+            attrs={'class': 'destination account-autocomplete '
+                            'form-control enter-mod'})
     )
     # TODO: This is repeated in BaseBankForm & AccountReconcileForm and ugly
     amount = forms.DecimalField(
@@ -222,6 +239,11 @@ class TransferForm(BaseEntryForm, forms.Form):
         max_length=50, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control enter-mod'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super(TransferForm, self).__init__(*args, **kwargs)
+        _set_minimal_queryset_for_account(self, 'source')
+        _set_minimal_queryset_for_account(self, 'destination')
 
     def clean(self):
         """
@@ -412,7 +434,8 @@ class BankTransactionForm(forms.ModelForm):
         fields = ('account', 'detail', 'amount', 'event',)
         widgets = {
             'account': forms.Select(
-                attrs={'class': 'account form-control enter-mod'}),
+                attrs={'class': 'account account-autocomplete '
+                                'form-control enter-mod'}),
             'detail': forms.TextInput(
                 attrs={'class': 'form-control enter-mod'}),
             'event': forms.Select(
@@ -421,7 +444,7 @@ class BankTransactionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(BankTransactionForm, self).__init__(*args, **kwargs)
-        _allow_only_active_accounts(self, 'account')
+        _set_minimal_queryset_for_account(self, 'account')
         self._assign_balance_delta_to_amount_field()
 
     def clean(self):

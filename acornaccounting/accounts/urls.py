@@ -20,4 +20,6 @@ urlpatterns = patterns(
 
     url(r'^bank-journal/(?P<account_slug>[-\w]+)/$', 'bank_journal',
         name='bank_journal'),
+
+    url(r'^ajax/accounts/$', 'accounts_query', name='accounts_query'),
 )

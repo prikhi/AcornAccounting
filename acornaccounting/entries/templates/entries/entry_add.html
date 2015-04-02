@@ -290,9 +290,9 @@
         $(this).keypress(function(e) {
           if (e.which == 13) {
             {% if journal_type == "Transfer" %}
-              $(that).closest('tr').next().find('.source').focus();
+              $(that).closest('tr').next().find('.source input').focus();
             {% else %}
-              $(that).closest('tr').next().find('.account').focus();
+              $(that).closest('tr').next().find('.account input').focus();
             {% endif %}
             e.preventDefault();
           }
@@ -332,6 +332,18 @@
         });
         addActions();
         assignEnterKey();
+        /* Select the next input when pressing tab on Selectize
+         * autocompletes */
+        $('#transaction-table .selectize-control input').each(function() {
+          var that = this;
+          $(this).keydown(function(e) {
+            if (e.which == 9 && !e.shiftKey) {
+              var inputs = $(':input').filter(':visible').filter(':enabled');
+              inputs[inputs.index(that) + 1].focus();
+              e.preventDefault();
+            }
+          });
+        });
     });
 
 {% if journal_type == 'GJ' %}

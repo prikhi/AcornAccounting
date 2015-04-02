@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'mptt',
     'parsley',
     'south',
+    'django_ajax',
 
     'core',
     'accounts',
@@ -108,6 +109,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.request",
     "django.contrib.messages.context_processors.messages",
     "constance.context_processors.config",
+    "accounts.context_processors.all_accounts",
 )
 TEMPLATE_DIRS = (project_root('templates'),)
 

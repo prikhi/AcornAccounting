@@ -1,6 +1,7 @@
 import datetime
 
 from dateutil import relativedelta
+from django_ajax.decorators import ajax
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
@@ -329,3 +330,25 @@ def reconcile_account(request, account_slug,
                 'statement_balance': remove_trailing_zeroes(reconciled_balance)
             })
     return render(request, template_name, locals())
+
+
+@ajax
+def accounts_query(request):
+    """AJAX endpoint for querying Account Names & Descriptions.
+
+    Returns an array of JSON objects that contain the GET parameter ``q`` in
+    their ``name`` or ``description``. Each object has a ``text``, ``value`` &
+    ``description`` property. Defaults to all :class:`~accounts.models.Account`
+    if ``q`` is not present in the ``GET`` parameters.
+
+    """
+    if 'q' in request.GET:
+        q = request.GET['q']
+        accounts = Account.objects.filter(
+            Q(name__icontains=q) | Q(description__icontains=q))
+    else:
+        accounts = Account.objects.all()
+    return [{'text': account.name,
+             'description': account.description,
+             'value': account.id
+             } for account in accounts]

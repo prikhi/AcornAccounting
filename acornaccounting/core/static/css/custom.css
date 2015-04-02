@@ -35,6 +35,30 @@ body { padding-top: 30px; }
 #id_quick_account .selectize-control { width: 178px; }
 #id_quick_bank .selectize-control { width: 197px; }
 
+/* Properly align Selectize inputs in tables */
+#transaction-table div.selectize-input {
+  vertical-align: middle;
+}
+/* Prevent empty Selectize account widgets from being tiny */
+.account, .source, .destination {
+  min-width: 200px;
+}
+/* Split the Selectize text & descriptions */
+.account-autocomplete.selectize-control .option .text {
+  display: block;
+}
+/* De-emphasize the description in Selectize Account dropdowns */
+.account-autocomplete.selectize-control .option .description {
+  font-size: 10px;
+  display: block;
+  font-style: italic;
+}
+/* Use the Primary color to highlight Selectize dropdown selections */
+.selectize-dropdown .active {
+  color: #ffffff;
+  background-color: #428bca;
+}
+
 
 /* Print Styles */
 @media print {

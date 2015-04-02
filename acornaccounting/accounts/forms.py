@@ -11,11 +11,11 @@ from .models import Account
 
 class QuickAccountForm(forms.Form):
     account = forms.ModelChoiceField(
-        queryset=Account.objects.active().order_by('name'),
-        widget=forms.Select(attrs={'onchange': 'this.form.submit();',
-                                   'class': 'form-control autocomplete-select',
-                                   'placeholder': 'Jump to an Account'}),
-        label='', empty_label=''
+        queryset=Account.objects.none(), label='', empty_label='',
+        widget=forms.Select(
+            attrs={'onchange': 'this.form.submit();',
+                   'class': 'form-control account-autocomplete',
+                   'placeholder': 'Jump to an Account'}),
     )
 
 
