@@ -484,7 +484,7 @@ class BaseBankTransactionFormSet(forms.models.BaseInlineFormSet):
         """Checks that the Transactions' amounts balance the Entry's amount."""
         super(BaseBankTransactionFormSet, self).clean()
         if any(self.errors):
-            return self.cleaned_data
+            return getattr(self, 'cleaned_data', None)
         balance = abs(self.entry_form.cleaned_data.get('amount'))
         for form in self.forms:
             if form.cleaned_data.get('DELETE'):

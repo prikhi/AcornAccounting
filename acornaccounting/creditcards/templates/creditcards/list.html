@@ -1,0 +1,41 @@
+{% extends "site.html" %}
+
+{% load core_filters %}
+
+
+{% block title %}Approve Credit Card Entries{% endblock %}
+
+
+{% block page_header %}
+  <h1>Approve Credit Card Entries</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<table summary="Unapproved Credit Card Entries" class='table table-hover table-condensed'>
+  <thead>
+    <tr>
+      <th scope='col'>Card</th>
+      <th scope='col'>Date</th>
+      <th scope='col'>Name</th>
+      <th scope='col'>Merchant</th>
+      <th scope='col'>Amount</th>
+      <th scope='col'></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+      <tr>
+        <td>{{ entry.card.name|capwords }}</td>
+        <td>{{ entry.date|date:"m/d/Y" }}</td>
+        <td>{{ entry.name|capwords }}</td>
+        <td>{{ entry.merchant|capwords }}</td>
+        <td>{{ entry.amount|currency }}</td>
+        <td><a href='{{ entry.get_edit_url }}'>Approve</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

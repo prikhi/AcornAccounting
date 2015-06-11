@@ -13,6 +13,7 @@ urlpatterns = patterns(
 
     url(r'^', include('core.urls')),
     url(r'^accounts/', include('accounts.urls')),
+    url(r'^creditcards/', include('creditcards.urls')),
     url(r'^entries/', include('entries.urls')),
     url(r'^events/', include('events.urls')),
     url(r'^fiscal-years/', include('fiscalyears.urls')),

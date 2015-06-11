@@ -18,7 +18,11 @@
     {% if journal_type == 'Transfer' %}
       Transfer Entry
     {% else %}
-      Journal Entry
+      {% if journal_type == 'CC' %}
+        Credit Card Entry
+      {% else %}
+        Journal Entry
+      {% endif %}
     {% endif %}
   {% endif %}
 {% endif %}
@@ -43,7 +47,11 @@
         {% if journal_type == 'Transfer' %}
           Transfer Entry
         {% else %}
-          Journal Entry
+          {% if journal_type == 'CC' %}
+            Credit Card Entry
+          {% else %}
+            Journal Entry
+          {% endif %}
         {% endif %}
       {% endif %}
     {% endif %}
@@ -147,7 +155,7 @@
         <td></td>
       </tr>
     {% else %}
-      {% if journal_type == 'CR' or journal_type == 'CD' %}
+      {% if journal_type == 'CR' or journal_type == 'CD'  or journal_type == 'CC' %}
         <tr class="summary">
           <td></td>
           <td class="text-right"><strong>Total:</strong></td>
@@ -186,9 +194,16 @@
   <!-- Buttons -->
   <div class="form-group">
     <button type="submit" name="subbtn" value="Submit" accesskey="s" class="btn btn-default"><span class="glyphicon glyphicon-ok"></span> Submit</button>
-    <button type="submit" name="subbtn" value="Submit & Add More" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit & Add More</button>
+    {% if journal_type != 'CC' or not entry_form.instance.pk %}
+      <button type="submit" name="subbtn" value="Submit & Add More" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit &amp; Add More</button>
+    {% endif %}
 
     {% if entry_form.instance.pk %}
+      {% if journal_type == 'CC' %}
+        <button type="submit" name="subbtn" value="Submit & Open Next" accesskey="a" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Submit &amp; Open Next</button>
+        <button type="submit" name="subbtn" value="Approve" accesskey="p" class="btn btn-info"><span class="glyphicon glyphicon-check"></span> Approve</button>
+        <button type="submit" name="subbtn" value="Approve & Open Next" accesskey="n" class="btn btn-success"><span class="glyphicon glyphicon-share"></span> Approve &amp; Open Next</button>
+      {% endif %}
       <!-- Delete Button -->
       <button class="btn btn-danger pull-right" data-target="#deleteConfirmModal" data-toggle="modal" type="submit"><span class="glyphicon glyphicon-remove"></span> Delete&hellip;</button>
 
@@ -243,8 +258,8 @@
 <!-- Shortcuts Alert -->
 <small><div class="alert alert-info">
     <strong>Shortcuts:</strong><br />
-    Firefox: Alt-Shift-S will Submit, Alt-Shift-A will Submit & Add Another<br />
-    Chrome: Alt-S will Submit, Alt-A will Submit & Add Another
+    Firefox: Alt-Shift-S will Submit, Alt-Shift-A will Submit &amp; Add Another{% if journal_type == 'CC' %}, Alt-Shift-P will Approve, Alt-Shift-N will Approve &amp; Open the Next Entry{% endif %}<br />
+    Chrome: Alt-S will Submit, Alt-A will Submit &amp; Add Another{% if journal_type == 'CC' %}, Alt-P will Approve, Alt-N will Approve &amp; Open the Next Entry{% endif %}
 </div></small>
 <br /><br />
 
@@ -303,7 +318,7 @@
     };
 
     $(document).ready(function () {
-        {% if journal_type == 'GJ' or journal_type == "Transfer" or request.GET.bank_account %}
+        {% if not request.GET.bank_account %}
           /* Auto-select the Date field */
           $("input[name='entry-date']").focus();
         {% else %}
@@ -418,7 +433,7 @@
         newSum();
     }
 {% else %}
-{% if journal_type == 'CR' or journal_type == 'CD' %}
+{% if journal_type == 'CR' or journal_type == 'CD' or journal_type == 'CC' %}
     /* Update Total and Out of Balance amounts on input change or delete */
     $(document).ready(function() {
         newSum();

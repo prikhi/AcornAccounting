@@ -48,6 +48,7 @@ INSTALLED_APPS = (
 
     'core',
     'accounts',
+    'creditcards',
     'entries',
     'events',
     'fiscalyears',

@@ -1,0 +1,60 @@
+{% extends "site.html" %}
+
+{% load core_filters %}
+
+
+{% block title %}{{ journal_entry.generate_memo|capwords }}{% endblock %}
+
+
+{% block page_header %}
+  <h2 class="visible-print">{{ journal_entry.get_number }}</h2>
+  <h1><span class="hidden-print">{{ journal_entry.get_number }} - </span>{{ journal_entry.generate_memo|capwords }} <small class="hidden-print">{{ main_transaction.account }}</small></h1>
+  <h3 class="hidden-print">{{ journal_entry.date|date:"m/d/Y" }} - Merchant: {{ journal_entry.merchant }} - Amount: {{ journal_entry.amount|currency }}</h3>
+  <h4 class="visible-print">{{ journal_entry.date|date:"m/d/Y" }} - Merchant: {{ journal_entry.merchant }} - Amount: {{ journal_entry.amount|currency }}</h4>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="hidden-print">
+  <div>
+    <strong>Created:</strong> {{ journal_entry.created_at|date:"m/d/Y" }}
+  </div>
+  <br />
+
+  {% if journal_entry.comments %}
+    <div>
+      <strong>Comments:</strong><br />
+      <p>{{ journal_entry.comments }}</p>
+    </div>
+  {% endif %}
+
+  {% if request.user.is_authenticated %}
+    <div><a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm">
+      <span class="glyphicon glyphicon-edit"></span> Edit or Approve
+    </a></div>
+  {% endif %}
+</div>
+<br />
+
+<table summary="Credit Card Entry Details" class="table table-hover table-condensed">
+  <thead>
+    <tr>
+      <th scope="col">Account</th>
+      <th scope="col">Detail</th>
+      <th scope="col" class="text-right">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for transaction in transactions %}
+      <tr class="{% cycle 'main' 'alt' %} clickable">
+        <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.account }}</a></td>
+        <td><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.detail|capwords }}</a></td>
+        <td class="text-right"><a href="{{ transaction.account.get_absolute_url }}">{{ transaction.amount|currency }}</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<br /><br />
+
+{% endblock %}

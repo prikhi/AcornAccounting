@@ -25,7 +25,7 @@
             {% endif %}
           {% endif %}
         {% endif %}
-        {{ message.tags|capwords }}: </strong>{{message}}
+        {{ message.tags|capwords }}: </strong>{{message|safe}}
     </div>
   {% endfor %}
 {% endif %}

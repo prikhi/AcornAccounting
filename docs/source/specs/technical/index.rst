@@ -13,3 +13,4 @@ Technical Specifications
     fiscalyears
     events
     reports
+    creditcards
