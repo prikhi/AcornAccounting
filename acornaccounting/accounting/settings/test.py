@@ -15,7 +15,7 @@ NOSE_ARGS = [
     '--with-progressive',
     '--ignore-files="migrations"',
     ('--cover-package=accounts,core,creditcards,entries,events,fiscalyears,'
-     'reports')
+     'receipts,reports')
 ]
 
 DATABASES = {

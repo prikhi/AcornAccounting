@@ -25,6 +25,8 @@ SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
 
+MEDIA_URL = '/media/'
+
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 
@@ -52,6 +54,7 @@ INSTALLED_APPS = (
     'entries',
     'events',
     'fiscalyears',
+    'receipts',
     'reports',
 )
 
