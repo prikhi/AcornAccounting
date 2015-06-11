@@ -34,6 +34,10 @@
         <td>{{ entry.amount|currency }}</td>
         <td><a href='{{ entry.get_edit_url }}'>Approve</a></td>
       </tr>
+    {% empty %}
+      <tr><td colspan='6' class='text-center'>
+          There are no pending entries to approve...
+      </td></tr>
     {% endfor %}
   </tbody>
 </table>
