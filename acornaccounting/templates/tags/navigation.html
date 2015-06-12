@@ -16,32 +16,32 @@
     <div class="collapse navbar-collapse" id="header-navbar-collapse-1">
       <ul class="nav navbar-nav navbar-left">
         <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Accounts <b class="caret"></b></a>
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Communards <b class="caret"></b></a>
           <ul class="dropdown-menu">
-            <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
-            <li><a href="{% url entries.views.journal_ledger %}">General Ledger</a></li>
-            <li><a href="#">Budgeted Accounts</a></li>
+            <li class="dropdown-header">View Accounts</li>
             <li><a href="{% url accounts.views.show_accounts_chart 'stipends-payable' %}">Member Stipends</a></li>
             <li><a href="{% url accounts.views.show_accounts_chart 'members-deposited-assets' %}">Member Deposited Assets</a></li>
-            <li><a href="{% url accounts.views.show_account_history %}">Account History</a></li>
+            <li><a href="{% url accounts.views.show_accounts_chart 'domestic-expense' %}">Domenstic Expenses</a></li>
+            <li><a href="{% url accounts.views.show_accounts_chart 'expenses' %}">All Expenses</a></li>
+            <li class="dropdown-header">Create an Entry</li>
+            <li><a href="{% url creditcards.views.add_creditcard_entry %}">Credit Card</a></li>
           </ul>
         </li>
         <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Entry <b class="caret"></b></a>
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Accountants <b class="caret"></b></a>
           <ul class="dropdown-menu">
-            <li class="dropdown-header">Create</li>
+            <li class="dropdown-header">View</li>
+            <li><a href="{% url accounts.views.show_accounts_chart %}">Chart of Accounts</a></li>
+            <li><a href="{% url entries.views.journal_ledger %}">General Ledger</a></li>
+            <li><a href="{% url accounts.views.show_account_history %}">Account History</a></li>
+            <li class="dropdown-header">Create an Entry</li>
             <li><a href="{% url entries.views.add_journal_entry %}">General Journal</a></li>
             <li><a href="{% url entries.views.add_transfer_entry %}">Transfer</a></li>
             <li><a href="{% url entries.views.add_bank_entry journal_type='CD' %}">Bank Spending</a></li>
             <li><a href="{% url entries.views.add_bank_entry journal_type='CR' %}">Bank Receiving</a></li>
-            <li><a href="{% url creditcards.views.add_creditcard_entry %}">Credit Card</a></li>
-            <li class="dropdown-header">Approve</li>
+            <li class="dropdown-header">Approve Entries</li>
             <li><a href="{% url creditcards.views.list_creditcard_entries %}">Credit Card</a></li>
-          </ul>
-        </li>
-        <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reports <b class="caret"></b></a>
-          <ul class="dropdown-menu">
+            <li class="dropdown-header">Reports</li>
             <li><a href="{% url reports.views.events_report %}">Events</a></li>
             <li><a id="profit-loss-link" data-toggle="modal" href="#generateReportModal">Profit & Loss</a></li>
             <li><a id="trial-balance-link" data-toggle="modal" href="#generateReportModal">Trial Balance</a></li>
