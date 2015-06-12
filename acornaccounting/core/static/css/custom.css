@@ -64,6 +64,9 @@ body { padding-top: 30px; }
   height: 2em;
   margin: 10px;
 }
+#entry_form #exisitng-receipts-section {
+  margin: 10px;
+}
 #entry_form #comments-field {
   height: 5em;
   margin: 10px;

@@ -15,6 +15,8 @@ table. See an existing entry template for an example.
 
 #}
 
+{% load core_tags %}
+
 
 {% block title %}
 
@@ -60,7 +62,7 @@ table. See an existing entry template for an example.
   <!-- Entry Form -->
   <div class="form-horizontal">
   {% for field in entry_form %}
-    {% if field.label != 'Comments' and field.label != 'Receipt' %}
+    {% if field.label != 'Comments' and field.label != 'Receipts' %}
       <div class ="form-group{% if field.errors %} has-error{% endif %}">
         <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-2">{{ field.label }}:</label>
         <div class="col-sm-4 col-md-3 controls">
@@ -140,8 +142,8 @@ table. See an existing entry template for an example.
   <!-- Comments Input Box -->
   {% with entry_form.comments as field %}
     <div id='comments-field' class ="form-group{% if field.errors %} has-error{% endif %}">
-      <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-1">{{ field.label }}:</label>
-      <div class="col-sm-10 col-md-11 controls">
+      <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-2">{{ field.label }}:</label>
+      <div class="col-sm-10 col-md-10 controls">
         {{ field }}
       </div>
       {% if field.errors %}
@@ -152,12 +154,13 @@ table. See an existing entry template for an example.
     </div>
   {% endwith %}
 
-  <!-- Receipt File Field -->
-  {% if entry_form.receipt %}
-    {% with entry_form.receipt as field %}
-      <div id='receipt-field' class ="form-group{% if field.errors %} has-error{% endif %}">
-        <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-1">{{ field.label }}:</label>
-        <div class="col-sm-10 col-md-11 controls">
+  <!-- Receipt File Fields -->
+  {% if entry_form.receipts %}
+
+    {% with entry_form.receipts as field %}
+      <div id="receipt-field" class="form-group{% if field.errors %} has-error{% endif %}">
+        <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-2">{{ field.label }}:</label>
+        <div class="col-sm-10 col-md-10 controls">
           {{ field }}
         </div>
         {% if field.errors %}
@@ -167,6 +170,15 @@ table. See an existing entry template for an example.
         {% endif %}
       </div>
     {% endwith %}
+    <!-- Existing Receipts -->
+    {% if entry_form.instance.receipt_set.exists %}
+      <div class='form-group' id='exisitng-receipts-section'>
+        <label for='existing-receipts' class='col-sm-2 col-md-2 control-label'>Existing Receipts:</label>
+        <div id='existing-receipts' class='col-sm-10 col-md-10 controls'>
+          {% receipt_list entry_form.instance show_heading=False %}
+        </div>
+      </div>
+    {% endif %}
   {% endif %}
 
   {% block pre_buttons %}{% endblock %}

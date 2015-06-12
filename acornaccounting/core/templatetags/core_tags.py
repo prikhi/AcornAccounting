@@ -18,3 +18,10 @@ def quick_search(GET):
 @register.inclusion_tag("tags/date_range_form.html")
 def date_range_form(form):
     return {'form': form}
+
+
+@register.inclusion_tag('tags/receipt_list.html')
+def receipt_list(journal_entry, show_heading=True):
+    """Render a Journal Entries Receipts in a <ul>."""
+    return {'journal_entry': journal_entry,
+            'show_heading': show_heading}

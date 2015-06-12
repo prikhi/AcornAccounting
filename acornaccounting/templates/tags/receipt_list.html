@@ -1,0 +1,14 @@
+{% with journal_entry.receipt_set.all as receipts %}
+{% if receipts.exists %}
+  {% if show_heading %}
+    <strong>Receipts:</strong>
+  {% endif %}
+  <ul>
+    {% for receipt in receipts %}
+      <li><a target='_blank' href='{{ receipt.receipt_file.url }}'>
+        View Receipt #{{ forloop.counter }}
+      </a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endwith %}

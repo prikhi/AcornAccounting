@@ -15,7 +15,7 @@ class Receipt(models.Model):
         The File containing the Receipt.
 
     """
-    journal_entry = models.OneToOneField(JournalEntry)
+    journal_entry = models.ForeignKey(JournalEntry)
     receipt_file = models.FileField(upload_to='uploads/receipts/')
 
     def __unicode__(self):

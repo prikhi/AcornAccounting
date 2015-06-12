@@ -1,6 +1,7 @@
 from django import forms
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
+from multiupload.fields import MultiFileField
 from parsley.decorators import parsleyfy
 
 from core.core import today_in_american_format, remove_trailing_zeroes
@@ -14,6 +15,10 @@ from .models import CreditCardEntry, CreditCardTransaction
 
 @parsleyfy
 class CreditCardEntryForm(forms.ModelForm):
+    """A Form for CreditCardEntries along with multiple CreditCardReceipts."""
+    receipts = MultiFileField(
+        min_num=0, max_num=99, max_file_size=1024*1024*100, required=False)
+
     class Meta(object):
         model = CreditCardEntry
         widgets = {

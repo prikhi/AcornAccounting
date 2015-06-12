@@ -1,6 +1,6 @@
 {% extends "site.html" %}
 
-{% load core_filters %}
+{% load core_filters core_tags %}
 
 
 {% block title %}{{ journal_entry.generate_memo|capwords }}{% endblock %}
@@ -29,12 +29,7 @@
     </div>
   {% endif %}
 
-  {% if journal_entry.receipt %}
-    <div><strong><a target='_blank' href='{{ journal_entry.receipt.receipt_file.url }}'>
-      View Receipt
-    </a></strong></div>
-  {% endif %}
-  <br />
+  {% receipt_list journal_entry %}
 
   {% if request.user.is_authenticated %}
     <div><a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm">

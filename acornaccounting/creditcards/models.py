@@ -88,8 +88,6 @@ class CreditCardEntry(models.Model):
         max_digits=19, decimal_places=4)
     comments = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
-    receipt = models.FileField(
-        blank=True, null=True, upload_to='uploads/unapproved-cc-receipts/')
 
     class Meta(object):
         ordering = ('card', 'date', 'created_at',)
@@ -156,3 +154,24 @@ class CreditCardTransaction(models.Model):
 
     def __unicode__(self):
         return "{} - {}".format(self.creditcard_entry.name, self.detail)
+
+
+class CreditCardReceipt(models.Model):
+    """Stores Receipts for an unapproved :class:`CreditCardEntry`.
+
+    When the CreditCardEntry is approved, these are turned into
+    :class:`receipts.models.Receipts`.
+
+    .. attribute:: receipt_file
+
+        The actual receipt stored as a file.
+
+    .. attribute:: creditcard_entry
+
+        The :class:`CreditCardEntry` this receipt bleongs to.
+
+    """
+    creditcard_entry = models.ForeignKey(
+        CreditCardEntry, related_name='receipt_set')
+    receipt_file = models.FileField(
+        blank=True, null=True, upload_to='uploads/unapproved-cc-receipts/')

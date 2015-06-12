@@ -145,7 +145,7 @@ class AddCreditCardPurchaseViewTests(TestCase):
                   'entry-merchant': 'test vendor',
                   'entry-amount': 20,
                   'entry-card': self.creditcard.id,
-                  'entry-receipt': receipt,
+                  'entry-receipts': [receipt],
                   'transaction-TOTAL_FORMS': 5,
                   'transaction-INITIAL_FORMS': 0,
                   'transaction-MAX_NUM_FORMS': '',
