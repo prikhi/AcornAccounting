@@ -29,6 +29,13 @@
     </div>
   {% endif %}
 
+  {% if journal_entry.receipt %}
+    <div><strong><a target='_blank' href='{{ journal_entry.receipt.receipt_file.url }}'>
+      View Receipt
+    </a></strong></div>
+  {% endif %}
+  <br />
+
   {% if request.user.is_authenticated %}
     <div><a href="{{ journal_entry.get_edit_url }}" class="btn btn-default btn-sm">
       <span class="glyphicon glyphicon-edit"></span> Edit or Approve

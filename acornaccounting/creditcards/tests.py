@@ -1,9 +1,9 @@
 """
 Test Creating & Approving CreditCardEntries.
 """
-
 import datetime
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
@@ -101,10 +101,10 @@ class AddCreditCardPurchaseViewTests(TestCase):
         self.assertEqual(Account.objects.all()[0].balance, 0)
         self.assertEqual(Account.objects.all()[1].balance, 0)
 
-    def test_success_add_another(self):
+    def test_success_add_another_without_receipt(self):
         """
         A successful submission with the `Add More` button redirects to the
-        add entry page.
+        show entry page if a receipt is not attached.
         """
         response = self.client.post(
             reverse('creditcards.views.add_creditcard_entry'),
@@ -113,6 +113,39 @@ class AddCreditCardPurchaseViewTests(TestCase):
                   'entry-merchant': 'test vendor',
                   'entry-amount': 20,
                   'entry-card': self.creditcard.id,
+                  'transaction-TOTAL_FORMS': 5,
+                  'transaction-INITIAL_FORMS': 0,
+                  'transaction-MAX_NUM_FORMS': '',
+                  'transaction-0-id': '',
+                  'transaction-0-creditcard_entry': '',
+                  'transaction-0-detail': 'test detail',
+                  'transaction-0-amount': 10,
+                  'transaction-0-account': self.expense_account.id,
+                  'transaction-1-id': '',
+                  'transaction-1-creditcard_entry': '',
+                  'transaction-1-detail': 'test detail 2',
+                  'transaction-1-amount': 10,
+                  'transaction-1-account': self.expense_account.id,
+                  'subbtn': 'Submit & Add More'})
+        self.assertEqual(CreditCardEntry.objects.count(), 1)
+        self.assertEqual(CreditCardTransaction.objects.count(), 2)
+        self.assertRedirects(
+            response, CreditCardEntry.objects.get().get_absolute_url())
+
+    def test_success_add_another_with_receipt(self):
+        """
+        A successful submission with the `Add More` button redirects to the
+        add entry page if a receipt is attached.
+        """
+        receipt = SimpleUploadedFile('test_file.txt', 'Random contents')
+        response = self.client.post(
+            reverse('creditcards.views.add_creditcard_entry'),
+            data={'entry-date': '2015-04-12',
+                  'entry-name': 'test anarch',
+                  'entry-merchant': 'test vendor',
+                  'entry-amount': 20,
+                  'entry-card': self.creditcard.id,
+                  'entry-receipt': receipt,
                   'transaction-TOTAL_FORMS': 5,
                   'transaction-INITIAL_FORMS': 0,
                   'transaction-MAX_NUM_FORMS': '',

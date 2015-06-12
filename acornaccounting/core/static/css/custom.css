@@ -59,6 +59,16 @@ body { padding-top: 30px; }
   background-color: #428bca;
 }
 
+/* Fix height & spacing of Receipt File & Comments fields */
+#entry_form #receipt-field {
+  height: 2em;
+  margin: 10px;
+}
+#entry_form #comments-field {
+  height: 5em;
+  margin: 10px;
+}
+
 
 /* Print Styles */
 @media print {

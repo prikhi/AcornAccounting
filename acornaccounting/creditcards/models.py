@@ -88,6 +88,8 @@ class CreditCardEntry(models.Model):
         max_digits=19, decimal_places=4)
     comments = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
+    receipt = models.FileField(
+        blank=True, null=True, upload_to='uploads/unapproved-cc-receipts/')
 
     class Meta(object):
         ordering = ('card', 'date', 'created_at',)

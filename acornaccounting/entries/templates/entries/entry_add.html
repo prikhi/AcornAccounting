@@ -61,13 +61,13 @@
 
 {% block content %}
 
-<form action="." method="POST" id="entry_form" role="form">
+<form action="." method="POST" id="entry_form" role="form" enctype='multipart/form-data'>
   {% csrf_token %}
 
   <!-- Entry Form -->
   <div class="form-horizontal">
   {% for field in entry_form %}
-    {% if not forloop.last %}
+    {% if field.label != 'Comments' and field.label != 'Receipt' %}
       <div class ="form-group{% if field.errors %} has-error{% endif %}">
         <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-2">{{ field.label }}:</label>
         <div class="col-sm-4 col-md-3 controls">
@@ -177,9 +177,9 @@
 
   <!-- Comments Input Box -->
   {% with entry_form.comments as field %}
-    <div class ="form-group{% if field.errors %} has-error{% endif %}">
+    <div id='comments-field' class ="form-group{% if field.errors %} has-error{% endif %}">
       <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-1">{{ field.label }}:</label>
-      <div class="col-sm-8 col-md-6 controls">
+      <div class="col-sm-10 col-md-11 controls">
         {{ field }}
       </div>
       {% if field.errors %}
@@ -189,7 +189,29 @@
       {% endif %}
     </div>
   {% endwith %}
-  <br /><br /><br /><br /><br />
+
+  <!-- Receipt File Field -->
+  {% if entry_form.receipt %}
+    {% with entry_form.receipt as field %}
+      <div id='receipt-field' class ="form-group{% if field.errors %} has-error{% endif %}">
+        <label for="{{ field.id_for_label }}" class="control-label col-sm-2 col-md-1">{{ field.label }}:</label>
+        <div class="col-sm-10 col-md-11 controls">
+          {{ field }}
+        </div>
+        {% if field.errors %}
+          {% for error in field.errors %}
+            <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="help-block"><strong>{{ error }}</strong></p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% endif %}
+
+  {% if journal_type == 'CC' and entry_form.instance.pk and not entry_form.instance.receipt %}
+    <h4 class='text-center text-danger'>
+      <b>No receipt was attached to this entry - ensure that a hardcopy has been submitted.<b>
+    </h4>
+  {% endif %}
 
   <!-- Buttons -->
   <div class="form-group">

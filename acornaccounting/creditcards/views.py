@@ -1,9 +1,11 @@
 from django.contrib import messages
+from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 
 from entries.models import JournalEntry, Transaction
+from receipts.models import Receipt
 
 from .forms import CreditCardEntryForm, CreditCardTransactionFormSet
 from .models import CreditCardEntry
@@ -30,7 +32,7 @@ def add_creditcard_entry(request, entry_id=None,
     entry = _initialize_entry(request, entry_id)
     if request.method == 'POST':
         entry_form = CreditCardEntryForm(
-            request.POST, prefix='entry', instance=entry)
+            request.POST, request.FILES, prefix='entry', instance=entry)
         transaction_formset = CreditCardTransactionFormSet(
             request.POST, prefix='transaction', instance=entry)
         submision_type = request.POST.get("subbtn").lower()
@@ -50,7 +52,7 @@ def add_creditcard_entry(request, entry_id=None,
                         "this page, staple them to the printed copy & "
                         "submit the paper copies to Accounting."
                     )
-                return _handle_redirect(entry, submision_type)
+                return _handle_redirect(request, entry, submision_type)
         elif 'delete' in submision_type and entry.pk:
             entry.delete()
             messages.success(
@@ -81,9 +83,21 @@ def _initialize_entry(request, entry_id):
     return entry
 
 
-def _handle_redirect(entry, submision_type):
+def _handle_redirect(request, entry, submision_type):
     """Redirect to the proper page depending on the ``submision_type``."""
     if 'add more' in submision_type:
+        if not entry.receipt:
+            messages.error(
+                request,
+                "You did not attach a receipt, you <b>must</b> print this "
+                "page & submit it to Accounting along with a hardcopy of the "
+                "receipt."
+            )
+            return HttpResponseRedirect(
+                reverse('creditcards.views.show_creditcard_entry',
+                        args=[str(entry.id)])
+            )
+
         return HttpResponseRedirect(reverse(
             'creditcards.views.add_creditcard_entry'))
     elif 'next' in submision_type:
@@ -117,6 +131,11 @@ def _handle_approval_and_redirect(request, creditcard_entry, redirect_to_next):
             journal_entry=journal_entry, account=transaction.account,
             detail=transaction.detail, balance_delta=(-1 * transaction.amount)
         )
+    if creditcard_entry.receipt:
+        new_receipt = ContentFile(creditcard_entry.receipt.file.read())
+        new_receipt.name = creditcard_entry.receipt.name
+        Receipt.objects.create(
+            journal_entry=journal_entry, receipt_file=new_receipt)
 
     messages.success(
         request,
