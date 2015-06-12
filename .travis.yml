@@ -1,0 +1,14 @@
+language: python
+cache:
+    directories:
+        - $HOME/.cache/pip
+install:
+    - pip install -r requirements/local.txt
+    - pip install -r requirements/test.txt
+    - pip install --force-reinstall --upgrade git+https://github.com/prikhi/django-ajax.git@master
+    - pip install --force-reinstall --upgrade git+https://github.com/prikhi/django-multiupload.git@master
+    - pip install coveralls
+script:
+    - cd acornaccounting && python manage.py test && cd ../docs && make html && cd ..
+after_success:
+    - mv -f acornaccounting/.coverage && coveralls
