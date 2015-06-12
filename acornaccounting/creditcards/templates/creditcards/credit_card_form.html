@@ -53,8 +53,17 @@
 {% endblock %}
 
 
-{% block firefox_shortcuts %}{{ block.super }}{% if entry_form.instance.pk %}, Alt-Shift-P will Approve, Alt-Shift-N will Approve &amp; Open the Next Entry{% endif %}{% endblock %}
-{% block chrome_shortcuts %}{{ block.super }}{% if entry_form.instance.pk %}, Alt-P will Approve, Alt-N will Approve &amp; Open the Next Entry{% endif %}{% endblock %}
+{% block shortcuts %}
+  <li><kbd>Alt-S</kbd> - Submit</li>
+  {% if entry_form.instance.pk %}
+    <li><kbd>Alt-A</kbd> - Submit &amp; Open Next</li>
+    <li><kbd>Alt-P</kbd> - Approve</li>
+    <li><kbd>Alt-N</kbd> - Approve &amp; Open Next</li>
+  {% else %}
+    <li><kbd>Alt-A</kbd> - Submit &amp; Add More</li>
+  {% endif %}
+
+{% endblock %}
 
 
 {% block pageguide_tour %}

@@ -72,6 +72,9 @@ body { padding-top: 30px; }
   margin: 10px;
 }
 
+/* Add some space to the botom of the shortcuts alert box */
+#shortcuts-box { margin-bottom: 4em; }
+
 
 /* Print Styles */
 @media print {

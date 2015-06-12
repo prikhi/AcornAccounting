@@ -231,12 +231,17 @@ table. See an existing entry template for an example.
 </form>
 
 <!-- Shortcuts Alert -->
-<small><div id="shortcuts-box" class="alert alert-info">
-    <strong>Shortcuts:</strong><br />
-    Firefox: {% block firefox_shortcuts %}Alt-Shift-S will Submit, Alt-Shift-A will Submit &amp; Add Another{% endblock %}<br />
-    Chrome: {% block chrome_shortcuts %}Alt-S will Submit, Alt-A will Submit &amp; Add Another{% endblock%}
-</div></small>
-<br /><br />
+<div id="shortcuts-box" class="alert alert-info">
+  <strong>Shortcuts:</strong>
+  <ul>
+    {% block shortcuts %}
+      <li><kbd>Alt-S</kbd> - Submit</li>
+      <li><kbd>Alt-A</kbd> - Submit &amp; Add More</li>
+    {% endblock %}
+  </ul>
+  In Firefox, you need to press both <kbd>Alt</kbd> and
+  <kbd>Shift</kbd>.
+</div>
 
 <!-- PageGuide Help Tour -->
 {% block pageguide_tour %}{% endblock %}
