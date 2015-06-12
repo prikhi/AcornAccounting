@@ -667,10 +667,11 @@ class JournalEntryViewTests(TestCase):
         """
         response = self.client.get(reverse('entries.views.add_journal_entry'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/general_entry_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    JournalEntryForm))
-        self.assertEqual(response.context['journal_type'], 'GJ')
+        self.assertEqual(response.context['verbose_entry_type'],
+                         'General Journal Entry')
         self.failUnless(isinstance(response.context['transaction_formset'],
                                    TransactionFormSet))
 
@@ -1143,7 +1144,7 @@ class JournalEntryViewTests(TestCase):
                     kwargs={'entry_id': JournalEntry.objects.all()[0].id}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/general_entry_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    JournalEntryForm))
         self.failUnless(isinstance(response.context['transaction_formset'],
@@ -1176,7 +1177,7 @@ class JournalEntryViewTests(TestCase):
                                            kwargs={'entry_id': entry.id}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/general_entry_form.html')
 
     def test_add_journal_entry_view_edit_out_of_fiscal_year(self):
         """
@@ -1477,10 +1478,11 @@ class TransferEntryViewTests(TestCase):
         response = self.client.get(
             reverse('entries.views.add_transfer_entry'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/transfer_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    JournalEntryForm))
-        self.assertEqual(response.context['journal_type'], "Transfer")
+        self.assertEqual(
+            response.context['verbose_entry_type'], "Transfer Entry")
         self.failUnless(isinstance(response.context['transaction_formset'],
                                    TransferFormSet))
 
@@ -1662,10 +1664,11 @@ class BankEntryViewTests(TestCase):
         response = self.client.get(reverse('entries.views.add_bank_entry',
                                            kwargs={'journal_type': 'CR'}))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/single_amount_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    BankReceivingForm))
-        self.assertEqual(response.context['journal_type'], 'CR')
+        self.assertEqual(response.context['verbose_entry_type'],
+                         'Bank Receiving Entry')
         self.failUnless(isinstance(response.context['transaction_formset'],
                                    BankReceivingTransactionFormSet))
 
@@ -1862,7 +1865,7 @@ class BankEntryViewTests(TestCase):
                                            kwargs={'journal_type': 'CR',
                                                    'entry_id': entry.id}))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/single_amount_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    BankReceivingForm))
         self.failUnless(isinstance(response.context['transaction_formset'],
@@ -1955,7 +1958,7 @@ class BankEntryViewTests(TestCase):
                                                    'entry_id': entry.id}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/single_amount_form.html')
 
     def test_bank_receiving_add_view_edit_out_of_fiscal_year(self):
         """
@@ -2160,10 +2163,11 @@ class BankEntryViewTests(TestCase):
         response = self.client.get(reverse('entries.views.add_bank_entry',
                                            kwargs={'journal_type': 'CD'}))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/bank_spending_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    BankSpendingForm))
-        self.assertEqual(response.context['journal_type'], 'CD')
+        self.assertEqual(response.context['verbose_entry_type'],
+                         'Bank Spending Entry')
         self.failUnless(isinstance(response.context['transaction_formset'],
                                    BankSpendingTransactionFormSet))
 
@@ -2412,7 +2416,7 @@ class BankEntryViewTests(TestCase):
                                            kwargs={'journal_type': 'CD',
                                                    'entry_id': entry.id}))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/bank_spending_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    BankSpendingForm))
         self.failUnless(isinstance(response.context['transaction_formset'],
@@ -2444,7 +2448,7 @@ class BankEntryViewTests(TestCase):
                                                    'entry_id': entry.id}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'entries/bank_spending_form.html')
 
     def test_bank_spending_add_view_edit_out_of_fiscal_year(self):
         """

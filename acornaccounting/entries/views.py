@@ -88,7 +88,7 @@ def show_bank_entry(request, entry_id, journal_type):
 
 @login_required
 def add_journal_entry(request, entry_id=None,
-                      template_name="entries/entry_add.html"):
+                      template_name="entries/general_entry_form.html"):
     """Add, Edit or Delete a :class:`~.models.JournalEntry`.
 
     If there is no :class:`~.models.JournalEntry` with an ``id`` of the
@@ -175,14 +175,13 @@ def add_journal_entry(request, entry_id=None,
         if 'date' in request.GET:
             entry_form.initial['date'] = request.GET.get('date')
     request_data = {'entry_form': entry_form,
-                    'journal_type': 'GJ',
+                    'verbose_entry_type': 'General Journal Entry',
                     'transaction_formset': transaction_formset}
     return render(request, template_name, request_data)
 
 
 @login_required
-def add_bank_entry(request, entry_id=None, journal_type='',
-                   template_name="entries/entry_add.html"):
+def add_bank_entry(request, entry_id=None, journal_type=''):
     """Add, Edit or Delete a :class:`~.models.BankSpendingEntry` or
     :class:`~.models.BankReceivingEntry`.
 
@@ -219,9 +218,16 @@ def add_bank_entry(request, entry_id=None, journal_type='',
     journal_type_to_form = {'CR': BankReceivingForm, 'CD': BankSpendingForm}
     journal_type_to_formset = {'CR': BankReceivingTransactionFormSet,
                                'CD': BankSpendingTransactionFormSet}
+    journal_type_to_template = {'CR': 'entries/single_amount_form.html',
+                                'CD': 'entries/bank_spending_form.html'}
+    journal_type_to_verbose_name = {'CR': 'Bank Receiving Entry',
+                                    'CD': 'Bank Spending Entry'}
     entry_type = journal_type_to_entry[journal_type]
     EntryTypeForm = journal_type_to_form[journal_type]
     InlineFormSet = journal_type_to_formset[journal_type]
+    template_name = journal_type_to_template[journal_type]
+    verbose_entry_type = journal_type_to_verbose_name[journal_type]
+
     try:
         entry = entry_type.objects.get(id=entry_id)
         if not entry.in_fiscal_year():
@@ -332,12 +338,12 @@ def add_bank_entry(request, entry_id=None, journal_type='',
                         'already exists for this Account.')
     return render(request, template_name,
                   {'entry_form': entry_form,
-                   'journal_type': journal_type,
+                   'verbose_entry_type': verbose_entry_type,
                    'transaction_formset': transaction_formset})
 
 
 @login_required
-def add_transfer_entry(request, template_name="entries/entry_add.html"):
+def add_transfer_entry(request, template_name="entries/transfer_form.html"):
     """Add a Transfer Entry, a specialized :class:`~.models.JournalEntry`.
 
     Transfer Entries are :class:`JournalEntries<.models.JournalEntry>` where a
@@ -353,8 +359,8 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
     :param template_name: The template to use.
     :type template_name: str
     :returns: HTTP response containing a :class:`~.forms.JournalEntryForm`,
-            a :class:`~.forms.TransferFormSet` and a ``journal_type`` of
-            ``Transfer``.
+            a :class:`~.forms.TransferFormSet` and a ``verbose_journal_type``
+            of ``Transfer Entry``.
     :rtype: :class:`~django.http.HttpResponse`
     """
     entry = JournalEntry()
@@ -405,4 +411,4 @@ def add_transfer_entry(request, template_name="entries/entry_add.html"):
     return render(request, template_name,
                   {'entry_form': entry_form,
                    'transaction_formset': transfer_formset,
-                   'journal_type': "Transfer"})
+                   'verbose_entry_type': "Transfer Entry"})

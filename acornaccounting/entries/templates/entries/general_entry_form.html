@@ -1,0 +1,106 @@
+{% extends 'entries/base_entry_form.html' %}
+{# This extends the base entry form template to apply to Genral Entries #}
+
+
+{% block table_footer %}
+  <tr class="summary">
+    <td></td>
+    <td class="text-right"><strong>Total:</strong></td>
+    <td id="debit_total"></td>
+    <td id="credit_total"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr class="out_of_balance">
+    <td></td>
+    <td class="text-right"><strong>Out of Balance:</strong></td>
+    <td id="debit_oob"></td>
+    <td id="credit_oob"></td>
+    <td></td>
+    <td></td>
+  </tr>
+{% endblock %}
+
+
+{% block entry_specific_js %}
+<script type='text/javascript'>
+  $(document).ready(function() {
+    /* Calculate Initial counters */
+    newSum();
+    /* Add event actions to each input row */
+    $(".credit").each(function() {
+      var that = this;
+      assignRequired.call(that);
+    });
+  });
+  function addActions(){
+    /*
+    Add keyup and blur actions that recalculate totals and enable validation
+    to credit/debit fields
+    */
+    $(".credit").each(function() {
+      var that = this;
+      $(this).keyup(function(){
+        newSum.call(that);
+      });
+      $(this).blur(function(){
+        assignRequired.call(that);
+      });
+    });
+    $(".debit").each(function() {
+      var that = this;
+      $(this).keyup(function(){
+        newSum.call(that);
+      });
+      $(this).blur(function(){
+        assignRequired.call(that);
+      });
+    });
+    assignEnterKey();
+  }
+  function assignRequired() {
+    /* Add validation for Account widget if debit or credit is entered */
+    $acct = $(this).closest('tr').find('.account');
+    $credit = $(this).closest('tr').find('.credit').val();
+    $debit = $(this).closest('tr').find('.debit').val();
+    if ((($debit.length != 0) || ($credit.length != 0)) && $acct.is(':visible')) {
+      $('#entry_form').parsley('addItem', $acct);
+    } else {
+      $('#entry_form').parsley('removeItem', $acct);
+    }
+  }
+  function newSum() {
+    /* Recalculate and Set Total and Out of Balance Counters */
+    var credit_sum = 0;
+    $(".credit").filter(":visible").each( function(){
+      if(!isNaN(this.value) && this.value.length != 0) {
+        credit_sum += parseFloat(this.value);
+      }
+    });
+    $('#credit_total').text('$' + credit_sum.toFixed(2));
+    var debit_sum = 0;
+    $(".debit").filter(":visible").each( function(){
+      if(!isNaN(this.value) && this.value.length != 0) {
+        debit_sum += parseFloat(this.value);
+      }
+    });
+    $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
+    if(debit_sum > credit_sum) {
+      $('#debit_oob').text('');
+      $('#credit_oob').text('$' + (debit_sum - credit_sum).toFixed(2));
+    } else if (credit_sum > debit_sum) {
+      $('#debit_oob').text('($' + (credit_sum - debit_sum).toFixed(2) + ')');
+      $('#credit_oob').text('');
+    } else {
+      $('#debit_oob').text('$0.00');
+      $('#credit_oob').text('$0.00');
+    }
+  }
+  function removeRow(row) {
+    /* Remove validation from deleted rows and recalculate counters */
+    $acct = $(row).find('.account');
+    $('#entry_form').parsley('removeItem', $acct);
+    newSum();
+  }
+</script>
+{% endblock %}

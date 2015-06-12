@@ -29,7 +29,7 @@ def show_creditcard_entry(request, entry_id,
 
 
 def add_creditcard_entry(request, entry_id=None,
-                         template_name="entries/entry_add.html"):
+                         template_name="creditcards/credit_card_form.html"):
     """Add, edit, approve or delete a :class:`~.models.CreditCardEntry`."""
     entry = _initialize_entry(request, entry_id)
     if request.method == 'POST':
@@ -69,7 +69,7 @@ def add_creditcard_entry(request, entry_id=None,
         transaction_formset = CreditCardTransactionFormSet(
             prefix='transaction', instance=entry)
     request_data = {'entry_form': entry_form,
-                    'journal_type': 'CC',
+                    'verbose_entry_type': 'Credit Card Entry',
                     'transaction_formset': transaction_formset}
     return render(request, template_name, request_data)
 

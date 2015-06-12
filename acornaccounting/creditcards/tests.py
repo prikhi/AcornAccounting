@@ -51,7 +51,7 @@ class AddCreditCardPurchaseViewTests(TestCase):
         response = self.client.get(
             reverse('creditcards.views.add_creditcard_entry'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'creditcards/credit_card_form.html')
         self.failUnless(isinstance(response.context['entry_form'],
                                    CreditCardEntryForm))
         self.failUnless(isinstance(response.context['transaction_formset'],
@@ -375,7 +375,9 @@ class ApproveCreditCardPurchaseViewTests(TestCase):
             reverse('creditcards.views.add_creditcard_entry',
                     args=[str(self.entry.id)]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'entries/entry_add.html')
+        self.assertTemplateUsed(response, 'creditcards/credit_card_form.html')
+        self.assertEqual(response.context['verbose_entry_type'],
+                         'Credit Card Entry')
         self.failUnless(isinstance(response.context['entry_form'],
                                    CreditCardEntryForm))
         self.failUnless(isinstance(response.context['transaction_formset'],

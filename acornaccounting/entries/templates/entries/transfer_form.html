@@ -1,0 +1,69 @@
+{% extends 'entries/single_amount_form.html' %}
+{# This extends the single amount form to apply to the TransferEntryForm #}
+
+
+{% block table_footer %}{% endblock %}
+
+
+{% block js_find_next_rows_input %}
+  $(that).closest('tr').next().find('.source input').focus();
+{% endblock %}
+
+
+{% block entry_specific_js %}
+<script type='text/javascript'>
+  /* Update Total and Out of Balance amounts on input change or delete */
+  $(document).ready(function() {
+    $(".amount").each(function() {
+      var that = this;
+      assignRequired.call(that);
+    });
+  });
+  function addActions(){
+    $(".source").each(function() {
+      var that = this;
+      $(this).blur(function(){
+        assignRequired.call(that);
+      });
+    });
+    $(".destination").each(function() {
+      var that = this;
+      $(this).blur(function(){
+        assignRequired.call(that);
+      });
+    });
+    $(".amount").each(function() {
+      var that = this;
+      $(this).blur(function(){
+        assignRequired.call(that);
+      });
+    });
+    assignEnterKey();
+  }
+  function assignRequired() {
+    /* Set Account and Amount widgets to required if either is set */
+    $source = $(this).closest('tr').find('.source');
+    $destination = $(this).closest('tr').find('.destination');
+    $amount = $(this).closest('tr').find('.amount');
+    if ((($amount.val().length != 0) || ($source.val().length != 0) ||
+         ($destination.val().length != 0)) && $source.is(':visible')) {
+      $('#entry_form').parsley('addItem', $source);
+      $('#entry_form').parsley('addItem', $destination);
+      $('#entry_form').parsley('addItem', $amount);
+    } else {
+      $('#entry_form').parsley('removeItem', $source);
+      $('#entry_form').parsley('removeItem', $destination);
+      $('#entry_form').parsley('removeItem', $amount);
+    }
+  }
+  function removeRow(row) {
+    /* Remove validation from deleted rows */
+    $source = $(row).find('.source');
+    $destination = $(row).find('.destination');
+    $amount = $(row).find('.amount');
+    $('#entry_form').parsley('removeItem', $source);
+    $('#entry_form').parsley('removeItem', $destination);
+    $('#entry_form').parsley('removeItem', $amount);
+  }
+</script>
+{% endblock%}

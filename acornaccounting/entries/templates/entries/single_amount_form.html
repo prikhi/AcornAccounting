@@ -1,0 +1,144 @@
+{% extends 'entries/base_entry_form.html' %}
+{#
+  This extends the base entry form page to apply to entries with tranactions that
+  have only one amount field.
+#}
+
+
+{% block table_footer %}
+  <tr class="summary">
+    <td></td>
+    <td class="text-right"><strong>Total:</strong></td>
+    <td id="amount_total"></td>
+    <td ></td>
+    <td></td>
+  </tr>
+  <tr class="out_of_balance">
+    <td></td>
+    <td class="text-right"><strong>Out of Balance:</strong></td>
+    <td id="amount_oob"></td>
+    <td></td>
+    <td></td>
+  </tr>
+{% endblock %}
+
+
+{% block entry_specific_js %}
+<script type='text/javascript'>
+  /* Update Total and Out of Balance amounts on input change or delete */
+  $(document).ready(function() {
+    newSum();
+    $(".amount").each(function() {
+      var that = this;
+      assignRequired.call(that);
+    });
+  });
+  function addActions(){
+    assignAutofillMemo();
+    assignAutofillAmount();
+    $(".amount").each(function() {
+      var that = this;
+      $(this).keyup(function(){
+        newSum.call(that)
+      });
+      $(this).blur(function(){
+        assignRequired.call(that)
+      });
+    });
+    $(".account").each(function() {
+      var that = this;
+      $(this).blur(function(){
+        assignRequired.call(that)
+      });
+    });
+    $("#entry_amount").keyup(function(){newSum()});
+    assignEnterKey();
+  }
+  function assignAutofillMemo() {
+    /* Automatically fill the memo field using the first account, if the
+        memo is blank.
+
+        If the memo field is set to the first account, clear the memo field
+        when re-selecting the first account. This lets the user change the
+        account without having to also change the memo.
+      */
+    var selectizeValue = $('.account').filter(':first');
+    var first_account_field = $('.account .selectize-input input').filter(':first');
+    first_account_field.blur(function() {
+      var entry_memo = $('input#id_entry-memo');
+      if (entry_memo.val() == '') {
+        var selected_text = selectizeValue.text();
+        entry_memo.val(selected_text);
+      }
+    });
+    first_account_field.focusin(function() {
+      var selected_text = selectizeValue.text();
+      var entry_memo = $('input#id_entry-memo');
+      if (selected_text == entry_memo.val()) {
+        entry_memo.val("");
+      }
+    });
+
+  }
+  function assignAutofillAmount() {
+    /* Automatically fill the first table row's amount field using the
+        entry's amount.
+      */
+    $('input#entry_amount').keyup(function() {
+      var entry_amount = $(this).val();
+      var $transaction_amount_field = $('.amount').filter(':first');
+      var transaction_amount = $transaction_amount_field.val();
+      var off_by_one_character =
+        entry_amount == chopLastChar(transaction_amount) ||
+        transaction_amount == chopLastChar(entry_amount);
+      if (off_by_one_character) {
+        $transaction_amount_field.val(entry_amount);
+      }
+
+    });
+  }
+  function assignRequired() {
+      /* Set Account and Amount widgets to required if either is set */
+      $acct = $(this).closest('tr').find('select');
+      $amount = $(this).closest('tr').find('.amount');
+      if (($amount.val().length != 0 || $acct.val().length != 0) && $acct.is(':visible')) {
+          $('#entry_form').parsley('addItem', $acct);
+          $('#entry_form').parsley('addItem', $amount);
+      } else {
+          $('#entry_form').parsley('removeItem', $acct);
+          $('#entry_form').parsley('removeItem', $amount);
+      }
+  }
+  function newSum() {
+      /* Recalculate and Set Total and Out of Balance Counters */
+      var amount_sum = 0;
+      $(".amount").filter(":visible").each( function(){
+          if(!isNaN(this.value) && this.value.length != 0) {
+          amount_sum += parseFloat(this.value);
+          }
+      });
+      var entry_amount = 0;
+      if(!isNaN(parseFloat($("#entry_amount").val()))) {
+          entry_amount = parseFloat($("#entry_amount").val());
+      }
+      $('#amount_total').text('$' + amount_sum.toFixed(2));
+      if(entry_amount >= amount_sum) {
+          $('#amount_oob').text('$' + (entry_amount - amount_sum).toFixed(2));
+      } else {
+          $('#amount_oob').text('($' + (amount_sum - entry_amount).toFixed(2) + ')');
+      }
+  }
+  function removeRow(row) {
+      /* Remove validation from deleted rows and recalculate counters */
+      $acct = $(row).find('select');
+      $amount = $(row).find('.amount');
+      $('#entry_form').parsley('removeItem', $acct);
+      $('#entry_form').parsley('removeItem', $amount);
+      newSum();
+  }
+  function chopLastChar(input_string) {
+    /* Remove the last character from a string */
+    return input_string.substring(0, input_string.length - 1);
+  }
+</script>
+{% endblock %}

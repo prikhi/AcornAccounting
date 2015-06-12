@@ -60,6 +60,10 @@
                           }
                         });
                       },
+                    onItemAdd: function() {
+                      /* Blur the original input when selecting an item */
+                      $(this).prev().find('input').blur();
+                    },
                   });
                 });
                 $('.autocomplete-select').selectize();

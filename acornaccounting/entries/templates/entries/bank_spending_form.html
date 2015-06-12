@@ -1,0 +1,62 @@
+{% extends 'entries/single_amount_form.html' %}
+{# Applies the single amount form to BankSpendingEntryForms #}
+
+
+{% block editing_entry_buttons %}
+  {{ block.super }}
+  <!-- Void Button -->
+  <button class="btn btn-warning" data-target="#voidConfirmModal"
+          data-toggle="modal" type="submit">
+    <span class="glyphicon glyphicon-ban-circle"></span> Void&hellip;
+  </button>
+
+  <!-- Void Confirmation Modal -->
+  <div class="modal fade" id="voidConfirmModal" tabindex="-1" role="dialog"
+       aria-labelledby="voidConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="voidConfirmModalLabel">Voiding Entry Confirmation</h4>
+        </div>
+        <div class="modal-body">
+          <p>This Entry will be marked void and it's Transactions will be
+          permanently deleted and cannot be recovered. Are you sure you wish to
+          continue?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">
+            Cancel</button>
+          <button type="submit" class="btn btn-warning" value="Void" id="void" name="void">
+            Void</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block entry_specific_js %}
+{{ block.super }}
+<script type='text/javascript'>
+  $(document).ready(function () {
+    var ach_payment = document.getElementById('id_entry-ach_payment');
+    var check_number = document.getElementById('id_entry-check_number');
+
+    /* Disable the Check Number field if ACH is checked */
+    if (ach_payment.value == true) {
+      check_number.disabled = true;
+    }
+
+    /* Clear and Disable/Enable the Check Number when ACH Payment is checked */
+    ach_payment.onchange = function() {
+      if (check_number.disabled) {
+        check_number.disabled = false;
+      } else {
+        check_number.value = "";
+        check_number.disabled = true;
+      }
+    };
+  });
+</script>
+{% endblock %}
