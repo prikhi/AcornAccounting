@@ -2,6 +2,23 @@
 {# Extends the single amount entry page to apply to CreditCardEntryForms #}
 
 
+{% block title_action %}
+  {% if entry_form.instance.id %}
+    Approve a
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block header_action %}
+  {% if entry_form.instance.id %}
+    Approve a
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+
 {% block pre_buttons%}
   {% if entry_form.instance.pk and not entry_form.instance.receipt %}
     <h4 class='text-center text-danger'>
