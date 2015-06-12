@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
@@ -11,6 +12,7 @@ from .forms import CreditCardEntryForm, CreditCardTransactionFormSet
 from .models import CreditCardEntry
 
 
+@login_required
 def list_creditcard_entries(request, template_name='creditcards/list.html'):
     """Retrieve every :class:`CreditCardEntry`."""
     entries = CreditCardEntry.objects.all()
