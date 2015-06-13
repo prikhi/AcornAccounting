@@ -401,7 +401,7 @@ Our goal is to achieve 100% test coverage. Any code that does not have tests
 written for it should be considered bugged.
 
 Test coverage will be monitored, and no commits that reduce the Test Coverage
-will be merged into the main branches. The `django-nose
+will be merged into the main branches. The `pytest
 <https://github.com/jbalogh/django-nose>`_ and `coverage
 <https://pypi.python.org/pypi/coverage/3.5.2>`_ packages are recommended for
 monitoring test coverage. These packages are included in the ``test``
@@ -415,47 +415,36 @@ You can then check a branch's Test Coverage by running:
 
 .. code-block:: bash
 
-    $ manage.py test --settings=accounting.settings.test
+    $ cd acornaccunting
+    $ py.test
 
-or
-
-.. code-block:: bash
-
-    $ coverage -x manage.py test --settings=accounting.settings.test
-
-If the code coverage is missing large chunks, try running the tests like this:
+To clear the coverage history, remove the ``.coverage`` file:
 
 .. code-block:: bash
 
-    $ coverage run manage.py test --settings=accounting.settings.test
+    $ rm .coverage
+    $ py.test
 
-To clear the coverage history, use the ``--cover-erase`` flag:
-
-.. code-block:: bash
-
-    $ manage.py test --settings=accounting.settings.test --cover-erase
-
-You can generate an html report of the coverage by adding the ``--cover-html``
-flag:
+You can generate an html report of the coverage by adding the ``--cov-report
+html`` flag:
 
 .. code-block:: bash
 
-    $ manage.py test --settings=accounting.settings.test --cover-html
+    $ py.test --cov-report html
 
-You can specify which package to test. Make sure to limit the coverage with
-the ``--cover-package=`` flag:
-
-.. code-block:: bash
-
-    $ manage.py test accounts --settings=accounting.settings.test           \
-        --cover-package=accounts
-
-Or even exactly which test to run:
+You can also specify a single file to run:
 
 .. code-block:: bash
 
-    $ manage.py test accounts.tests:BaseAccountModelTests.test_balance_flip \
-        --settings=accounting.settings.test
+    $ py.test accounts/tests.py
+
+You can re-run tests when files have changed:
+
+.. code-block:: bash
+
+    $ ptw
+    $ ptw accounts
+    $ ptw entries
 
 
 Documentation
