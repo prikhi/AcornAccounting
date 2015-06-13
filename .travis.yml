@@ -7,6 +7,6 @@ install:
     - pip install  -r requirements/test.txt
     - pip install coveralls
 script:
-    - cd acornaccounting && python manage.py test accounts core creditcards entries events fiscalyears receipts reports && cd ..
+    - cd acornaccounting && py.test && cd ..
 after_success:
     - mv -f acornaccounting/.coverage . && coveralls

@@ -64,7 +64,11 @@ Install the prerequisites::
 Run the tests::
 
     $ cd acornaccounting
-    $ python manage.py test --settings=accounting.settings.test
+    $ py.test
+
+To continuously run tests when source files change::
+
+    $ ptw
 
 
 Building the Full Documentation
