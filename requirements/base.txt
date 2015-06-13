@@ -3,11 +3,11 @@ python-dateutil==2.2
 python-memcached==1.53
 Django==1.4.10
 django-cache-machine==0.8
-django-constance==0.6
+django-constance>=0.6
 django-localflavor==1.0
 django-mptt==0.6.0
 django-parsley==0.3
 django-picklefield==0.3.0
-djangoajax>=2.2
+git+https://github.com/prikhi/django-ajax.git@master
 South==0.8.4
-django-multiupload>=0.3
+git+https://github.com/prikhi/django-multiupload.git@master
