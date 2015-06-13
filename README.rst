@@ -8,6 +8,18 @@ Python and Django.
 Acorn Accounting is targeted towards egalitarian communities with needs such
 as paying stipends, entering town trips and tracking membership.
 
+.. image:: https://travis-ci.org/prikhi/AcornAccounting.svg?branch=develop
+    :target: https://travis-ci.org/prikhi/AcornAccounting
+    :alt: Test Status
+
+.. image:: https://coveralls.io/repos/prikhi/AcornAccounting/badge.svg?branch=develop
+    :target: https://coveralls.io/r/prikhi/AcornAccounting?branch=develop
+    :alt: Code Coverage
+
+.. image:: https://readthedocs.org/projects/acornaccounting/badge/?version=develop
+    :target: https://readthedocs.org/projects/acornaccounting/?badge=develop
+    :alt: Documentation Status
+
 
 Quickstart
 ===========
