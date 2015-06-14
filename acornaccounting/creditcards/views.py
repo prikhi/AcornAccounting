@@ -37,7 +37,8 @@ def add_creditcard_entry(request, entry_id=None,
             request.POST, request.FILES, prefix='entry', instance=entry)
         transaction_formset = CreditCardTransactionFormSet(
             request.POST, prefix='transaction', instance=entry)
-        submision_type = request.POST.get("subbtn").lower()
+        submision_type = (
+            request.POST.get('subbtn', request.POST.get('delete', '')).lower())
         if any(t in submision_type for t in ['submit', 'approve']):
             transaction_formset.entry_form = entry_form
             if entry_form.is_valid() and transaction_formset.is_valid():
@@ -56,10 +57,7 @@ def add_creditcard_entry(request, entry_id=None,
                             " must print this page</b>, staple your receipts"
                             " to it and submit the paper copies to"
                             " Accounting.")
-                    messages.success(
-                        request,
-                        message_text
-                    )
+                    messages.success(request, message_text)
                 return _handle_redirect(request, entry, submision_type)
         elif 'delete' in submision_type and entry.pk:
             entry.delete()

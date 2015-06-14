@@ -383,6 +383,41 @@ class ApproveCreditCardPurchaseViewTests(TestCase):
         self.failUnless(isinstance(response.context['transaction_formset'],
                                    CreditCardTransactionFormSet))
 
+    def test_delete(self):
+        """
+        A `POST using the `Delete` button should delete the entry without
+        creating a JournalEntry or modifying the balances of Accounts, then
+        redirect to the list view.
+        """
+        response = self.client.post(
+            reverse('creditcards.views.add_creditcard_entry',
+                    args=[str(self.entry.id)]),
+            data={'entry-id': self.entry.id,
+                  'entry-date': '6/11/2015',
+                  'entry-name': self.entry.name,
+                  'entry-merchant': 'test merch',
+                  'entry-amount': self.entry.amount,
+                  'entry-card': self.creditcard.id,
+                  'transaction-TOTAL_FORMS': 1,
+                  'transaction-INITIAL_FORMS': 1,
+                  'transaction-MAX_NUM_FORMS': 1,
+                  'transaction-0-id': self.transaction.id,
+                  'transaction-0-creditcard_entry': self.entry.id,
+                  'transaction-0-detail': self.transaction.detail,
+                  'transaction-0-amount': self.transaction.amount,
+                  'transaction-0-account': self.expense_account.id,
+                  'delete': 'Delete'})
+        self.assertEqual(CreditCardEntry.objects.count(), 0)
+        self.assertEqual(CreditCardTransaction.objects.count(), 0)
+        self.assertEqual(JournalEntry.objects.count(), 0)
+        self.assertEqual(
+            Account.objects.get(id=self.cc_account.id).balance, 0)
+        self.assertEqual(
+            Account.objects.get(id=self.expense_account.id).balance, 0)
+        self.assertEqual(Transaction.objects.count(), 0)
+        self.assertRedirects(
+            response, reverse('creditcards.views.list_creditcard_entries'))
+
     def test_approve_success(self):
         """
         A `POST` using the `Approve` button with valid data should create a
