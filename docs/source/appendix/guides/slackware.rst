@@ -461,8 +461,9 @@ to hold the configuration:
 
     <VirtualHost *:80>
         ServerName accounting.yourdomain.com
+        ErrorLog "/var/log/httpd/accounting-error_log"
+        CustomLog "/var/log/httpd/accounting-access_log" common
         DocumentRoot "/srv/accounting/"
-        Alias /static /srv/accounting/static/
         <Directory "/srv/accounting/">
             Options Indexes FollowSymLinks MultiViews
             AllowOverride None
@@ -473,11 +474,16 @@ to hold the configuration:
             SetHandler uwsgi-handler
             uWSGISocket 127.0.0.1:3031
         </Location>
+
+        Alias /static /srv/accounting/static/
         <Location /static>
             SetHandler none
         </Location>
-        ErrorLog "/var/log/httpd/accounting-error_log"
-        CustomLog "/var/log/httpd/accounting-access_log" common
+
+        Alias /media/uploads /srv/accounting/uploads/
+        <Location /media/uploads>
+            SetHandler none
+        </Location>
     </VirtualHost>
 
 Include this configuration file in ``/etc/httpd/httpd.conf``:
