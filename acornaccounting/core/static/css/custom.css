@@ -35,6 +35,12 @@ body { padding-top: 30px; }
 #id_quick_account .selectize-control { width: 178px; }
 #id_quick_bank .selectize-control { width: 197px; }
 
+/* Darken Headers of Dropdown Menus */
+.dropdown-header {
+  background-color: #333;
+  color: white;
+}
+
 /* Properly align Selectize inputs in tables */
 #transaction-table div.selectize-input {
   vertical-align: middle;
