@@ -85,6 +85,7 @@ class CreditCardEntry(models.Model):
     merchant = models.CharField(max_length=60)
     amount = models.DecimalField(
         help_text="Positive balance is a charge, negative is a return.",
+        verbose_name="Total Amount",
         max_digits=19, decimal_places=4)
     comments = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
@@ -147,6 +148,7 @@ class CreditCardTransaction(models.Model):
         help_text="Short description of the charge", blank=True, max_length=50)
     amount = models.DecimalField(
         help_text="Positive value is a charge, negative is a return",
+        verbose_name="Item Amount",
         max_digits=19, decimal_places=4)
 
     class Meta(object):
