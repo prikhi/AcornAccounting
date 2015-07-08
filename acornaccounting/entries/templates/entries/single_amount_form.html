@@ -66,8 +66,8 @@
         when re-selecting the first account. This lets the user change the
         account without having to also change the memo.
       */
-    var selectizeValue = $('.account').filter(':first');
-    var first_account_field = $('.account .selectize-input input').filter(':first');
+    var selectizeValue = $('#transaction-table .account').filter(':first');
+    var first_account_field = $('#transaction-table .account .selectize-input input').filter(':first');
     first_account_field.blur(function() {
       var entry_memo = $('input#id_entry-memo');
       if (entry_memo.val() == '') {
@@ -90,7 +90,7 @@
       */
     $('input#entry_amount').keyup(function() {
       var entry_amount = $(this).val();
-      var $transaction_amount_field = $('.amount').filter(':first');
+      var $transaction_amount_field = $('#transaction-table .amount').filter(':first');
       var transaction_amount = $transaction_amount_field.val();
       var off_by_one_character =
         entry_amount == chopLastChar(transaction_amount) ||
