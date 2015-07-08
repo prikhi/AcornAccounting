@@ -19,7 +19,7 @@
       assignRequired.call(that);
     });
   });
-  function addActions(){
+  function addActions(row) {
     $(".source").each(function() {
       var that = this;
       $(this).blur(function(){
@@ -38,7 +38,11 @@
         assignRequired.call(that);
       });
     });
-    assignEnterKey();
+    if (row !== undefined) {
+      row.find('select.account-autocomplete').selectize(
+          accountSelectizeOptions);
+    }
+    assignKeys(row);
   }
   function assignRequired() {
     /* Set Account and Amount widgets to required if either is set */

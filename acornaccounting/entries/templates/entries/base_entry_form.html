@@ -56,6 +56,33 @@ table. See an existing entry template for an example.
 
 {% block content %}
 
+<!-- Template Form Row for jquery.formset.js -->
+{% with transaction_formset|last as form %}
+  <div class='hidden'>
+    <table>
+    <tr id='template-row'>
+      {% for field in form.visible_fields %}
+        {% if not forloop.last %}
+          <td {% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}>
+              {% if forloop.first %}
+                {% for hidden in form.hidden_fields %}
+                  {{ hidden }}
+                {% endfor %}
+              {% endif %}
+              {{ field.errors.as_ul }}
+              <div class="controls">
+                {{ field }}
+              </div>
+            </td>
+        {% else %}
+          <td class='text-center form-group' style='vertical-align:middle'></td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+    </table>
+  </div>
+{% endwith %}
+
 <form action="." method="POST" id="entry_form" role="form" enctype='multipart/form-data'>
   {% csrf_token %}
 
@@ -266,7 +293,9 @@ table. See an existing entry template for an example.
             deleteText: '<span class="glyphicon glyphicon-remove"></span>',
             deleteCssClass: 'delete-row',
             added: addActions,
-            removed: removeRow});
+            removed: removeRow,
+            formTemplate: '#template-row'
+        });
     });
     /*
     Pressing `Enter` on a `.enter-mod` input  in the `transaction-table`
@@ -274,9 +303,12 @@ table. See an existing entry template for an example.
 
     Pressing `Enter` on an input in the `form-horizontal` class should move the
     cursor to the next row.
+
+    Pressing `Tab` on Selectize autocompletes should move the cursor to the
+    next input(instead of only selecting the option).
     */
-    assignEnterKey = function() {
-      $('#transaction-table .enter-mod').each(function() {
+    assignKeys = function(row) {
+      (row || $('#transaction-table .enter-mod')).each(function() {
         var that = this;
         $(this).keypress(function(e) {
           if (e.which == 13) {
@@ -287,7 +319,7 @@ table. See an existing entry template for an example.
           }
         });
       });
-      $('.form-horizontal').find(':input').each(function() {
+      (row || $('.form-horizontal')).find(':input').each(function() {
         var that = this;
         $(this).keypress(function(e) {
           if (e.which == 13) {
@@ -297,9 +329,23 @@ table. See an existing entry template for an example.
           }
         });
       });
+      (row || $('#transaction-table')).find('.selectize-control input').each(function() {
+        var that = this;
+        $(this).keydown(function(e) {
+          if (e.which == 9 && !e.shiftKey) {
+            var inputs = $(':input').filter(':visible').filter(':enabled');
+            inputs[inputs.index(that) + 1].focus();
+            e.preventDefault();
+          }
+        });
+      });
     };
 
     $(document).ready(function () {
+        /* Selectize the pre-existing account fields */
+        $('#transaction-table .account-autocomplete').each(function() {
+          $(this).selectize(accountSelectizeOptions);
+        })
         {% if not request.GET.bank_account %}
           /* Auto-select the Date field */
           $("input[name='entry-date']").focus();
@@ -320,19 +366,7 @@ table. See an existing entry template for an example.
             }
         });
         addActions();
-        assignEnterKey();
-        /* Select the next input when pressing tab on Selectize
-         * autocompletes */
-        $('#transaction-table .selectize-control input').each(function() {
-          var that = this;
-          $(this).keydown(function(e) {
-            if (e.which == 9 && !e.shiftKey) {
-              var inputs = $(':input').filter(':visible').filter(':enabled');
-              inputs[inputs.index(that) + 1].focus();
-              e.preventDefault();
-            }
-          });
-        });
+        assignKeys();
     });
 </script>
 {% block entry_specific_js %}{% endblock %}

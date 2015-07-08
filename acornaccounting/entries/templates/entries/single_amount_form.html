@@ -33,7 +33,7 @@
       assignRequired.call(that);
     });
   });
-  function addActions(){
+  function addActions(row) {
     assignAutofillMemo();
     assignAutofillAmount();
     $(".amount").each(function() {
@@ -52,7 +52,11 @@
       });
     });
     $("#entry_amount").keyup(function(){newSum()});
-    assignEnterKey();
+    if (row !== undefined) {
+      row.find('select.account-autocomplete').selectize(
+          accountSelectizeOptions);
+    }
+    assignKeys(row);
   }
   function assignAutofillMemo() {
     /* Automatically fill the memo field using the first account, if the

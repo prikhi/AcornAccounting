@@ -32,40 +32,40 @@
         <script type="text/javascript">
             // A global variable containing accounts for ajax selects
             accounts_array = {{ accounts_json|safe }};
+            accountSelectizeOptions = {
+              options: accounts_array,
+              selectOnTab: true,
+              allowEmptyOption: true,
+              sortField: 'text',
+              searchField: ['text', 'description'],
+              render: {
+                option: function(data, escape) {
+                  return '<div class="option">' +
+                  '<span class="text">' + escape(data.text) + '</span>' +
+                  '<span class="description">' + escape(data.description) + '</span>' +
+                  '</div>';},
+              },
+              load: function(query, callback) {
+                  if (!query.length) return callback();
+                  $.ajax({
+                    url: '{% url accounts_query %}',
+                    type: 'GET',
+                    data: {q: query},
+                    error: function() { callback(); },
+                    success: function(res) {
+                        callback(res.content);
+                    }
+                  });
+                },
+              onItemAdd: function() {
+                /* Blur the original input when selecting an item */
+                $(this).prev().find('input').blur();
+              },
+            }
             $(document).ready(function() {
                 // Turn Select Widgets for Accounts into AJAX Autocompletes
-                $('.account-autocomplete').each(function() {
-                  $(this).selectize({
-                    options: accounts_array,
-                    selectOnTab: true,
-                    allowEmptyOption: true,
-                    sortField: 'text',
-                    searchField: ['text', 'description'],
-                    render: {
-                      option: function(data, escape) {
-                        return '<div class="option">' +
-                        '<span class="text">' + escape(data.text) + '</span>' +
-                        '<span class="description">' + escape(data.description) + '</span>' +
-                        '</div>';},
-                    },
-                    load: function(query, callback) {
-                        if (!query.length) return callback();
-                        $.ajax({
-                          url: '{% url accounts_query %}',
-                          type: 'GET',
-                          data: {q: query},
-                          error: function() { callback(); },
-                          success: function(res) {
-                              callback(res.content);
-                          }
-                        });
-                      },
-                    onItemAdd: function() {
-                      /* Blur the original input when selecting an item */
-                      $(this).prev().find('input').blur();
-                    },
-                  });
-                });
+                $('#id_quick_account .account-autocomplete').selectize(
+                    accountSelectizeOptions);
                 $('.autocomplete-select').selectize();
                 // Allow the user to click anywhere in a row to visit the link
                 $('tr.clickable').click(function() {

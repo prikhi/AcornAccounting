@@ -28,35 +28,39 @@
     /* Calculate Initial counters */
     newSum();
     /* Add event actions to each input row */
-    $(".credit").each(function() {
+    $("#transaction-table .credit").each(function() {
       var that = this;
       assignRequired.call(that);
     });
   });
-  function addActions(){
+  function addActions(row) {
     /*
     Add keyup and blur actions that recalculate totals and enable validation
     to credit/debit fields
     */
-    $(".credit").each(function() {
+    $("#transaction-table .credit").each(function() {
       var that = this;
-      $(this).keyup(function(){
+      $(this).keyup(function() {
         newSum.call(that);
       });
-      $(this).blur(function(){
+      $(this).blur(function() {
         assignRequired.call(that);
       });
     });
-    $(".debit").each(function() {
+    $("#transaction-table .debit").each(function() {
       var that = this;
-      $(this).keyup(function(){
+      $(this).keyup(function() {
         newSum.call(that);
       });
-      $(this).blur(function(){
+      $(this).blur(function() {
         assignRequired.call(that);
       });
     });
-    assignEnterKey();
+    if (row !== undefined) {
+      row.find('select.account-autocomplete').selectize(
+          accountSelectizeOptions);
+    }
+    assignKeys(row);
   }
   function assignRequired() {
     /* Add validation for Account widget if debit or credit is entered */
@@ -72,14 +76,14 @@
   function newSum() {
     /* Recalculate and Set Total and Out of Balance Counters */
     var credit_sum = 0;
-    $(".credit").filter(":visible").each( function(){
+    $(".credit").filter(":visible").each(function() {
       if(!isNaN(this.value) && this.value.length != 0) {
         credit_sum += parseFloat(this.value);
       }
     });
     $('#credit_total').text('$' + credit_sum.toFixed(2));
     var debit_sum = 0;
-    $(".debit").filter(":visible").each( function(){
+    $(".debit").filter(":visible").each(function() {
       if(!isNaN(this.value) && this.value.length != 0) {
         debit_sum += parseFloat(this.value);
       }
