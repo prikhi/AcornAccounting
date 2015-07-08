@@ -53,6 +53,7 @@
     });
     $("#entry_amount").keyup(function(){newSum()});
     if (row !== undefined) {
+      row.find('a.delete-row').click(assignRequired);
       row.find('select.account-autocomplete').selectize(
           accountSelectizeOptions);
     }
