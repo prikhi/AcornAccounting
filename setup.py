@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='AcornAccounting',
-    version='0.10.4',
+    version='0.10.5',
     author='Pavan Rikhi',
     author_email='pavan.rikhi@gmail.com',
     packages=find_packages,
