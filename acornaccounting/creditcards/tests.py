@@ -366,7 +366,7 @@ class ApproveCreditCardPurchaseViewTests(TestCase):
         )
         self.transaction = CreditCardTransaction.objects.create(
             creditcard_entry=self.entry, account=self.expense_account,
-            amount=20,
+            amount=20, detail='Unique Transaction Detail!',
         )
 
     def test_initial(self):
@@ -423,6 +423,10 @@ class ApproveCreditCardPurchaseViewTests(TestCase):
         A `POST` using the `Approve` button with valid data should create a
         JournalEntry from the CreditCardEntry, then delete the CreditCardEntry.
 
+        The detail of the Transaction crediting the CreditCard's Account should
+        match the detail of the Transaction debiting the purchase's account if
+        there is only one CreditCardTransaction for the CreditCardEntry.
+
         The page should redirect to the list of created entries.
         """
         self.assertEqual(CreditCardEntry.objects.count(), 1)
@@ -452,9 +456,56 @@ class ApproveCreditCardPurchaseViewTests(TestCase):
             Account.objects.get(id=self.cc_account.id).balance, 20)
         self.assertEqual(
             Account.objects.get(id=self.expense_account.id).balance, -20)
-        self.assertEqual(Transaction.objects.count(), 2)
+        transactions = Transaction.objects.all()
+        self.assertEqual(transactions.count(), 2)
+        self.assertEqual(transactions[0].detail, transactions[1].detail)
         self.assertRedirects(
             response, reverse('creditcards.views.list_creditcard_entries'))
+
+    def test_approve_uses_generic_detail(self):
+        """
+        A valid `POST` using the `Approve` button with multiple
+        CreditCardTransactions will use a generic detail for the Transaction
+        crediting the CreditCard's Account.
+        """
+        self.entry.amount += 10
+        self.entry.save()
+        extra_transaction = CreditCardTransaction.objects.create(
+            creditcard_entry=self.entry, account=self.expense_account,
+            amount=10, detail='2nd Transaction!',
+        )
+        self.assertEqual(CreditCardTransaction.objects.count(), 2)
+
+        self.client.post(
+            reverse('creditcards.views.add_creditcard_entry',
+                    args=[str(self.entry.id)]),
+            data={'entry-id': self.entry.id,
+                  'entry-date': '6/11/2015',
+                  'entry-name': self.entry.name,
+                  'entry-merchant': 'test merch',
+                  'entry-amount': self.entry.amount,
+                  'entry-card': self.creditcard.id,
+                  'transaction-TOTAL_FORMS': 2,
+                  'transaction-INITIAL_FORMS': 2,
+                  'transaction-MAX_NUM_FORMS': 2,
+                  'transaction-0-id': self.transaction.id,
+                  'transaction-0-creditcard_entry': self.entry.id,
+                  'transaction-0-detail': self.transaction.detail,
+                  'transaction-0-amount': self.transaction.amount,
+                  'transaction-0-account': self.expense_account.id,
+                  'transaction-1-id': extra_transaction.id,
+                  'transaction-1-creditcard_entry': self.entry.id,
+                  'transaction-1-detail': extra_transaction.detail,
+                  'transaction-1-amount': extra_transaction.amount,
+                  'transaction-1-account': self.expense_account.id,
+                  'subbtn': 'Approve'})
+        self.assertEqual(CreditCardEntry.objects.count(), 0)
+        self.assertEqual(CreditCardTransaction.objects.count(), 0)
+        self.assertEqual(JournalEntry.objects.count(), 1)
+        transactions = Transaction.objects.all()
+        self.assertEqual(transactions.count(), 3)
+        self.assertEqual(transactions.get(account=self.cc_account).detail,
+                         'Purchases by test anarch')
 
     def test_approve_modifies_entry(self):
         """

@@ -134,12 +134,16 @@ def _handle_approval_and_redirect(request, creditcard_entry, redirect_to_next):
         date=creditcard_entry.date, memo=creditcard_entry.generate_memo(),
         comments=creditcard_entry.comments
     )
-    creditcard_detail = 'Purchase by {}'.format(creditcard_entry.name)
+    transactions = creditcard_entry.transaction_set.all()
+    if transactions.count() == 1:
+        creditcard_detail = transactions[0].detail
+    else:
+        creditcard_detail = 'Purchases by {}'.format(creditcard_entry.name)
     Transaction.objects.create(
         journal_entry=journal_entry, account=creditcard_entry.card.account,
         balance_delta=creditcard_entry.amount, detail=creditcard_detail,
     )
-    for transaction in creditcard_entry.transaction_set.all():
+    for transaction in transactions:
         Transaction.objects.create(
             journal_entry=journal_entry, account=transaction.account,
             detail=transaction.detail, balance_delta=(-1 * transaction.amount)
