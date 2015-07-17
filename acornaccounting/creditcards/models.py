@@ -103,7 +103,8 @@ class CreditCardEntry(models.Model):
 
     def generate_memo(self):
         """Create a memo line from the Entry's attributes."""
-        return "{} by {}".format(self.card.name, self.name)
+        return "{} at {} by {}".format(
+            self.card.name, self.merchant, self.name)
 
     def get_number(self):
         """Generate an Entry number using the id."""
