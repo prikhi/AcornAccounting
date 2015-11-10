@@ -1,11 +1,9 @@
 from django import forms
-from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
 from multiupload.fields import MultiFileField
 from parsley.decorators import parsleyfy
 
 from core.core import today_in_american_format, remove_trailing_zeroes
-from core.forms import RequiredBaseFormSet, RequiredBaseInlineFormSet
 
 from entries.forms import (_set_minimal_queryset_for_account,
                            BaseBankTransactionFormSet)
