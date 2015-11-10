@@ -16,8 +16,8 @@ def get_env_variable(var_name):
 def project_root(path):
     """Return the absolute path to the path from the project root."""
     return os.path.abspath(os.path.join(
-        os.path.dirname(__file__), os.pardir, os.pardir, path)
-    )
+        os.path.dirname(__file__), os.pardir, os.pardir, path
+    ))
 
 
 SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
