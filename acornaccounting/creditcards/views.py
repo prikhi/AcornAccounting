@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 
+from core.views import list_entries, show_single_entry
 from entries.models import JournalEntry, Transaction
 from receipts.models import Receipt
 
@@ -15,17 +16,13 @@ from .models import CreditCardEntry, CreditCardReceipt
 @login_required
 def list_creditcard_entries(request, template_name='creditcards/list.html'):
     """Retrieve every :class:`CreditCardEntry`."""
-    entries = CreditCardEntry.objects.all()
-    return render(request, template_name, {'entries': entries})
+    return list_entries(request, template_name, CreditCardEntry)
 
 
 def show_creditcard_entry(request, entry_id,
                           template_name="creditcards/show_entry.html"):
     """View a :class:`~.models.CreditCardEntry`."""
-    entry = get_object_or_404(CreditCardEntry, pk=entry_id)
-    return render(request, template_name,
-                  {'journal_entry': entry,
-                   'transactions': entry.transaction_set.all()})
+    return show_single_entry(request, entry_id, template_name, CreditCardEntry)
 
 
 def add_creditcard_entry(request, entry_id=None,
