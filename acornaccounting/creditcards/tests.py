@@ -305,6 +305,11 @@ class ShowCreditCardEntryViewTests(TestCase):
 
     def test_does_not_exist(self):
         """A `GET` request to a non-existant entry should return a 404."""
+        response = self.client.get(
+            reverse('creditcards.views.show_creditcard_entry',
+                    kwargs={'entry_id': 9001})
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 class ListCreditCardEntriesViewTests(TestCase):
