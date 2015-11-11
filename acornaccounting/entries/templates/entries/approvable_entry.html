@@ -1,0 +1,77 @@
+{% extends 'entries/single_amount_form.html' %}
+{# Extends the single amount entry form to apply to Approvable entries #}
+
+
+{% block title_action %}
+  {% if entry_form.instance.id %}
+    Approve a
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block header_action %}
+  {% if entry_form.instance.id %}
+    Approve a
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+
+{% block pre_buttons%}
+  {% if entry_form.instance.pk and not entry_form.instance.receipt_set.exists %}
+    <h4 class='text-center text-danger'>
+      <b>No receipt was attached to this entry - ensure that a hardcopy has
+         been submitted.</b>
+    </h4>
+  {% endif %}
+{% endblock %}
+
+
+{% block submit_more_button %}
+  {% if not entry_form.instance.pk %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+
+{% block editing_entry_buttons %}
+  <button type="submit" name="subbtn" value="Submit & Open Next" accesskey="a"
+          class="btn btn-primary">
+    <span class="glyphicon glyphicon-share-alt"></span> Submit &amp; Open Next
+  </button>
+  <button type="submit" name="subbtn" value="Approve" accesskey="p"
+          class="btn btn-info">
+    <span class="glyphicon glyphicon-check"></span> Approve
+  </button>
+  <button type="submit" name="subbtn" value="Approve & Open Next" accesskey="n"
+          class="btn btn-success">
+    <span class="glyphicon glyphicon-share"></span> Approve &amp; Open Next
+  </button>
+  {{ block.super }}
+{% endblock %}
+
+
+{% block shortcuts %}
+  <li><kbd>Alt-S</kbd> - Submit</li>
+  {% if entry_form.instance.pk %}
+    <li><kbd>Alt-A</kbd> - Submit &amp; Open Next</li>
+    <li><kbd>Alt-P</kbd> - Approve</li>
+    <li><kbd>Alt-N</kbd> - Approve &amp; Open Next</li>
+  {% else %}
+    <li><kbd>Alt-A</kbd> - Submit &amp; Add More</li>
+  {% endif %}
+{% endblock %}
+
+
+{% block tour_before_submit %}
+  {{ block.super }}
+  <li class='tlypageguide_top' data-tourtarget='label[for="id_entry-receipts"]'>
+    <div>
+      If you have a digital copy of the receipt or receipts, you can attach
+      them here. If you attach a receipt here you do not have to turn in a
+      hard copy of this entry or the receipt.
+    </div>
+  </li>
+{% endblock %}

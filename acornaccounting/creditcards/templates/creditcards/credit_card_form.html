@@ -1,222 +1,27 @@
-{% extends 'entries/single_amount_form.html' %}
-{# Extends the single amount entry page to apply to CreditCardEntryForms #}
+{% extends 'entries/approvable_entry.html' %}
+{# Extends the approvable entry page to apply to CreditCardEntryForms #}
 
 
-{% block title_action %}
-  {% if entry_form.instance.id %}
-    Approve a
-  {% else %}
-    {{ block.super }}
-  {% endif %}
+{% block tour_title %}Help Me Create a Credit Card Entry{% endblock %}
+{% block tour_before_amount %}
+  <li class='tlypageguide_right' data-tourtarget='select[name="entry-card"]'>
+    <div>
+      Select the card you used to make your purchase here. If you do not see
+      the card in the list, tell an accountant or select a different card and
+      add a comment to the <code>Comments</code> field below.
+    </div>
+  </li>
+  <li class='tlypageguide_right' data-tourtarget='input[name="entry-name"]'>
+    <div>
+      Enter your name here in case we need to clarify something with you
+      before approving the entry.
+    </div>
+  </li>
+  <li class='tlypageguide_right' data-tourtarget='input[name="entry-merchant"]'>
+    <div>
+      Enter the name of the merchant, vendor or company that you made the
+      purchase with. The more specific, the better. <code>SellerUsername on
+      Amazon Marketplace</code> is much more useful than <code>Amazon</code>.
+    </div>
+  </li>
 {% endblock %}
-
-{% block header_action %}
-  {% if entry_form.instance.id %}
-    Approve a
-  {% else %}
-    {{ block.super }}
-  {% endif %}
-{% endblock %}
-
-
-{% block pre_buttons%}
-  {% if entry_form.instance.pk and not entry_form.instance.receipt_set.exists %}
-    <h4 class='text-center text-danger'>
-      <b>No receipt was attached to this entry - ensure that a hardcopy has
-         been submitted.</b>
-    </h4>
-  {% endif %}
-{% endblock %}
-
-
-{% block submit_more_button %}
-  {% if not entry_form.instance.pk %}
-    {{ block.super }}
-  {% endif %}
-{% endblock %}
-
-
-{% block editing_entry_buttons %}
-  <button type="submit" name="subbtn" value="Submit & Open Next" accesskey="a"
-          class="btn btn-primary">
-    <span class="glyphicon glyphicon-share-alt"></span> Submit &amp; Open Next
-  </button>
-  <button type="submit" name="subbtn" value="Approve" accesskey="p"
-          class="btn btn-info">
-    <span class="glyphicon glyphicon-check"></span> Approve
-  </button>
-  <button type="submit" name="subbtn" value="Approve & Open Next" accesskey="n"
-          class="btn btn-success">
-    <span class="glyphicon glyphicon-share"></span> Approve &amp; Open Next
-  </button>
-  {{ block.super }}
-{% endblock %}
-
-
-{% block shortcuts %}
-  <li><kbd>Alt-S</kbd> - Submit</li>
-  {% if entry_form.instance.pk %}
-    <li><kbd>Alt-A</kbd> - Submit &amp; Open Next</li>
-    <li><kbd>Alt-P</kbd> - Approve</li>
-    <li><kbd>Alt-N</kbd> - Approve &amp; Open Next</li>
-  {% else %}
-    <li><kbd>Alt-A</kbd> - Submit &amp; Add More</li>
-  {% endif %}
-
-{% endblock %}
-
-
-{% block pageguide_tour %}
-  <ul id='tlyPageGuide' data-tourtitle='Help Me Create a Credit Card Entry'>
-    <li class='tlypageguide_right' data-tourtarget='input[name="entry-date"]'>
-      <div>
-        Enter the date of your purchase here. The format should be
-        <code>M/D/YY</code>, like <code>2/29/13</code> or
-        <code>4/02/2015</code>. You can press <kbd>Enter</kbd> or
-        <kbd>Tab</kbd> to move to the next field.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='select[name="entry-card"]'>
-      <div>
-        Select the card you used to make your purchase here. If you do not see
-        the card in the list, tell an accountant or select a different card and
-        add a comment to the <code>Comments</code> field below.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='input[name="entry-name"]'>
-      <div>
-        Enter your name here in case we need to clarify something with you
-        before approving the entry.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='input[name="entry-merchant"]'>
-      <div>
-        Enter the name of the merchant, vendor or company that you made the
-        purchase with. The more specific, the better. <code>SellerUsername on
-        Amazon Marketplace</code> is much more useful than <code>Amazon</code>.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='input[name="entry-amount"]'>
-      <div>
-        Enter the <b>total amount</b> of your <b>purchase</b> here. We'll use
-        it to make sure it equals the total cost of every item you purchased.
-        If you are entering more returns than purchases, this number should be
-        negative.
-      </div>
-    </li>
-    <li class='tlypageguide_top' data-tourtarget='#transaction-table thead'>
-      <div>
-        Enter every item you've purchased into this table, one per row. While
-        entering information into the table, you can press <kbd>Tab</kbd> to go
-        to the next column or <kbd>Enter</kbd> to go to the next row.
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='#transaction-table td .account'>
-      <div>
-        <p>Use this input to select an Account to charge the item to. You can
-        type any part of an Account's Name or Description to filter the items
-        shown.  You can use your mouse or arrow keys to navigate the options.
-        </p>
-
-        <p>If you're not sure what Accounts you can charge items to, you should
-        review the
-        <a href="{% url accounts.views.show_accounts_chart 'expenses' %}"
-           target='_blank'><em>List of Expense Accounts</em></a> or the
-        <a href="{% url accounts.views.show_accounts_chart %}"
-           target='_blank'><em>Full Chart of Accounts</em></a>.</p>
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='input[name="transaction-0-detail"]'>
-      <div>
-        Enter a description of the item you purchased here, like
-        <code>Bicycle</code> or <code>42 cartons of cigarettes</code>.
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='input[name="transaction-0-amount"]'>
-      <div>
-        Enter the <b>total price</b> of the <b>item</b> here. We'll sum all
-        these up and check the total against the total purchase amount. Enter a
-        negative number if you are returning an item. To help you type less, we
-        automatically fill in the first row's item amount using the above
-        purchase amount up just in case you're only entering one item.
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='a.delete-row'>
-      <div>
-        If you've made a mistake and you don't feel like clearing out the
-        fields, you can press this button to remove the row from your entry.
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='.add-row'>
-      <div>
-        You can click this link to add more rows to the table if you have more
-        items to enter.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='#amount_total'>
-      <div>
-        This is the sum of all the item amounts. When you've entered every item
-        correctly it should equal the total purchase amount you entered above
-        the table.
-      </div>
-    </li>
-    <li class='tlypageguide_bottom' data-tourtarget='#amount_oob'>
-      <div>
-        <p>This is the Out-of-Balance total. It is calculated by subtracting
-        the purchase total from the items total. If it is not zero, you will
-        receive an error when submitting your form.</p>
-
-        <p>If this is a positive number, you need to increase the amounts in
-        the above table or decrease the total purchase amount by the amount
-        indicated. If it's negative(which is indicated by surrounding the price
-        in parenthesis: <code>($42.00)</code>) then you need to either decrease
-        the amounts in the table or increase the total purchase amount by the
-        displayed amount.</p>
-      </div>
-    </li>
-    <li class='tlypageguide_top' data-tourtarget='textarea[name="entry-comments"]'>
-      <div>
-        If there's anything quirky about your entry or you're not sure about
-        something, you can leave a comment for the approver here.
-      </div>
-    </li>
-    <li class='tlypageguide_top' data-tourtarget='label[for="id_entry-receipts"]'>
-      <div>
-        If you have a digital copy of the receipt or receipts, you can attach
-        them here. If you attach a receipt here you do not have to turn in a
-        hard copy of this entry or the receipt.
-      </div>
-    </li>
-    <li class='tlypageguide_left' data-tourtarget='button[value="Submit"]'>
-      <div>
-        Hit this to submit your entry for approval. You'll be redirected to a
-        page showing your entry. If you did not attach a receipt to this form,
-        you should print out that page, attach a hard copy of the receipt and
-        submit both to Accounting.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='button[value="Submit & Add More"]'>
-      <div>
-        If you have attached a receipt, you can hit this button to submit the
-        entry for approval and then return to this page so that you can create
-        another entry. If you haven't attached a receipt, this button will take
-        you to the same page as the <code>Submit</code> button.
-      </div>
-    </li>
-    <li class='tlypageguide_right' data-tourtarget='#shortcuts-box'>
-      <div>
-        These are keyboard shortcuts you can use to quickly submit an entry
-        from anywhere on the page.
-      </div>
-    </li>
-  </ul>
-{% endblock %}
-
-
-{% block entry_specific_js %}
-{{ block.super }}
-<script type='text/javascript'>
-  /* Initialize PageGuide */
-  $(document).ready(function() { tl.pg.init({}); });
-</script>
-{% endblock%}

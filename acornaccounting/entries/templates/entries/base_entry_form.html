@@ -271,7 +271,99 @@ table. See an existing entry template for an example.
 </div>
 
 <!-- PageGuide Help Tour -->
-{% block pageguide_tour %}{% endblock %}
+{% block pageguide_tour %}
+  <ul id='tlyPageGuide' data-tourtitle='{% block tour_title %}{% endblock %}'>
+
+    {% block tour_before_date %}{% endblock %}
+    <li class='tlypageguide_right' data-tourtarget='input[name="entry-date"]'>
+      <div>
+        Enter the date of your charges here. The format should be
+        <code>M/D/YY</code>, like <code>2/29/13</code> or
+        <code>4/02/2015</code>. You can press <kbd>Enter</kbd> or
+        <kbd>Tab</kbd> to move to the next field.
+      </div>
+    </li>
+
+    {% block tour_before_table %}{% endblock %}
+    <li class='tlypageguide_top' data-tourtarget='#transaction-table thead'>
+      <div>
+        Enter every item you've purchased into this table, one per row. While
+        entering information into the table, you can press <kbd>Tab</kbd> to go
+        to the next column or <kbd>Enter</kbd> to go to the next row.
+      </div>
+    </li>
+    <li class='tlypageguide_bottom' data-tourtarget='#transaction-table td .account'>
+      <div>
+        <p>Use this input to select an Account to charge the item to. You can
+        type any part of an Account's Name or Description to filter the items
+        shown.  You can use your mouse or arrow keys to navigate the options.
+        </p>
+
+        <p>If you're not sure what Accounts you can charge items to, you should
+        review the
+        <a href="{% url accounts.views.show_accounts_chart 'expenses' %}"
+           target='_blank'><em>List of Expense Accounts</em></a> or the
+        <a href="{% url accounts.views.show_accounts_chart %}"
+           target='_blank'><em>Full Chart of Accounts</em></a>.</p>
+      </div>
+    </li>
+    <li class='tlypageguide_bottom' data-tourtarget='input[name="transaction-0-detail"]'>
+      <div>
+        Enter a description of the item you purchased here, like
+        <code>Bicycle</code> or <code>42 cartons of cigarettes</code>.
+      </div>
+    </li>
+
+    {% block tour_before_row_delete %}{% endblock %}
+    <li class='tlypageguide_bottom' data-tourtarget='a.delete-row'>
+      <div>
+        If you've made a mistake and you don't feel like clearing out the
+        fields, you can press this button to remove the row from your entry.
+      </div>
+    </li>
+
+    {% block tour_before_row_add %}{% endblock %}
+    <li class='tlypageguide_bottom' data-tourtarget='.add-row'>
+      <div>
+        You can click this link to add more rows to the table if you have more
+        items to enter.
+      </div>
+    </li>
+
+    {% block tour_before_comments %}{% endblock %}
+    <li class='tlypageguide_top' data-tourtarget='textarea[name="entry-comments"]'>
+      <div>
+        If there's anything quirky about your entry or you're not sure about
+        something, you can leave a comment for the approver here.
+      </div>
+    </li>
+
+    {% block tour_before_submit %}{% endblock %}
+    <li class='tlypageguide_left' data-tourtarget='button[value="Submit"]'>
+      <div>
+        Hit this to submit your entry for approval. You'll be redirected to a
+        page showing your entry. If you did not attach a receipt to this form,
+        you should print out that page, attach a hard copy of the receipt and
+        submit both to Accounting.
+      </div>
+    </li>
+    <li class='tlypageguide_right' data-tourtarget='button[value="Submit & Add More"]'>
+      <div>
+        If you have attached a receipt, you can hit this button to submit the
+        entry for approval and then return to this page so that you can create
+        another entry. If you haven't attached a receipt, this button will take
+        you to the same page as the <code>Submit</code> button.
+      </div>
+    </li>
+    <li class='tlypageguide_right' data-tourtarget='#shortcuts-box'>
+      <div>
+        These are keyboard shortcuts you can use to quickly submit an entry
+        from anywhere on the page.
+      </div>
+    </li>
+    {% block after_shortcuts %}{% endblock %}
+  </ul>
+{% endblock %}
 
 {% endblock %}
 
@@ -353,6 +445,8 @@ table. See an existing entry template for an example.
           /* Auto-select the Bank Account field */
           $("select[name='entry-account']").focus();
         {% endif %}
+        /* Initialize the Page Guide */
+        tl.pg.init({});
         /* Integrate Parsley.JS validation with Bootstrap3 CSS classes */
         $('#entry_form').parsley({
             successClass: 'has-success',
