@@ -103,7 +103,11 @@ table. See an existing entry template for an example.
       </div>
     {% endif %}
   {% endfor %}
+
+  {% block after_entry_fields %}{% endblock %}
   </div>
+
+  {% block before_transaction_table %}{% endblock %}
 
   <!-- Formset Error Alert -->
   {% if transaction_formset.errors%}
@@ -165,6 +169,8 @@ table. See an existing entry template for an example.
       {% endblock %}
     </tfoot>
   </table>
+
+  {% block after_transaction_table %}{% endblock %}
 
   <!-- Comments Input Box -->
   {% with entry_form.comments as field %}
@@ -256,6 +262,8 @@ table. See an existing entry template for an example.
     {% endif %}
   </div>
 </form>
+
+{% block after_form %}{% endblock %}
 
 <!-- Shortcuts Alert -->
 <div id="shortcuts-box" class="alert alert-info">
