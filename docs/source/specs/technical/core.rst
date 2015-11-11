@@ -14,6 +14,12 @@ core Package
 .. automodule:: core.core
     :members:
 
+:mod:`views` Module
+-------------------------
+
+.. automodule:: core.views
+    :members:
+
 Subpackages
 ------------
 

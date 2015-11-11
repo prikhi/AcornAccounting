@@ -1,9 +1,12 @@
+from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
 from accounts.models import (Account)
 from core.core import (_american_format)
+from entries.models import JournalEntry, Transaction
+from receipts.models import Receipt
 
 
 class CreditCard(models.Model):
@@ -114,6 +117,46 @@ class CreditCardEntry(models.Model):
         """Return an edit link to the Entry's edit page."""
         return reverse('creditcards.views.add_creditcard_entry',
                        args=[str(self.id)])
+
+    def get_next_entry(self):
+        """Return a Queryset of the next possible Entries to display."""
+        return CreditCardEntry.objects.filter(
+            card=self.card, date__gte=self.date
+        ).exclude(pk=self.pk).order_by('date', 'id')
+
+    def approve_entry(self):
+        """Creating a JournalEntry Transactions and Receipts from the Entry.
+
+        This does not delete the entry, as should be done when an Entry is
+        approved. You **must manually delete** the CreditCardEntry.
+
+        Returns the created JournalEntry.
+
+        """
+        journal_entry = JournalEntry.objects.create(
+            date=self.date, memo=self.generate_memo(), comments=self.comments)
+        transactions = self.transaction_set.all()
+        if transactions.count() == 1:
+            creditcard_detail = transactions[0].detail
+        else:
+            creditcard_detail = 'Purchases by {}'.format(self.name)
+        for transaction in transactions:
+            Transaction.objects.create(
+                journal_entry=journal_entry, account=transaction.account,
+                detail=transaction.detail,
+                balance_delta=(-1 * transaction.amount)
+            )
+        Transaction.objects.create(
+            journal_entry=journal_entry, account=self.card.account,
+            balance_delta=self.amount, detail=creditcard_detail,
+        )
+        for receipt in self.receipt_set.all():
+            new_receipt = ContentFile(receipt.receipt_file.file.read())
+            new_receipt.name = receipt.receipt_file.name
+            Receipt.objects.create(
+                journal_entry=journal_entry, receipt_file=new_receipt)
+
+        return journal_entry
 
 
 class CreditCardTransaction(models.Model):
