@@ -85,6 +85,7 @@ CACHE_MIDDLEWARE_KEY_PREFIX = ''
 
 # Constance Settings
 CONSTANCE_CONFIG = {
+    'NAME': ('Acorn Accounting', "the name to use in titles and the navbar."),
     'COMPANY': ('Default Company', "your company's name."),
     'ADDRESS': ('123 ABC Lane', "your company's street address."),
     'CITY_STATE_ZIP': ('City, State Zipcode',
