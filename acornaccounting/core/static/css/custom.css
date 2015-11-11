@@ -41,8 +41,8 @@ body { padding-top: 30px; }
   color: white;
 }
 
-/* Properly align Selectize inputs in tables */
-#transaction-table div.selectize-input {
+/* Properly align Selectize inputs in all tables */
+table.table div.selectize-input {
   vertical-align: middle;
 }
 /* Prevent empty Selectize account widgets from being tiny */
