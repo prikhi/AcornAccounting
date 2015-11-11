@@ -3,9 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 
-from core.views import list_entries, show_single_entry
+from core.views import (list_entries, show_single_entry, _initialize_entry,
+                        _create_receipts, _successful_submission_text)
 from entries.models import JournalEntry, Transaction
 from receipts.models import Receipt
 
@@ -28,7 +29,7 @@ def show_creditcard_entry(request, entry_id,
 def add_creditcard_entry(request, entry_id=None,
                          template_name="creditcards/credit_card_form.html"):
     """Add, edit, approve or delete a :class:`~.models.CreditCardEntry`."""
-    entry = _initialize_entry(request, entry_id)
+    entry = _initialize_entry(request, entry_id, CreditCardEntry)
     if request.method == 'POST':
         entry_form = CreditCardEntryForm(
             request.POST, request.FILES, prefix='entry', instance=entry)
@@ -41,19 +42,14 @@ def add_creditcard_entry(request, entry_id=None,
             if entry_form.is_valid() and transaction_formset.is_valid():
                 entry_form.save()
                 transaction_formset.save()
-                _create_creditcard_receipts(entry_form, entry)
+                _create_receipts(
+                    entry_form, entry, CreditCardReceipt, 'creditcard_entry')
                 if 'approve' in submision_type:
                     return _handle_approval_and_redirect(
                         request, entry, 'next' in submision_type)
                 if entry_id is None:
-                    message_text = ("Your Credit Card Entry has been "
-                                    "successfully submitted for Approval.")
-                    if not entry_form.instance.receipt_set.exists():
-                        message_text += (
-                            " Since you did not attach a receipt, <b>you"
-                            " must print this page</b>, staple your receipts"
-                            " to it and submit the paper copies to"
-                            " Accounting.")
+                    message_text = _successful_submission_text(
+                        'Credit Card', entry_form)
                     messages.success(request, message_text)
                 return _handle_redirect(request, entry, submision_type)
         elif 'delete' in submision_type and entry.pk:
@@ -73,24 +69,6 @@ def add_creditcard_entry(request, entry_id=None,
                     'verbose_entry_type': 'Credit Card Entry',
                     'transaction_formset': transaction_formset}
     return render(request, template_name, request_data)
-
-
-def _initialize_entry(request, entry_id):
-    """Fetch or create a new CreditCardEntry."""
-    if entry_id is not None:
-        if not request.user.is_authenticated():
-            raise Http404
-        entry = get_object_or_404(CreditCardEntry, id=entry_id)
-    else:
-        entry = CreditCardEntry()
-    return entry
-
-
-def _create_creditcard_receipts(valid_form, entry):
-    """Create CreditCardReceipts from the receipts field of a valid form."""
-    for receipt in valid_form.cleaned_data['receipts']:
-        CreditCardReceipt.objects.create(
-            creditcard_entry=entry, receipt_file=receipt)
 
 
 def _handle_redirect(request, entry, submision_type):
