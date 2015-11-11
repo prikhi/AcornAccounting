@@ -390,8 +390,8 @@ table. See an existing entry template for an example.
         });
     });
     /*
-    Pressing `Enter` on a `.enter-mod` input  in the `transaction-table`
-    table should move the cursor to the next row.
+    Pressing `Enter` on a `.enter-mod` input in a table should move the cursor
+    to the next row.
 
     Pressing `Enter` on an input in the `form-horizontal` class should move the
     cursor to the next row.
@@ -400,7 +400,7 @@ table. See an existing entry template for an example.
     next input(instead of only selecting the option).
     */
     assignKeys = function(row) {
-      (row || $('#transaction-table .enter-mod')).each(function() {
+      (row || $('table .enter-mod')).each(function() {
         var that = this;
         $(this).keypress(function(e) {
           if (e.which == 13) {
