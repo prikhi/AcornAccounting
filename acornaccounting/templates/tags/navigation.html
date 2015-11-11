@@ -24,7 +24,7 @@
             <li><a href="{% url accounts.views.show_accounts_chart 'domestic-expense' %}">Domenstic Expenses</a></li>
             <li><a href="{% url accounts.views.show_accounts_chart 'expenses' %}">All Expenses</a></li>
             <li class="dropdown-header">Create an Entry</li>
-            <li><a href="{% url creditcards.views.add_creditcard_entry %}">Credit Card</a></li>
+            <li><a href="{% url creditcards.views.add_creditcard_entry %}">Credit Cards</a></li>
           </ul>
         </li>
         <li class="dropdown">
@@ -40,7 +40,7 @@
             <li><a href="{% url entries.views.add_bank_entry journal_type='CD' %}">Bank Spending</a></li>
             <li><a href="{% url entries.views.add_bank_entry journal_type='CR' %}">Bank Receiving</a></li>
             <li class="dropdown-header">Approve Entries</li>
-            <li><a href="{% url creditcards.views.list_creditcard_entries %}">Credit Card</a></li>
+            <li><a href="{% url creditcards.views.list_creditcard_entries %}">Credit Cards</a></li>
             <li class="dropdown-header">Reports</li>
             <li><a href="{% url reports.views.events_report %}">Events</a></li>
             <li><a id="profit-loss-link" data-toggle="modal" href="#generateReportModal">Profit & Loss</a></li>
