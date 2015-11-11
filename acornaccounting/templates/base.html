@@ -12,6 +12,7 @@
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.bootstrap3.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/pageguide.min.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/custom.css" />
+        {% block extra_css %}{% endblock %}
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>{% block title %}{% endblock %} - Acorn Community</title>
 
