@@ -25,6 +25,7 @@
             <li><a href="{% url accounts.views.show_accounts_chart 'expenses' %}">All Expenses</a></li>
             <li class="dropdown-header">Create an Entry</li>
             <li><a href="{% url creditcards.views.add_creditcard_entry %}">Credit Cards</a></li>
+            <li><a href="{% url trips.views.add_trip_entry %}">Trips</a></li>
           </ul>
         </li>
         <li class="dropdown">
@@ -41,6 +42,7 @@
             <li><a href="{% url entries.views.add_bank_entry journal_type='CR' %}">Bank Receiving</a></li>
             <li class="dropdown-header">Approve Entries</li>
             <li><a href="{% url creditcards.views.list_creditcard_entries %}">Credit Cards</a></li>
+            <li><a href="{% url trips.views.list_trip_entries %}">Trips</a></li>
             <li class="dropdown-header">Reports</li>
             <li><a href="{% url reports.views.events_report %}">Events</a></li>
             <li><a id="profit-loss-link" data-toggle="modal" href="#generateReportModal">Profit & Loss</a></li>
@@ -61,6 +63,7 @@
             <li><a href="{% url admin:accounts_header_add %}">Add Header</a></li>
             <li><a href="{% url admin:accounts_account_add %}">Add Account</a></li>
             <li><a href="{% url admin:creditcards_creditcard_add %}">Add Credit Card</a></li>
+            <li><a href="{% url admin:trips_storeaccount_add %}">Add Store Account</a></li>
             <li><a href="{% url admin:events_event_add %}">Add Event</a></li>
             <li><a href="{% url fiscalyears.views.add_fiscal_year %}">New Fiscal Year</a></li>
           </ul>

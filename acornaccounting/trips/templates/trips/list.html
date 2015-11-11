@@ -1,0 +1,43 @@
+{% extends "site.html" %}
+
+{% load core_filters %}
+
+
+{% block title %}Approve Trip Entries{% endblock %}
+
+{% block page_header %}
+  <h1>Approve Trip Entries</h1>
+{% endblock %}
+
+
+{% block content %}
+
+<table summary='Unapproved Trip Entries'
+       class='table table-hover table-condensed'>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Number</th>
+      <th>Name</th>
+      <th class='text-right'>Amount Spent</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+      <tr>
+        <td>{{ entry.date|date:"m/d/Y" }}</td>
+        <td>{{ entry.number }}</td>
+        <td>{{ entry.name|capwords }}</td>
+        <td class='text-right'>{{ entry.amount|currency }}</td>
+        <td class='text-right'><a href='{{ entry.get_edit_url }}'>Approve</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan='5' class='text-center'>
+          There are no pending entries to approve...
+      </td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{%endblock%}

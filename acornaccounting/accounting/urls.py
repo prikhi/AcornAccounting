@@ -19,6 +19,7 @@ urlpatterns = patterns(
     url(r'^events/', include('events.urls')),
     url(r'^fiscal-years/', include('fiscalyears.urls')),
     url(r'^reports/', include('reports.urls')),
+    url(r'^trips/', include('trips.urls')),
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += staticfiles_urlpatterns()

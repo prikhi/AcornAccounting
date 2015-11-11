@@ -1,0 +1,290 @@
+{% extends 'entries/approvable_entry.html' %}
+{# Extends the approvable entry page to apply to TripEntryForms #}
+
+
+{% block after_entry_fields %}
+  <div class ="form-group">
+    <label for="cash-returned" class="control-label col-sm-2 col-md-2">Cash Returned:</label>
+    <div class="col-sm-4 col-md-3 controls">
+      <input id='cash-returned' class='form-control' type='text' value='0.00'
+             tabindex='-1' readonly />
+    </div>
+  </div>
+{% endblock %}
+
+{% block before_transaction_table %}
+  <h3>Cash Purchases</h3>
+{% endblock %}
+
+
+{% block after_transaction_table %}
+
+  <h3>Store Credit Purchases</h3>
+
+  <table class="table table-condensed" id="store-transaction-table">
+    {{ store_transaction_formset.management_form }}
+    {% for form in store_transaction_formset %}
+      <!-- Table Header -->
+      {% if forloop.first %}
+        <thead>
+          <tr>
+            {% for field in form.visible_fields %}
+              <th {% if forloop.last %}class="text-center"{% endif %}>{{ field.label|capfirst }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+      {% endif %}
+
+      <!-- Table Rows -->
+      <tr class="{% cycle main,alt %}{% if form.errors %} danger{% endif %}">
+        {% for field in form.visible_fields %}
+        <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}{% endif %}>
+            {% if forloop.first %}
+              {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+              {% endfor %}
+            {% endif %}
+            {{ field.errors.as_ul }}
+            <div class="controls">
+              {{ field }}
+            </div>
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+
+
+{% block after_form %}
+  <!-- Template Form Row for jquery.formset.js -->
+  {% with store_transaction_formset|last as form %}
+    <div class='hidden'>
+      <table>
+      <tr id='store-template-row'>
+        {% for field in form.visible_fields %}
+          {% if not forloop.last %}
+            <td {% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}>
+                {% if forloop.first %}
+                  {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                  {% endfor %}
+                {% endif %}
+                {{ field.errors.as_ul }}
+                <div class="controls">
+                  {{ field }}
+                </div>
+              </td>
+          {% else %}
+            <td class='text-center form-group' style='vertical-align:middle'></td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      </table>
+    </div>
+  {% endwith %}
+{% endblock %}
+
+
+{% block tour_title %}Help Me Create a Trip Entry{% endblock %}
+{% block tour_before_amount %}
+  {{ block.super }}
+  <li class='tlypageguide_right' data-tourtarget='input[name="entry-name"]'>
+    <div>
+      Enter your name here in case we need to clarify something with you
+      before approving the entry.
+    </div>
+  </li>
+  <li class='tlypageguide_right' data-tourtarget='input[name="entry-number"]'>
+    <div>
+      Enter the number of your Trip here. This should have been given to you
+      when you received your Trip Advance. The numbers will be prefilled when
+      you modify the date field, but you may need to add a letter afterwards if
+      there were multiple Trips on that date. It should look like
+      <code>112815</code> or <code>030515A</code>.
+    </div>
+  </li>
+  <li class='tlypageguide_right' data-tourtarget='input[name="entry-total_trip_advance"]'>
+    <div>
+      Enter the total amount of money you received as a Trip Advance. If you
+      ended up taking multiple Advances out, enter the total amount.
+    </div>
+  </li>
+{% endblock %}
+
+{% block tour_before_table %}
+  {{ block.super }}
+  <li class='tlypageguide_right' data-tourtarget='input[id="cash-returned"]'>
+    <div>
+      This is the amount of money you received but did not spend. This is the
+      amount of money you should return to the Cashbox/Trip Advances account.
+      It is automatically calculated using the <code>Total Trip Advance</code>
+      and <code>Cash Spent</code> fields.
+    </div>
+    <div>
+      If this value is different than the change you have, or the money you
+      turned into the Cashbox, you should both <b>leave a comment</b> and
+      <b>talk to an Accountant</b>.
+    </div>
+{% endblock %}
+
+{% block tour_before_row_amount %}
+  {{ block.super }}
+  <li class='tlypageguide_bottom' data-tourtarget='input[name="transaction-0-item_price"]'>
+    <div>
+      You can enter the item's pre-tax price here and we will automatically
+      calculate the after-price tax using the <code>Tax</code> field. Or you
+      can leave this blank and enter the final amount yourself in the
+      <code>Total Item Amount</code> field.
+    </div>
+  </li>
+  <li class='tlypageguide_bottom' data-tourtarget='input[name="transaction-0-tax"]'>
+    <div>
+      You can enter the item's tax percentage here in order to automatically
+      calculate the <code>Total Item Amount</code> field.
+    </div>
+  </li>
+{% endblock %}
+
+{% block tour_before_comments %}
+  {{ block.super }}
+  <li class='tlypageguide_left' data-tourtarget='#store-transaction-table thead'>
+    <div>
+      Use this table to enter items <b>purchased on store credit</b>. Items
+      entered here will not be counted against your <code>Cash Spent</code>.
+    </div>
+  </li>
+  <li class='tlypageguide_bottom' data-tourtarget='#store-transaction-table .store'>
+    <div>
+      Select the store the item was purchased at here. If the store does not
+      appear on the list, you may select another and <b>leave a comment</b> or
+      ask an Accountant to add it.
+    </div>
+  </li>
+{% endblock %}
+
+
+{% block extra_css %}
+{% if entry_form.instance.id %}
+{# Hide the Price & Tax Fields if editing #}
+<style>
+#transaction-table th:nth-of-type(3), #transaction-table tbody td:nth-of-type(3),
+#transaction-table th:nth-of-type(4), #transaction-table tbody td:nth-of-type(4),
+#store-transaction-table th:nth-of-type(4), #store-transaction-table tbody td:nth-of-type(4),
+#store-transaction-table th:nth-of-type(5), #store-transaction-table tbody td:nth-of-type(5) {
+  display: none;
+}
+</style>
+{% endif %}
+{% endblock %}
+
+
+{% block js_find_next_rows_input %}
+  $(that).closest('tr').next().find('.store input, .account input').first().focus();
+{% endblock %}
+
+{% block entry_specific_js %}
+{{ block.super }}
+<script type='text/javascript'>
+$(document).ready(function() {
+  /* Selectize the Account Selects */
+  $('#store-transaction-table .account-autocomplete').each(function() {
+    $(this).selectize(accountSelectizeOptions);
+  });
+  /* Selectize the Store Account Selects */
+  $('#store-transaction-table .store').each(function() {
+    $(this).selectize({
+      onItemAdd: function() {
+        /* Blur the original input when selecting an item */
+        $(this).prev().find('input').blur();
+      },
+      selectOnTab: true,
+      allowEmptyOption: true,
+    });
+  });
+  /* Add "Add More" to Credit Purchases table */
+  $('#store-transaction-table tbody tr').formset({
+    prefix: '{{ store_transaction_formset.prefix }}',
+    extraClasses: ['main','alt'],
+    addText: 'add more',
+    deleteText: '<span class="glyphicon glyphicon-remove"></span>',
+    deleteCssClass: 'delete-row',
+    added: addActions,
+    removed: removeRow,
+    formTemplate: '#store-template-row'
+  });
+  /* Generate the Trip Number on load and when the date changes */
+  generateTripNumber();
+  $('#id_entry-date').keyup(generateTripNumber);
+});
+
+/* Generate the Trip Number from the Date */
+function generateTripNumber() {
+  var date = $('#id_entry-date').val();
+  var $number = $('#id_entry-number');
+  var splitDate = date.split('/');
+  if (splitDate.length === 3) {
+    var month = splitDate[0],
+        day = splitDate[1],
+        year = splitDate[2];
+    if (day.length === 1) {
+      day = '0' + day;
+    }
+    if (month.length === 1) {
+      month = '0' + month;
+    }
+    if (year.length > 2) {
+      year = year.substring(2, 4);
+    } else if (year.length === 1) {
+      year = '0' + year;
+    }
+    $number.val([month, day, year].join(''))
+  }
+}
+</script>
+
+{% if not entry_form.instance.id %}
+{# Calculate Amount Fields from Price & Tax and Cash Returned from Trip Advance & Cash Spent if Adding a New Entry #}
+<script type='text/javascript'>
+$(document).ready(function() {
+  $('.price, .tax').keyup(calculateItemAmount);
+  $('#entry_amount, #id_entry-total_trip_advance').keyup(
+      calculateCashReturned);
+});
+/* Calculate the Total Item Amount using the Price and Tax */
+function calculateItemAmount() {
+  var $row = $(this).closest('tr');
+  var price = $row.find('.price').val();
+  var tax = $row.find('.tax').val();
+  if (bothNumbersValid(price, tax)) {
+    var $amount = $row.find('.amount');
+    $amount.val(roundToTwo((1 + tax / 100.0) * price));
+  }
+  newSum();
+}
+/* Calculate Cash Returned using the Total Trip Advance and the Cash Spent */
+function calculateCashReturned() {
+  var advance = $('#id_entry-total_trip_advance').val();
+  var spent = $('#entry_amount').val();
+  if (bothNumbersValid(advance, spent)) {
+    $('#cash-returned').val(roundToTwo(advance - spent));
+  }
+}
+/* Determine whetherboth numbers are valid */
+function bothNumbersValid(num1, num2) {
+  return !isNaN(num1) && !isNaN(num2) && num1.length !== 0 && num2.length !== 0;
+}
+/* Round num to 2 digits */
+function roundToTwo(num) {
+  return (Math.round(num * 100.0) / 100.0);
+}
+</script>
+{% else %}
+{# Otherwise Hide the Cash Returned Field #}
+<script type='text/javascript'>
+  $('#cash-returned').closest('.form-group').hide()
+</script>
+{% endif %}
+{% endblock %}

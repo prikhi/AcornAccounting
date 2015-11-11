@@ -14,3 +14,4 @@ Technical Specifications
     events
     reports
     creditcards
+    trips
