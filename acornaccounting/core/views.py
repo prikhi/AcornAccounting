@@ -37,18 +37,13 @@ class AddApprovableEntryView(object):
         * add_entry_view - The view used to add a new Entry
         * show_entry_view - The view used to show a single Entry.
 
-    The following methods must also be defined:
-
-        * _redirect - A function that redirects communards after creating new
-          entries.
-
     The Entry must have the following methods defined:
 
-        * entry.approve_entry() - A function that creates a JournalEntry,
-          Transactions and Receipts from the Entry. Should not delete the
-          Entry.
-        * entry.get_next_entry() - A function that produces a Queryset of the
-          Entries to fetch next, if any exist.
+        * entry.get_number() - Produces a journal number like XX#000123
+        * entry.approve_entry() - Creates a JournalEntry, Transactions and
+          Receipts from the Entry. Should not delete the Entry.
+        * entry.get_next_entry() - Produces a Queryset of the Entries to fetch
+          next, if any exist.
 
     The following instance variables are set during request processing:
 
@@ -116,6 +111,9 @@ class AddApprovableEntryView(object):
                 if entry_id is None:
                     messages.success(
                         request, self._successful_submission_text())
+                else:
+                    messages.success(
+                        request, self._successful_edit_text())
                 return self._redirect(request, submision_type)
         elif 'delete' in submision_type and self.entry.pk:
             self.entry.delete()
@@ -206,6 +204,11 @@ class AddApprovableEntryView(object):
                 "page</b>, staple your receipts to it and submit the paper "
                 "copies to Accounting.")
         return message_text
+
+    def _successful_edit_text(self):
+        """Generate message text for a successful entry update."""
+        return "Modified Entry <a href='{}' target='_blank'>{}</a>.".format(
+            self.entry.get_absolute_url(), self.entry.get_number())
 
     def _make_request_data(self):
         """Create the context data for the template."""

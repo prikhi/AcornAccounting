@@ -43,7 +43,7 @@ class TripEntry(models.Model):
         ordering = ('date', 'number', 'name',)
 
     def __unicode__(self):
-        return 'TE#{} by {}'.format(self.number, self.name)
+        return 'TJ#{} by {}'.format(self.number, self.name)
 
     def get_absolute_url(self):
         return reverse('trips.views.show_trip_entry', args=[str(self.id)])
@@ -53,6 +53,10 @@ class TripEntry(models.Model):
 
     def generate_memo(self):
         return "{}'s Trip {}".format(self.name, self.number)
+
+    def get_number(self):
+        """Generate an Entry Number using the number attribute."""
+        return 'TJ#{}'.format(self.number)
 
     def get_next_entry(self):
         """Return the next Entry for Editing/Approval."""

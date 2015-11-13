@@ -28,9 +28,8 @@ def journal_ledger(request, template_name="entries/journal_ledger.html"):
 
     """
     form, start_date, stop_date = process_month_start_date_range_form(request)
-    journal_entries = JournalEntry.objects.filter(date__lte=stop_date,
-                                                  date__gte=start_date
-                                                  ).order_by('date')
+    journal_entries = JournalEntry.objects.filter(
+        date__lte=stop_date, date__gte=start_date).order_by('date')
     return render(request, template_name, locals())
 
 
@@ -146,9 +145,17 @@ def add_journal_entry(request, entry_id=None,
                                 get('balance_delta')
                             form.instance.save()
                     if is_new:
-                        messages.success(request, "A new entry was created.")
+                        messages.success(
+                            request,
+                            "Entry <a href='{}' target='_blank'>{}</a> "
+                            "was successfully created.".format(
+                                entry.get_absolute_url(), entry.get_number()))
                     else:
-                        messages.success(request, "The entry was modified.")
+                        messages.success(
+                            request,
+                            "Entry <a href='{}' target='_blank'>{}</a> "
+                            "was successfully modified.".format(
+                                entry.get_absolute_url(), entry.get_number()))
                     if request.POST.get('subbtn') == 'Submit & Add More':
                         entrys_american_date = entry.date.strftime('%m/%d/%Y')
                         return HttpResponseRedirect(
@@ -269,9 +276,17 @@ def add_bank_entry(request, entry_id=None, journal_type=''):
                                 )
                             form.instance.save()
                     if is_new:
-                        messages.success(request, "A new entry was created.")
+                        messages.success(
+                            request,
+                            "Created Entry <a href='{}' target='_blank'>{}"
+                            "</a>.".format(
+                                entry.get_absolute_url(), entry.get_number()))
                     else:
-                        messages.success(request, "The entry was modified.")
+                        messages.success(
+                            request,
+                            "Modified Entry <a href='{}' target='_blank'>{}"
+                            "</a>.".format(
+                                entry.get_absolute_url(), entry.get_number()))
                     if request.POST.get('subbtn') == 'Submit & Add More':
                         entrys_american_date = entry.date.strftime('%m/%d/%Y')
                         get_parameters = '?bank_account={0}&date={1}'.format(
@@ -394,7 +409,10 @@ def add_transfer_entry(request, template_name="entries/transfer_form.html"):
                         debit.save()
                         credit.save()
 
-                messages.success(request, "A new entry was created.")
+                messages.success(
+                    request,
+                    "Created Entry <a href='{}' target='_blank'>{}</a>."
+                    .format(entry.get_absolute_url(), entry.get_number()))
                 if request.POST.get('subbtn') == 'Submit & Add More':
                     entrys_american_date = entry.date.strftime('%m/%d/%Y')
                     return HttpResponseRedirect(
