@@ -1,5 +1,5 @@
-from constance.config import Config
 from django import forms
+from django.conf import settings
 from django.forms.models import inlineformset_factory
 from multiupload.fields import MultiFileField
 from parsley.decorators import parsleyfy
@@ -10,9 +10,6 @@ from entries.forms import (_set_minimal_queryset_for_account,
                            BaseBankTransactionFormSet)
 
 from .models import TripEntry, TripTransaction, TripStoreTransaction
-
-
-constance = Config()
 
 
 @parsleyfy
@@ -62,7 +59,7 @@ class BaseTripTransactionForm(forms.ModelForm):
             attrs={'size': 10, 'maxlength': 10,
                    'class': 'price form-control enter-mod'}))
     tax = forms.DecimalField(
-        required=False, initial=constance.DEFAULT_TAX_RATE,
+        required=False, initial=settings.DEFAULT_TAX_RATE,
         widget=forms.TextInput(attrs={'size': 4, 'maxlength': 10,
                                       'class': 'tax form-control enter-mod'}))
 

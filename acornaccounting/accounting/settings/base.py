@@ -20,6 +20,9 @@ def project_root(path):
     ))
 
 
+DEFAULT_TAX_RATE = 5.3
+
+
 SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
 
 STATIC_URL = '/static/'
@@ -93,8 +96,6 @@ CONSTANCE_CONFIG = {
                        "your company's city, state and zipcode."),
     'PHONE': ('(456)555-0925', "your company's phone number."),
     'TAX_ID': ('00-0000000', "your company's federal tax id."),
-    'DEFAULT_TAX_RATE': ("5.3", 'the default tax rate to pre-fill '
-                         'forms with.'),
 }
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
