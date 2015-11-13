@@ -15,24 +15,8 @@ from .forms import CreditCardEntryForm, CreditCardTransactionFormSet
 from .models import CreditCard, CreditCardEntry, CreditCardTransaction
 
 
-class CreditCardModelTests(TestCase):
-    """Test the CreditCard model."""
-    def setUp(self):
-        """Create an initial Account."""
-        self.header = create_header("Credit Cards", None, 2)
-        self.account = create_account("Darmok's CC", self.header, 0, 2)
-
-    def test_name_defaults_to_account_name(self):
-        """If the name is left blank it should be filled using the Account."""
-        credit_card = CreditCard(account=self.account)
-        self.assertEqual(credit_card.name, '')
-
-        credit_card.save()
-        self.assertEqual(credit_card.name, self.account.name)
-
-
 class AddCreditCardPurchaseViewTests(TestCase):
-    """Test the add_creditcard_entry view."""
+    """Test the add_creditcard_entry view and the AddApprovableEntryView."""
     def setUp(self):
         """Create an initial Account & CreditCard."""
         self.liability_header = create_header('liability', cat_type=2)

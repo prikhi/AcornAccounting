@@ -3,13 +3,13 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
-from accounts.models import (Account)
-from core.core import (_american_format)
+from core.core import _american_format
+from core.models import AccountWrapper
 from entries.models import JournalEntry, Transaction
 from receipts.models import Receipt
 
 
-class CreditCard(models.Model):
+class CreditCard(AccountWrapper):
     """A Communard-Visible Wrapper for an :class:`~accounts.models.Account`.
 
     .. attribute:: account
@@ -23,23 +23,6 @@ class CreditCard(models.Model):
         A name for the Credit Card, used in forms accessible by Communards.
 
     """
-    account = models.ForeignKey(Account)
-    name = models.CharField(
-        max_length=50,
-        help_text="A name for Communards. Defaults to the Account's Name.",
-        blank=True)
-
-    class Meta(object):
-        ordering = ('name',)
-
-    def __unicode__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        """Pull the name from the Account if blank."""
-        if not self.name and self.account:
-            self.name = self.account.name
-        super(CreditCard, self).save(*args, **kwargs)
 
 
 class CreditCardEntry(models.Model):

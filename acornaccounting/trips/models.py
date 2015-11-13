@@ -4,34 +4,18 @@ from django.db import models
 from django.utils import timezone
 
 from accounts.models import Account
+from core.models import AccountWrapper
 from entries.models import JournalEntry, Transaction
 from receipts.models import Receipt
 
 
-class StoreAccount(models.Model):
+class StoreAccount(AccountWrapper):
     """A Communard-visible Wrapper for an :class:`~accounts.models.Account`.
 
     This is used to allow Communards to select an Account for purchases made on
     store credit.
 
     """
-    account = models.ForeignKey(Account)
-    name = models.CharField(
-        max_length=50, blank=True,
-        help_text="A name for Communards. Defaults to the Account's Name",
-    )
-
-    class Meta(object):
-        ordering = ('name',)
-
-    def __unicode__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        """Pull the name from the Account if blank."""
-        if not self.name and self.account:
-            self.name = self.account.name
-        super(StoreAccount, self).save(*args, **kwargs)
 
 
 class TripEntry(models.Model):

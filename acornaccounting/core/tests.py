@@ -5,6 +5,7 @@ from django.test import TestCase
 from accounts.models import Header, Account
 from entries.models import JournalEntry, Transaction
 
+from .models import AccountWrapper
 from .templatetags.core_filters import capitalize_words
 
 
@@ -63,3 +64,26 @@ class CoreFilterTests(TestCase):
         mixed_result = capitalize_words(mixed_sentence)
         self.assertEqual(mixed_result,
                          "Some oF These WorDs won'T Be Capitalized.")
+
+
+class ConcreteAccountWrapper(AccountWrapper):
+    """A simple concrete class to test the abstract AccountWrapper class."""
+
+
+class AccountWrapperTests(TestCase):
+    """
+    Test the abstract AccountWrapper model.
+    """
+
+    def setUp(self):
+        """Create an initial Account."""
+        self.header = create_header("Credit Cards", None, 2)
+        self.account = create_account("Darmok's CC", self.header, 0, 2)
+
+    def test_name_defaults_to_account_name(self):
+        """If the name is left blank it should be filled using the Account."""
+        obj = ConcreteAccountWrapper(account=self.account)
+        self.assertEqual(obj.name, '')
+
+        obj.save()
+        self.assertEqual(obj.name, self.account.name)
