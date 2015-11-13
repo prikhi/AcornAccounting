@@ -56,8 +56,10 @@ class TripEntry(models.Model):
 
     def get_next_entry(self):
         """Return the next Entry for Editing/Approval."""
-        return TripEntry.objects.exclude(id=self.id).filter(
-            date__gte=self.date).order_by('date', 'id')
+        this_date = TripEntry.objects.filter(
+            id__gt=self.id, date=self.date).order_by('id')
+        return this_date if this_date.exists() else TripEntry.objects.filter(
+            date__gt=self.date).order_by('date', 'id')
 
     def approve_entry(self):
         """Creating a JournalEntry Transactions and Receipts from the Entry.
