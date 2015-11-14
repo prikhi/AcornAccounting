@@ -58,6 +58,30 @@
 {% endblock %}
 
 
+{% block table_footer %}
+  {% if entry_form.instance.id %}
+    {{ block.super }}
+  {% else %}
+    <tr class="summary">
+      <td></td>
+      <td></td>
+      <td></td>
+      <td class="text-right"><strong>Total:</strong></td>
+      <td id="amount_total"></td>
+      <td></td>
+    </tr>
+    <tr class="out_of_balance">
+      <td></td>
+      <td></td>
+      <td></td>
+      <td class="text-right"><strong>Out of Balance:</strong></td>
+      <td id="amount_oob"></td>
+      <td></td>
+    </tr>
+  {% endif %}
+{% endblock %}
+
+
 {% block after_form %}
   <!-- Template Form Row for jquery.formset.js -->
   {% with store_transaction_formset|last as form %}
