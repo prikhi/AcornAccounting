@@ -212,6 +212,14 @@
 {% block entry_specific_js %}
 {{ block.super }}
 <script type='text/javascript'>
+var storeSelectizeOptions = {
+  onItemAdd: function() {
+    /* Blur the original input when selecting an item */
+    $(this).prev().find('input').blur();
+  },
+  selectOnTab: true,
+  allowEmptyOption: true,
+};
 $(document).ready(function() {
   /* Selectize the Account Selects */
   $('#store-transaction-table .account-autocomplete').each(function() {
@@ -219,14 +227,7 @@ $(document).ready(function() {
   });
   /* Selectize the Store Account Selects */
   $('#store-transaction-table .store').each(function() {
-    $(this).selectize({
-      onItemAdd: function() {
-        /* Blur the original input when selecting an item */
-        $(this).prev().find('input').blur();
-      },
-      selectOnTab: true,
-      allowEmptyOption: true,
-    });
+    $(this).selectize(storeSelectizeOptions);
   });
   /* Add "Add More" to Credit Purchases table */
   $('#store-transaction-table tbody tr').formset({
@@ -235,7 +236,7 @@ $(document).ready(function() {
     addText: 'add more',
     deleteText: '<span class="glyphicon glyphicon-remove"></span>',
     deleteCssClass: 'delete-row',
-    added: addActions,
+    added: addTripActions,
     removed: removeRow,
     formTemplate: '#store-template-row'
   });
@@ -243,6 +244,14 @@ $(document).ready(function() {
   generateTripNumber();
   $('#id_entry-date').keyup(generateTripNumber);
 });
+
+/* Selectize new StoreAccounts */
+function addTripActions(row) {
+  addActions(row);
+  if (row !== undefined) {
+    row.find('select.store').selectize(storeSelectizeOptions);
+  }
+}
 
 /* Generate the Trip Number from the Date */
 function generateTripNumber() {
