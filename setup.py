@@ -6,7 +6,7 @@ setup(
     version='0.11.1',
     author='Pavan Rikhi',
     author_email='pavan.rikhi@gmail.com',
-    packages=find_packages,
+    packages=find_packages(),
     license='LICENSE.txt',
     description='Accounting Software for Communities.',
     long_description=open('README.rst').read(),
