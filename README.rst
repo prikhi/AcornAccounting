@@ -17,9 +17,8 @@ as paying stipends, entering town trips and tracking membership.
     :alt: Code Coverage
 
 .. image:: https://readthedocs.org/projects/acornaccounting/badge/?version=develop
-    :target: https://readthedocs.org/projects/acornaccounting/?badge=develop
+    :target: http://acornaccounting.readthedocs.org/en/develop/?badge=develop
     :alt: Documentation Status
-
 
 Quickstart
 ===========
