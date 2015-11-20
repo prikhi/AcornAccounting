@@ -6,8 +6,7 @@
   <div class ="form-group">
     <label for="cash-returned" class="control-label col-sm-2 col-md-2">Cash Returned:</label>
     <div class="col-sm-4 col-md-3 controls">
-      <input id='cash-returned' class='form-control' type='text' value='0.00'
-             tabindex='-1' readonly />
+      <input id='cash-returned' class='form-control' type='text' />
     </div>
   </div>
 {% endblock %}
@@ -138,14 +137,28 @@
   </li>
 {% endblock %}
 
+{% block tour_entry_amount %}
+  {{ block.super }}
+  <div>
+    This field is automatically calculated using the <code>Total Trip
+    Advance</code> and <code>Cash Returned</code> fields when you modify the
+    <code>Cash Returned</code>. Changing this field will recalculate the
+    <code>Cash Returned</code> field.
+  </div>
+{% endblock %}
+
 {% block tour_before_table %}
   {{ block.super }}
   <li class='tlypageguide_right' data-tourtarget='input[id="cash-returned"]'>
     <div>
       This is the amount of money you received but did not spend. This is the
       amount of money you should return to the Cashbox/Trip Advances account.
-      It is automatically calculated using the <code>Total Trip Advance</code>
-      and <code>Cash Spent</code> fields.
+    </div>
+    <div>
+      This field is automatically calculated using the <code>Total Trip
+      Advance</code> and <code>Cash Spent</code> fields when you modify the
+      <code>Cash Spent</code>. Changing this field will recalculate the
+      <code>Cash Spent</code> field.
     </div>
     <div>
       If this value is different than the change you have, or the money you
@@ -279,12 +292,16 @@ function generateTripNumber() {
 </script>
 
 {% if not entry_form.instance.id %}
-{# Calculate Amount Fields from Price & Tax and Cash Returned from Trip Advance & Cash Spent if Adding a New Entry #}
+{% comment %}
+When Creating a New Entry:
+ Calculate the Total Item Amount Fields from Item Price & Tax Percentage.
+ Calculate the Cash Spent/Returned from Trip Advance & Cash Returned/Spent.
+{% endcomment %}
 <script type='text/javascript'>
 $(document).ready(function() {
   $('.price, .tax').keyup(calculateItemAmount);
-  $('#entry_amount, #id_entry-total_trip_advance').keyup(
-      calculateCashReturned);
+  $('#entry_amount, #cash-returned').keyup(
+      calculateCash);
 });
 /* Calculate the Total Item Amount using the Price and Tax */
 function calculateItemAmount() {
@@ -297,12 +314,15 @@ function calculateItemAmount() {
   }
   newSum();
 }
-/* Calculate Cash Returned using the Total Trip Advance and the Cash Spent */
-function calculateCashReturned() {
+/* Calculate Cash Spent & Returned using the Total Trip Advance & Event Target */
+function calculateCash(event) {
   var advance = $('#id_entry-total_trip_advance').val();
-  var spent = $('#entry_amount').val();
-  if (bothNumbersValid(advance, spent)) {
-    $('#cash-returned').val(roundToTwo(advance - spent));
+  var element = event.target;
+  var elementValue = $(element).val();
+  if (bothNumbersValid(advance, elementValue)) {
+    var elementToChange = element.id === 'cash-returned' ?
+      $('#entry_amount') : $('#cash-returned');
+    elementToChange.val(roundToTwo(advance - elementValue));
   }
 }
 /* Determine whetherboth numbers are valid */
