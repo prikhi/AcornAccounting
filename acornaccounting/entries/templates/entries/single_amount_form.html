@@ -27,12 +27,14 @@
   {{ block.super }}
   {% block tour_before_amount %}{% endblock %}
   <li class='tlypageguide_right' data-tourtarget='input[name="entry-amount"]'>
-    <div>
-      Enter the <b>total amount</b> of your <b>purchases</b> here. We'll use
-      it to make sure it equals the total cost of every item you purchased.
-      If you are entering more returns than purchases, this number should be
-      negative.
-    </div>
+    {% block tour_entry_amount %}
+      <div>
+        Enter the <b>total amount</b> of your <b>purchases</b> here. We'll use
+        it to make sure it equals the total cost of every item you purchased.
+        If you are entering more returns than purchases, this number should be
+        negative.
+      </div>
+    {% endblock %}
   </li>
 {% endblock %}
 
