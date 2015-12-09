@@ -197,7 +197,7 @@ class AddApprovableEntryView(object):
     def _successful_submission_text(self):
         """Generate message text for a successful initial entry submission."""
         message_text = ('Your {} Entry has been successfully submitted for '
-                        'Approval'.format(self.verbose_name))
+                        'Approval.'.format(self.verbose_name))
         if not self.entry_form.instance.receipt_set.exists():
             message_text += (
                 " Since you did not attach a receipt, <b>you must print this "
