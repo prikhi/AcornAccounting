@@ -54,12 +54,12 @@ class TripEntryForm(forms.ModelForm):
 class BaseTripTransactionForm(forms.ModelForm):
 
     item_price = forms.DecimalField(
-        required=False,
+        required=False, label='Item Price',
         widget=forms.TextInput(
             attrs={'size': 10, 'maxlength': 10,
                    'class': 'price form-control enter-mod'}))
     tax = forms.DecimalField(
-        required=False, initial=settings.DEFAULT_TAX_RATE,
+        required=False, initial=settings.DEFAULT_TAX_RATE, label='Tax Rate',
         widget=forms.TextInput(attrs={'size': 4, 'maxlength': 10,
                                       'class': 'tax form-control enter-mod'}))
 
