@@ -40,7 +40,7 @@ Create a new virtual environment::
 
 Install the prerequisites::
 
-    $ pip install -r requirements/base.txt
+    $ pip install --no-binary django -r requirements/local.txt
 
 Specify some environmental variables::
 
@@ -50,18 +50,18 @@ Specify some environmental variables::
 
 Create all necessary tables::
 
-    $ python manage.py syncdb --settings=accounting.settings.base
-    $ python manage.py migrate --settings=accounting.settings.base
+    $ python manage.py syncdb --settings=accounting.settings.local
+    $ python manage.py migrate --settings=accounting.settings.local
 
 Run the development server::
 
     $ cd acornaccounting
-    $ python manage.py runserver --settings=accounting.settings.base
+    $ python manage.py runserver --settings=accounting.settings.local
 
 You can omit the ``settings`` flag by setting the ``DJANGO_SETTINGS_MODULE``
 environmental variable::
 
-    $ export DJANGO_SETTINGS_MODULE=accounting.settings.base
+    $ export DJANGO_SETTINGS_MODULE=accounting.settings.local
     $ python manage.py runserver
 
 
