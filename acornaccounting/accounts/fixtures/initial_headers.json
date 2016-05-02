@@ -1,0 +1,1073 @@
+[
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Assets",
+            "parent": null,
+            "rght": 32,
+            "slug": "assets",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 1
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Accumulated Depreciation",
+            "parent": 1,
+            "rght": 3,
+            "slug": "accumulated-depreciation",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 80
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Current Assets",
+            "parent": 1,
+            "rght": 13,
+            "slug": "current-assets",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 2
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-03000",
+            "level": 2,
+            "lft": 5,
+            "name": "Accounts Receivable",
+            "parent": 2,
+            "rght": 6,
+            "slug": "accounts-receivable",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 4
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-04000",
+            "level": 2,
+            "lft": 7,
+            "name": "Cash & Cash Equivalents",
+            "parent": 2,
+            "rght": 8,
+            "slug": "cash-cash-equivalents",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 3
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-05000",
+            "level": 2,
+            "lft": 9,
+            "name": "Notes Receivable",
+            "parent": 2,
+            "rght": 10,
+            "slug": "notes-receivable",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 6
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-06000",
+            "level": 2,
+            "lft": 11,
+            "name": "Other Current Assets",
+            "parent": 2,
+            "rght": 12,
+            "slug": "other-current-assets",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 9
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-07000",
+            "level": 1,
+            "lft": 14,
+            "name": "Defunct Asset Accounts",
+            "parent": 1,
+            "rght": 15,
+            "slug": "defunct-asset-accounts",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 83
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-08000",
+            "level": 1,
+            "lft": 16,
+            "name": "Fixed Assets",
+            "parent": 1,
+            "rght": 31,
+            "slug": "fixed-assets",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 10
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-09000",
+            "level": 2,
+            "lft": 17,
+            "name": "Buildings",
+            "parent": 10,
+            "rght": 18,
+            "slug": "buildings",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 12
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-10000",
+            "level": 2,
+            "lft": 19,
+            "name": "Equipment",
+            "parent": 10,
+            "rght": 20,
+            "slug": "equipment",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 15
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-11000",
+            "level": 2,
+            "lft": 21,
+            "name": "Furnishings & Fixtures",
+            "parent": 10,
+            "rght": 22,
+            "slug": "furnishings-fixtures",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 16
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-12000",
+            "level": 2,
+            "lft": 23,
+            "name": "Intangible Assets",
+            "parent": 10,
+            "rght": 24,
+            "slug": "intangible-assets",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 18
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-13000",
+            "level": 2,
+            "lft": 25,
+            "name": "Land",
+            "parent": 10,
+            "rght": 26,
+            "slug": "land",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 11
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-14000",
+            "level": 2,
+            "lft": 27,
+            "name": "Utilities",
+            "parent": 10,
+            "rght": 28,
+            "slug": "utilities",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 13
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "1-15000",
+            "level": 2,
+            "lft": 29,
+            "name": "Vehicles",
+            "parent": 10,
+            "rght": 30,
+            "slug": "vehicles",
+            "tree_id": 1,
+            "type": 1
+        },
+        "model": "accounts.header",
+        "pk": 14
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "5-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Cost of Goods Sold",
+            "parent": null,
+            "rght": 2,
+            "slug": "cost-of-goods-sold",
+            "tree_id": 2,
+            "type": 5
+        },
+        "model": "accounts.header",
+        "pk": 43
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "3-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Equity",
+            "parent": null,
+            "rght": 2,
+            "slug": "equity",
+            "tree_id": 3,
+            "type": 3
+        },
+        "model": "accounts.header",
+        "pk": 34
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Expenses",
+            "parent": null,
+            "rght": 38,
+            "slug": "expenses",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 55
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Defunct Expenses",
+            "parent": 55,
+            "rght": 3,
+            "slug": "defunct-expenses",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 85
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Domestic Expense",
+            "parent": 55,
+            "rght": 17,
+            "slug": "domestic-expense",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 64
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-03000",
+            "level": 2,
+            "lft": 5,
+            "name": "Culinary",
+            "parent": 64,
+            "rght": 6,
+            "slug": "culinary",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 69
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-04000",
+            "level": 2,
+            "lft": 7,
+            "name": "Livestock Expense",
+            "parent": 64,
+            "rght": 8,
+            "slug": "livestock-expense",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 66
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-05000",
+            "level": 2,
+            "lft": 9,
+            "name": "Maintenance",
+            "parent": 64,
+            "rght": 10,
+            "slug": "maintenance",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 70
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-06000",
+            "level": 2,
+            "lft": 11,
+            "name": "Progeny",
+            "parent": 64,
+            "rght": 12,
+            "slug": "progeny",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 67
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-07000",
+            "level": 2,
+            "lft": 13,
+            "name": "Recreation",
+            "parent": 64,
+            "rght": 14,
+            "slug": "recreation",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 68
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-08000",
+            "level": 2,
+            "lft": 15,
+            "name": "Stipends",
+            "parent": 64,
+            "rght": 16,
+            "slug": "stipends",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 65
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-09000",
+            "level": 1,
+            "lft": 18,
+            "name": "FEC",
+            "parent": 55,
+            "rght": 19,
+            "slug": "fec",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 71
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-10000",
+            "level": 1,
+            "lft": 20,
+            "name": "General & Admin Expense",
+            "parent": 55,
+            "rght": 21,
+            "slug": "general-admin-expense",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 56
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-11000",
+            "level": 1,
+            "lft": 22,
+            "name": "Health",
+            "parent": 55,
+            "rght": 29,
+            "slug": "health",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 72
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-12000",
+            "level": 2,
+            "lft": 23,
+            "name": "Dental",
+            "parent": 72,
+            "rght": 24,
+            "slug": "dental",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 73
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-13000",
+            "level": 2,
+            "lft": 25,
+            "name": "Eyes and Vision",
+            "parent": 72,
+            "rght": 26,
+            "slug": "eyes-and-vision",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 74
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-14000",
+            "level": 2,
+            "lft": 27,
+            "name": "Misc. Health Expenses",
+            "parent": 72,
+            "rght": 28,
+            "slug": "misc-health-expenses",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 75
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-15000",
+            "level": 1,
+            "lft": 30,
+            "name": "Insurance",
+            "parent": 55,
+            "rght": 31,
+            "slug": "insurance",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 76
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-16000",
+            "level": 1,
+            "lft": 32,
+            "name": "Utilities Expense",
+            "parent": 55,
+            "rght": 33,
+            "slug": "utilities-expense",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 77
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-17000",
+            "level": 1,
+            "lft": 34,
+            "name": "Vehicles Expense",
+            "parent": 55,
+            "rght": 37,
+            "slug": "vehicles-expense",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 78
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "6-18000",
+            "level": 2,
+            "lft": 35,
+            "name": "Vehicle Maintenance",
+            "parent": 78,
+            "rght": 36,
+            "slug": "vehicle-maintenance",
+            "tree_id": 4,
+            "type": 6
+        },
+        "model": "accounts.header",
+        "pk": 79
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "4-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Income",
+            "parent": null,
+            "rght": 6,
+            "slug": "income",
+            "tree_id": 5,
+            "type": 4
+        },
+        "model": "accounts.header",
+        "pk": 36
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "4-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Products",
+            "parent": 36,
+            "rght": 3,
+            "slug": "products",
+            "tree_id": 5,
+            "type": 4
+        },
+        "model": "accounts.header",
+        "pk": 37
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "4-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Services",
+            "parent": 36,
+            "rght": 5,
+            "slug": "services",
+            "tree_id": 5,
+            "type": 4
+        },
+        "model": "accounts.header",
+        "pk": 41
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Liabilities",
+            "parent": null,
+            "rght": 30,
+            "slug": "liabilities",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 20
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Defunct Accounts",
+            "parent": 20,
+            "rght": 3,
+            "slug": "defunct-accounts",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 84
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Long Term Liabilities",
+            "parent": 20,
+            "rght": 13,
+            "slug": "long-term-liabilities",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 29
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "Loans to Us from Members",
+            "full_number": "2-03000",
+            "level": 2,
+            "lft": 5,
+            "name": "Member Loans",
+            "parent": 29,
+            "rght": 6,
+            "slug": "member-loans",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 30
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-04000",
+            "level": 2,
+            "lft": 7,
+            "name": "Mortgages Payable L/T",
+            "parent": 29,
+            "rght": 8,
+            "slug": "mortgages-payable-lt",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 33
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-05000",
+            "level": 2,
+            "lft": 9,
+            "name": "Non-Member Loans",
+            "parent": 29,
+            "rght": 10,
+            "slug": "non-member-loans",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 31
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-06000",
+            "level": 2,
+            "lft": 11,
+            "name": "Notes Payable LT",
+            "parent": 29,
+            "rght": 12,
+            "slug": "notes-payable-lt",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 32
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-07000",
+            "level": 1,
+            "lft": 14,
+            "name": "Short Term Liabilities",
+            "parent": 20,
+            "rght": 29,
+            "slug": "short-term-liabilities",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 21
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-08000",
+            "level": 2,
+            "lft": 15,
+            "name": "Accounts Payable",
+            "parent": 21,
+            "rght": 18,
+            "slug": "accounts-payable",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 22
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-09000",
+            "level": 3,
+            "lft": 16,
+            "name": "A/P Contractors & Consultants",
+            "parent": 22,
+            "rght": 17,
+            "slug": "ap-contractors-consultants",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 87
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-10000",
+            "level": 2,
+            "lft": 19,
+            "name": "Allowance Recent Ex-Members",
+            "parent": 21,
+            "rght": 20,
+            "slug": "allowance-recent-ex-members",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 81
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-11000",
+            "level": 2,
+            "lft": 21,
+            "name": "Credit Cards Payable",
+            "parent": 21,
+            "rght": 22,
+            "slug": "credit-cards-payable",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 25
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-12000",
+            "level": 2,
+            "lft": 23,
+            "name": "Local Store Accounts Payable",
+            "parent": 21,
+            "rght": 24,
+            "slug": "local-store-accounts-payable",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 24
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-13000",
+            "level": 2,
+            "lft": 25,
+            "name": "Members Deposited Assets",
+            "parent": 21,
+            "rght": 26,
+            "slug": "members-deposited-assets",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 28
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "2-14000",
+            "level": 2,
+            "lft": 27,
+            "name": "Stipends Payable",
+            "parent": 21,
+            "rght": 28,
+            "slug": "stipends-payable",
+            "tree_id": 6,
+            "type": 2
+        },
+        "model": "accounts.header",
+        "pk": 27
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "8-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Other Expenses",
+            "parent": null,
+            "rght": 8,
+            "slug": "other-expenses",
+            "tree_id": 7,
+            "type": 8
+        },
+        "model": "accounts.header",
+        "pk": 51
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "8-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Outgoing Donations ",
+            "parent": 51,
+            "rght": 3,
+            "slug": "outgoing-donations",
+            "tree_id": 7,
+            "type": 8
+        },
+        "model": "accounts.header",
+        "pk": 53
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "8-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Projects",
+            "parent": 51,
+            "rght": 5,
+            "slug": "projects",
+            "tree_id": 7,
+            "type": 8
+        },
+        "model": "accounts.header",
+        "pk": 52
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "8-03000",
+            "level": 1,
+            "lft": 6,
+            "name": "Taxes",
+            "parent": 51,
+            "rght": 7,
+            "slug": "taxes",
+            "tree_id": 7,
+            "type": 8
+        },
+        "model": "accounts.header",
+        "pk": 54
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "7-00000",
+            "level": 0,
+            "lft": 1,
+            "name": "Other Income",
+            "parent": null,
+            "rght": 8,
+            "slug": "other-income",
+            "tree_id": 8,
+            "type": 7
+        },
+        "model": "accounts.header",
+        "pk": 46
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "7-01000",
+            "level": 1,
+            "lft": 2,
+            "name": "Donations",
+            "parent": 46,
+            "rght": 3,
+            "slug": "donations",
+            "tree_id": 8,
+            "type": 7
+        },
+        "model": "accounts.header",
+        "pk": 47
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "7-02000",
+            "level": 1,
+            "lft": 4,
+            "name": "Misc Income",
+            "parent": 46,
+            "rght": 5,
+            "slug": "misc-income",
+            "tree_id": 8,
+            "type": 7
+        },
+        "model": "accounts.header",
+        "pk": 50
+    },
+    {
+        "fields": {
+            "active": true,
+            "description": "",
+            "full_number": "7-03000",
+            "level": 1,
+            "lft": 6,
+            "name": "Unearned Income",
+            "parent": 46,
+            "rght": 7,
+            "slug": "unearned-income",
+            "tree_id": 8,
+            "type": 7
+        },
+        "model": "accounts.header",
+        "pk": 48
+    }
+]
