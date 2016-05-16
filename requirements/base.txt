@@ -11,3 +11,4 @@ django-picklefield==0.3.0
 git+https://github.com/prikhi/django-ajax.git@master
 South==0.8.4
 git+https://github.com/prikhi/django-multiupload.git@master
+django-compressor==1.6

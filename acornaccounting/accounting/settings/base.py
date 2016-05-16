@@ -50,6 +50,7 @@ INSTALLED_APPS = (
     'parsley',
     'south',
     'django_ajax',
+    'compressor',
 
     'core',
     'accounts',
@@ -124,6 +125,7 @@ TEMPLATE_DIRS = (project_root('templates'),)
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
 )
 
 

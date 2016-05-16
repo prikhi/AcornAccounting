@@ -1,3 +1,4 @@
+{% load compress %}
 <!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml"
@@ -6,6 +7,9 @@
     lang="{% firstof LANGUGE_CODE 'en' %}">
     <head>
         <meta name="viewport" content="width-device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>{% block title %}{% endblock %} - {{ config.NAME }}</title>
+        {% compress css %}
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap.min.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap-theme.min.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.css" />
@@ -13,8 +17,7 @@
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/pageguide.min.css" />
         <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/custom.css" />
         {% block extra_css %}{% endblock %}
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <title>{% block title %}{% endblock %} - {{ config.NAME }}</title>
+        {% endcompress %}
 
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -26,6 +29,7 @@
 
     <body>
         {% block site_wrapper %}{% endblock %}
+        {% compress js %}
         <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
         <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
         <script type="text/javascript" src="{{ STATIC_URL }}js/selectize.min.js"></script>
@@ -86,5 +90,6 @@
             });
         </script>
         {% block javascript %}{% endblock %}
+        {% endcompress %}
     </body>
 </html>
