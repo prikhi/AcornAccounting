@@ -110,7 +110,9 @@ class BaseAccountModel(MPTTModel, CachingMixin):
             return self.full_number
         else:
             try:
-                return self._calculate_full_number()
+                self.full_number = self._calculate_full_number()
+                self.save()
+                return self.full_number
             except ValueError:
                 return None
     get_full_number.short_description = "Number"
