@@ -51,7 +51,8 @@ def show_accounts_chart(request, header_slug=None,
     else:
         root_nodes = Header.objects.filter(parent=None).order_by('type')
     for root_node in root_nodes:
-        root_node.descendants = root_node.get_descendants(include_self=True)
+        root_node.descendants = root_node.get_descendants(
+            include_self=True).prefetch_related('account_set')
     return render(request, template_name, locals())
 
 

@@ -160,7 +160,7 @@ class Header(BaseAccountModel):
         :rtype: :class:`decimal.Decimal`
         """
         balance = Decimal("0.00")
-        child_headers = self.get_children()
+        child_headers = self.get_children().prefetch_related('account_set')
         for header in child_headers:
             balance += header.get_account_balance()
         for account in self.account_set.all():
