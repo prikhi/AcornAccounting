@@ -61,6 +61,7 @@ INSTALLED_APPS = (
     'receipts',
     'reports',
     'trips',
+    'bank_import',
 )
 
 

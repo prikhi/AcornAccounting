@@ -15,3 +15,4 @@ Technical Specifications
     reports
     creditcards
     trips
+    bank_import

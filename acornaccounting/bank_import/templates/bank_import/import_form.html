@@ -1,0 +1,71 @@
+{% extends 'entries/base_entry_form.html' %}
+
+
+{% block title %}Import Bank Statement{% endblock %}
+
+
+{% block page_header %}
+  <h1>Import Bank Statment</h1>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="entry_form">
+  {% csrf_token %}
+
+  {% if import_form %}
+    {% for hidden_field in import_form.hidden_fields %}
+      {{ hidden_field }}
+    {% endfor %}
+    {% for field in import_form.visible_fields%}
+      <div class="form-group">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors.as_ul }}
+      </div>
+    {% endfor %}
+    <input type='submit' name="submit" class='btn btn-primary' value='Import'>
+  {% endif %}
+
+  {% if transfer_formset and transfer_formset.forms|length > 0 %}
+    <h2>Transfers</h2>
+    {% include "entries/includes/transaction_table.html" with formset=transfer_formset %}
+  {% elif transfer_formset %}
+    <h2>Transfers</h2>
+    <p class='text-center text-success'>All Transfers Already Imported.</p>
+    {{ transfer_formset.management_form }}
+  {% endif %}
+
+  {% if withdrawal_formset and withdrawal_formset.forms|length > 0 %}
+    <h2>Withdrawals</h2>
+    {% include "entries/includes/transaction_table.html" with formset=withdrawal_formset %}
+  {% elif withdrawal_formset %}
+    <h2>Withdrawals</h2>
+    <p class='text-center text-success'>All Withdrawals Already Imported.</p>
+    {{ withdrawal_formset.management_form }}
+  {% endif %}
+
+  {% if deposit_formset and deposit_formset.forms|length > 0 %}
+    <h2>Deposits</h2>
+    {% include "entries/includes/transaction_table.html" with formset=deposit_formset %}
+  {% elif deposit_formset %}
+    <h2>Deposits</h2>
+    <p class='text-center text-success'>All Deposits Already Imported.</p>
+    {{ deposit_formset.management_form }}
+  {% endif %}
+
+  {% if transfer_formset %}
+    <p><input type='submit' name='submit' class='btn btn-primary' value='Save'></p>
+  {% endif %}
+
+</form>
+{% endblock %}
+
+
+{% block entry_specific_js%}
+<script type="text/javascript">
+  // Disable Dynamic Formsets & Use Empty Callback Functions
+  enableDynamicFormsets = false;
+  function addActions() {}
+  function removeRow() {}
+</script>
+{% endblock %}

@@ -43,6 +43,8 @@
             <li class="dropdown-header">Approve Entries</li>
             <li><a href="{% url creditcards.views.list_creditcard_entries %}">Credit Cards</a></li>
             <li><a href="{% url trips.views.list_trip_entries %}">Trips</a></li>
+            <li class="dropdown-header">Import</li>
+            <li><a href="{% url bank_import.views.import_bank_statement %}">Bank Statements</a></li>
             <li class="dropdown-header">Reports</li>
             <li><a href="{% url reports.views.events_report %}">Events</a></li>
             <li><a id="profit-loss-link" data-toggle="modal" href="#generateReportModal">Profit & Loss</a></li>
@@ -62,6 +64,7 @@
             {% endif %}
             <li><a href="{% url admin:accounts_header_add %}">Add Header</a></li>
             <li><a href="{% url admin:accounts_account_add %}">Add Account</a></li>
+            <li><a href="{% url admin:bank_import_bankaccount_add %}">Add Bank Account</a></li>
             <li><a href="{% url admin:creditcards_creditcard_add %}">Add Credit Card</a></li>
             <li><a href="{% url admin:trips_storeaccount_add %}">Add Store Account</a></li>
             <li><a href="{% url admin:events_event_add %}">Add Event</a></li>

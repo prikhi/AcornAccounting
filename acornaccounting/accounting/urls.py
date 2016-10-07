@@ -20,6 +20,7 @@ urlpatterns = patterns(
     url(r'^fiscal-years/', include('fiscalyears.urls')),
     url(r'^reports/', include('reports.urls')),
     url(r'^trips/', include('trips.urls')),
+    url(r'^bank/import/', include('bank_import.urls')),
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += staticfiles_urlpatterns()
