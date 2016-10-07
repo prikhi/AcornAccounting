@@ -109,66 +109,9 @@ table. See an existing entry template for an example.
 
   {% block before_transaction_table %}{% endblock %}
 
-  <!-- Formset Error Alert -->
-  {% if transaction_formset.errors%}
-    <br />
-    <div class="alert alert-danger">
-      <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong> Please correct the following issues before continuing:
-      <ul>
-        {% for error in transaction_formset.non_form_errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-        {% for form in transaction_formset %}
-          {% if form.non_field_errors %}
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-          {% endif %}
-        {% endfor %}
-      </ul>
-    </div>
-  {% endif %}
-
-  <!-- Transaction Table -->
-  <table class="table table-condensed" id="transaction-table">
-    {{ transaction_formset.management_form }}
-    {% for form in transaction_formset %}
-      <!-- Table Header -->
-      {% if forloop.first %}
-        <thead>
-          <tr>
-            {% for field in form.visible_fields %}
-              <th {% if forloop.last %}class="text-center"{% endif %}>{{ field.label|capfirst }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-      {% endif %}
-
-      <!-- Table Rows -->
-      <tr class="{% cycle main,alt %}{% if form.errors %} danger{% endif %}">
-        {% for field in form.visible_fields %}
-        <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}{% endif %}>
-            {% if forloop.first %}
-              {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-              {% endfor %}
-            {% endif %}
-            {{ field.errors.as_ul }}
-            <div class="controls">
-              {{ field }}
-            </div>
-          </td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
-    </tbody>
-    <!-- Table Footer -->
-    <tfoot>
-      {% block table_footer %}
-      {% endblock %}
-    </tfoot>
-  </table>
+  {% block transaction_table %}
+    {% include "entries/includes/transaction_table.html" with formset=transaction_formset %}
+  {% endblock %}
 
   {% block after_transaction_table %}{% endblock %}
 

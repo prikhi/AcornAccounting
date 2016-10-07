@@ -1,0 +1,61 @@
+{% comment %}
+This template is used to render a formset as a table.
+
+It requires a ``formset`` context variable.
+{% endcomment %}
+
+<!-- Formset Errors -->
+{% if formset.errors %}
+  <br />
+  <div class="alert alert-danger">
+    <span class="glyphicon glyphicon-minus-sign"></span><strong> Error!</strong> Please correct the following issues before continuing:
+    <ul>
+      {% for error in formset.non_form_errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+      {% for form in formset %}
+        {% if form.non_field_errors %}
+          {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<!-- Transaction Table -->
+<table class="table table-condensed" id="transaction-table">
+  {{ formset.management_form }}
+  {% for form in formset %}
+    <!-- Table Header -->
+    {% if forloop.first %}
+      <thead>
+        <tr>
+          {% for field in form.visible_fields %}
+            <th {% if forloop.last %}class="text-center"{% endif %}>{{ field.label|capfirst }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+    {% endif %}
+
+    <!-- Table Rows -->
+    <tr class="{% cycle main,alt %}{% if form.errors %} danger{% endif %}">
+      {% for field in form.visible_fields %}
+      <td {% if forloop.last %}class="text-center form-group" style="vertical-align:middle"{% else %}{% if field.errors %}class="has-error form-group"{% else %}class="form-group"{% endif %}{% endif %}>
+          {% if forloop.first %}
+            {% for hidden in form.hidden_fields %}
+              {{ hidden }}
+            {% endfor %}
+          {% endif %}
+          {{ field.errors.as_ul }}
+          <div class="controls">
+            {{ field }}
+          </div>
+        </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
