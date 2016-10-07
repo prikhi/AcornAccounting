@@ -385,17 +385,20 @@ table. See an existing entry template for an example.
     /*
     Add extra Transaction rows using jQuery-Formsets
     */
+    enableDynamicFormsets = true;
     $(function() {
-        $('#transaction-table tbody tr').formset({
-            prefix: '{{ transaction_formset.prefix }}',
-            extraClasses: ['main','alt'],
-            addText: 'add more',
-            deleteText: '<span class="glyphicon glyphicon-remove"></span>',
-            deleteCssClass: 'delete-row',
-            added: addActions,
-            removed: removeRow,
-            formTemplate: '#template-row'
-        });
+        if (enableDynamicFormsets) {
+            $('#transaction-table tbody tr').formset({
+                prefix: '{{ transaction_formset.prefix }}',
+                extraClasses: ['main','alt'],
+                addText: 'add more',
+                deleteText: '<span class="glyphicon glyphicon-remove"></span>',
+                deleteCssClass: 'delete-row',
+                added: addActions,
+                removed: removeRow,
+                formTemplate: '#template-row'
+            });
+        }
     });
     /*
     Pressing `Enter` on a `.enter-mod` input in a table should move the cursor
