@@ -1,0 +1,18 @@
+output-format: text
+
+inherits:
+    - strictness_veryhigh
+    - full_pep8
+    - no_test_warnings
+
+ignore-patterns:
+    - ^accounting/settings
+    - ^accounting/wsgi.py
+    - ^manage.py
+    - ^.*/tests.py
+    - ^.*/migrations
+    - ^.*/management
+
+pep257:
+    disable:
+        - D203
