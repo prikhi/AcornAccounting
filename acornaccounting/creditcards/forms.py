@@ -15,7 +15,7 @@ from .models import CreditCardEntry, CreditCardTransaction
 class CreditCardEntryForm(forms.ModelForm):
     """A Form for CreditCardEntries along with multiple CreditCardReceipts."""
     receipts = MultiFileField(
-        min_num=0, max_num=99, max_file_size=1024*1024*100, required=False)
+        min_num=0, max_num=99, max_file_size=1024 * 1024 * 100, required=False)
 
     class Meta(object):
         model = CreditCardEntry
@@ -34,6 +34,7 @@ class CreditCardEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Set the initial date to today & change the name label."""
         super(CreditCardEntryForm, self).__init__(*args, **kwargs)
+        self.fields['date'].label = "Purchase Date"
         self.fields['name'].label = "Your Name"
         if hasattr(self, 'instance') and self.instance.pk:
             formatted_date = self.instance.date.strftime('%m/%d/%Y')

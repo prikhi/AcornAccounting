@@ -18,7 +18,7 @@ class TripEntryForm(forms.ModelForm):
     """A From for TripEntries along with multiple TripReceipts."""
 
     receipts = MultiFileField(
-        min_num=0, max_num=99, max_file_size=1024*1024*100, required=False
+        min_num=0, max_num=99, max_file_size=1024 * 1024 * 100, required=False
     )
 
     class Meta(object):
@@ -39,6 +39,7 @@ class TripEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Set the initial date to today, remove trailing zeros."""
         super(TripEntryForm, self).__init__(*args, **kwargs)
+        self.fields['date'].label = "Trip Date"
         if hasattr(self, 'instance') and self.instance.pk:
             formatted_date = self.instance.date.strftime('%m/%d/%Y')
             self.initial['date'] = formatted_date
