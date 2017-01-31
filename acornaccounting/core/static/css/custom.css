@@ -81,6 +81,12 @@ table.table div.selectize-input {
 /* Add some space to the botom of the shortcuts alert box */
 #shortcuts-box { margin-bottom: 4em; }
 
+/* Ensure Bank Account Links on Bank Spend/Receive Detail Pages are Grey */
+h1 small a {
+  color: #999;
+  text-decoration: underline;
+}
+
 
 /* Print Styles */
 @media print {

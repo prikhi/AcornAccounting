@@ -7,7 +7,8 @@
 
 
 {% block page_header %}
-  <h1><span class="hidden-print">{{ journal_entry.get_number }} - </span>{{ journal_entry.memo|capwords }} <small class="hidden-print">{{ main_transaction.account }}</small></h1>
+  <h1><span class="hidden-print">{{ journal_entry.get_number }} - </span>{{ journal_entry.memo|capwords }}
+    <small class="hidden-print"><a href="{{ main_transaction.account.get_absolute_url }}">{{ main_transaction.account }}</a></small></h1>
   <h3 class="visible-print">{{ journal_entry.get_number }} - {{ main_transaction.account }}</h3>
   <h3 class="hidden-print">{{ journal_entry.date|date:"m/d/Y" }} - Payee: {{ journal_entry.payee }} - Amount: {{ main_transaction.balance_delta|currency }}</h3>
   <h4 class="visible-print">{{ journal_entry.date|date:"m/d/Y" }} - Payee: {{ journal_entry.payee }} - Amount: {{ main_transaction.balance_delta|currency }}</h4>
