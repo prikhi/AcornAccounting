@@ -16,6 +16,7 @@ table. See an existing entry template for an example.
 #}
 
 {% load core_tags %}
+{% load staticfiles %}
 
 
 {% block title %}
@@ -321,9 +322,9 @@ table. See an existing entry template for an example.
 
 {% block javascript %}
 
-<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.formset.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+<script type="text/javascript" src="{% static 'js/jquery.formset.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/parsley.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/parsley.extend.js' %}"></script>
 <script type="text/javascript">
     /*
     Add extra Transaction rows using jQuery-Formsets

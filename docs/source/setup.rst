@@ -134,7 +134,7 @@ Set configuration values for the account you just created:
 
     export DJANGO_SETTINGS_MODULE=accounting.settings.production
     export DB_USER=accounting
-    export DB_PASS=<accounting user password>
+    export DB_PASSWORD=<accounting user password>
     export DB_NAME=accounting
 
 Then create the initial schema and migrate any database changes:
@@ -185,7 +185,7 @@ You can use the following ini file to setup the uWSGI daemon:
     env = DJANGO_SETTINGS_MODULE=accounting.settings.production
     env = DB_NAME=<database name
     env = DB_USER=<database user>
-    env = DB_PASS=<database password>
+    env = DB_PASSWORD=<database password>
     env = DB_HOST=
     env = DB_PORT=
     env = DJANGO_SECRET_KEY=<your unique secret key>
@@ -242,8 +242,15 @@ you may need to write an rc.d or init.d startup script:
                 echo "Error: No Accounting uWSGI Process Found."
             fi
             ;;
+        'status')
+            if [ -f $PIDFILE ] && [ "$(ps -o comm= "$(cat $PIDFILE)")" = uwsgi ]; then
+                echo "Accounting uWSGI Process is running."
+            else
+                echo "Accounting uWSGI Process is not running."
+            fi
+            ;;
         *)
-            echo "Usage: /etc/rc.d/rc.accounting {start|stop|restart}"
+            echo "Usage: /etc/rc.d/rc.accounting {start|stop|restart|status}"
             exit 1
             ;;
     esac

@@ -1,4 +1,4 @@
-{% load compress %}
+{% load compress staticfiles %}
 <!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml"
@@ -10,12 +10,12 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>{% block title %}{% endblock %} - {{ config.NAME }}</title>
         {% compress css %}
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap.min.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/bootstrap-theme.min.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/selectize.bootstrap3.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/pageguide.min.css" />
-        <link rel="Stylesheet" type="text/css" href="{{ STATIC_URL }}css/custom.css" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/bootstrap-theme.min.css' %}" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/selectize.css' %}" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/selectize.bootstrap3.css' %}" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/pageguide.min.css' %}" />
+        <link rel="Stylesheet" type="text/css" href="{% static 'css/custom.css' %}" />
         {% block extra_css %}{% endblock %}
         {% endcompress %}
 
@@ -30,10 +30,10 @@
     <body>
         {% block site_wrapper %}{% endblock %}
         {% compress js %}
-        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
-        <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
-        <script type="text/javascript" src="{{ STATIC_URL }}js/selectize.min.js"></script>
-        <script type="text/javascript" src="{{ STATIC_URL }}js/pageguide.min.js"></script>
+        <script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/selectize.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/pageguide.min.js' %}"></script>
         <script type="text/javascript">
             // A global variable containing accounts for ajax selects
             accounts_array = {{ accounts_json|safe }};

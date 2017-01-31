@@ -258,7 +258,7 @@ You can now sync and migrate the database, creating the necessary schema:
     export DJANGO_SECRET_KEY=<your unique secret key>
     export DB_HOST=localhost
     export DB_USER=accounting
-    export DB_PASS=<accounting user password>
+    export DB_PASSWORD=<accounting user password>
     export DB_NAME=accounting
 
     cd ~/AcornAccounting/acornaccounting
@@ -335,7 +335,7 @@ configuration:
 
     env = DJANGO_SETTINGS_MODULE=accounting.settings.production
     env = DB_NAME=accounting
-    env = DB_PASS=
+    env = DB_PASSWORD=
     env = DB_USER=accounting
     env = DB_HOST=
     env = DB_PORT=

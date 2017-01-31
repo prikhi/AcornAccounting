@@ -1,6 +1,7 @@
 {% extends 'site.html' %}
 
 {% load core_filters %}
+{% load staticfiles %}
 
 
 {% block title %}Reconcile {{ account }}{% endblock %}
@@ -168,8 +169,8 @@
 
 
 {% block javascript %}
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+<script type="text/javascript" src="{% static 'js/parsley.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/parsley.extend.js' %}"></script>
 <script type="text/javascript">
     $(document).ready( function () {
         $('#reconcile_form').parsley({

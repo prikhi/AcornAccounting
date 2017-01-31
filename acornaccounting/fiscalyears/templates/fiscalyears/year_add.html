@@ -1,5 +1,7 @@
 {% extends 'site.html' %}
 
+{% load staticfiles %}
+
 {% block title %}New Fiscal Year{% endblock title %}
 
 
@@ -161,7 +163,7 @@ must be no Transactions in the 13th month of the current Year.</p>
 
 
 {% block javascript %}
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
+<script type="text/javascript" src="{% static 'js/parsley.js' %}"></script>
 <script type="text/javascript">
     $(document).ready( function() {
         /* Close Modal if invalid form */

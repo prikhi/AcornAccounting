@@ -10,9 +10,9 @@ class Migration(DataMigration):
     def forwards(self, orm):
         """Load the Initial Headers if None Exist."""
         if not orm.Header.objects.exists():
-            call_command('loaddata', 'accounts/fixtures/inital_headers.json')
+            call_command('loaddata', 'accounts/fixtures/initial_headers.json')
         if not orm.Account.objects.exists():
-            call_command('loaddata', 'accounts/fixtures/inital_accounts.json')
+            call_command('loaddata', 'accounts/fixtures/initial_accounts.json')
 
     def backwards(self, orm):
         raise RuntimeError("Cannot reverse this migration.")

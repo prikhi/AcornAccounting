@@ -2,6 +2,7 @@
 
 {% load core_filters %}
 {% load core_tags %}
+{% load staticfiles %}
 
 
 {% block title %}{{ account.name|capwords }} Journal{% endblock %}
@@ -68,8 +69,8 @@
 
 
 {% block javascript %}
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/parsley.extend.js"></script>
+<script type="text/javascript" src="{% static 'js/parsley.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/parsley.extend.js' %}"></script>
 <script type="text/javascript">
     $(document).ready( function () {
         $('#date_range_form').parsley({
