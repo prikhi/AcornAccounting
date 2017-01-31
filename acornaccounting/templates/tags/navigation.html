@@ -1,6 +1,5 @@
 {% load core_tags %}
 
-
 <header class="navbar navbar-inverse navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -13,6 +12,7 @@
       <a class="navbar-brand" href="{% url homepage %}">{{ config.NAME }}</a>
     </div>
 
+    {% if user.is_authenticated or not settings.REQUIRE_LOGIN %}
     <div class="collapse navbar-collapse" id="header-navbar-collapse-1">
       <ul class="nav navbar-nav navbar-left">
         <li class="dropdown">
@@ -73,6 +73,7 @@
         </li>
       </ul>
     </div>
+    {% endif %}
   </div>
 </header>
 
@@ -94,3 +95,4 @@
     </div>
   </div>
 </div>
+

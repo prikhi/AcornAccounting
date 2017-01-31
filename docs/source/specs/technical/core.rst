@@ -8,10 +8,22 @@ core Package
 .. automodule:: core.forms
     :members:
 
+:mod:`context_processors` Module
+---------------------------------
+
+.. automodule:: core.context_processors
+    :members:
+
 :mod:`core` Module
 -------------------------
 
 .. automodule:: core.core
+    :members:
+
+:mod:`middleware` Module
+-------------------------
+
+.. automodule:: core.middleware
     :members:
 
 :mod:`views` Module

@@ -21,6 +21,7 @@ def project_root(path):
 
 
 DEFAULT_TAX_RATE = 5.3
+REQUIRE_LOGIN = False
 
 
 SECRET_KEY = get_env_variable("DJANGO_SECRET_KEY")
@@ -120,6 +121,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.request",
     "django.contrib.messages.context_processors.messages",
     "constance.context_processors.config",
+    "core.context_processors.template_accessible_settings",
     "accounts.context_processors.all_accounts",
 )
 TEMPLATE_DIRS = (project_root('templates'),)
@@ -137,6 +139,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.transaction.TransactionMiddleware',
+    'core.middleware.LoginRequiredMiddleware',
 )
 
 LOGGING = {
