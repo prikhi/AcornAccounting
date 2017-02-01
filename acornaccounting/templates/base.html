@@ -88,6 +88,17 @@
                     window.location = "{% url reports.views.profit_loss_report %}";
                 });
             });
+            function roundTwo(number) {
+              /* Round a Number to 2-4 Decimal Places, Stripping Trailing Zeros */
+              var result = number.toFixed(2);
+              if (result != number) {
+                result = number.toFixed(3);
+                if (result != number) {
+                  result = number.toFixed(4);
+                }
+              }
+              return result;
+            }
         </script>
         {% block javascript %}{% endblock %}
         {% endcompress %}

@@ -82,19 +82,19 @@
         credit_sum += parseFloat(this.value);
       }
     });
-    $('#credit_total').text('$' + credit_sum.toFixed(2));
+    $('#credit_total').text('$' + roundTwo(credit_sum));
     var debit_sum = 0;
     $(".debit").filter(":visible").each(function() {
       if(!isNaN(this.value) && this.value.length != 0) {
         debit_sum += parseFloat(this.value);
       }
     });
-    $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
+    $('#debit_total').text('($' + roundTwo(debit_sum) + ')');
     if(debit_sum > credit_sum) {
       $('#debit_oob').text('');
-      $('#credit_oob').text('$' + (debit_sum - credit_sum).toFixed(2));
+      $('#credit_oob').text('$' + roundTwo(debit_sum - credit_sum));
     } else if (credit_sum > debit_sum) {
-      $('#debit_oob').text('($' + (credit_sum - debit_sum).toFixed(2) + ')');
+      $('#debit_oob').text('($' + roundTwo(credit_sum - debit_sum) + ')');
       $('#credit_oob').text('');
     } else {
       $('#debit_oob').text('$0.00');

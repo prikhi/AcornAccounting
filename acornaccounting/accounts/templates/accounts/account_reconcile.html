@@ -236,7 +236,7 @@
               }
           });
           if (isNaN(credit_sum)) {credit_sum = 0}
-          $('#credit_total').text('$' + credit_sum.toFixed(2));
+          $('#credit_total').text('$' + roundTwo(credit_sum));
 
           // Calculate and set the Debit Total
           var debit_sum = 0;
@@ -248,10 +248,10 @@
                   }
               }
           });
-          $('#debit_total').text('($' + debit_sum.toFixed(2) + ')');
+          $('#debit_total').text('($' + roundTwo(debit_sum) + ')');
 
           // Calculate and set the Net Change
-          var net_change = (credit_sum - debit_sum).toFixed(2);
+          var net_change = roundTwo(credit_sum - debit_sum);
           $('#net_change').text(formatCurrency(net_change));
 
           var statement_balance = parseFloat($('#id_account-statement_balance').val());
@@ -264,7 +264,7 @@
 
           // Calculate and Set the Out of Balance Amount
           var statement_change = statement_balance - reconciled_balance;
-          var out_of_balance = (statement_change - net_change).toFixed(2);
+          var out_of_balance = roundTwo(statement_change - net_change);
           $('#out_of_balance').text(formatCurrency(out_of_balance));
       };
 

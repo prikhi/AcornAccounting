@@ -181,11 +181,11 @@
       if(!isNaN(parseFloat($("#entry_amount").val()))) {
           entry_amount = parseFloat($("#entry_amount").val());
       }
-      $('#amount_total').text('$' + amount_sum.toFixed(2));
+      $('#amount_total').text('$' + roundTwo(amount_sum));
       if(entry_amount >= amount_sum) {
-          $('#amount_oob').text('$' + (entry_amount - amount_sum).toFixed(2));
+          $('#amount_oob').text('$' + roundTwo(entry_amount - amount_sum));
       } else {
-          $('#amount_oob').text('($' + (amount_sum - entry_amount).toFixed(2) + ')');
+          $('#amount_oob').text('($' + roundTwo(amount_sum - entry_amount) + ')');
       }
   }
   function removeRow(row) {
