@@ -1737,6 +1737,36 @@ class AccountReconcileViewTests(TestCase):
         self.assertTrue(Transaction.objects.all()[3].reconciled)
         self.assertFalse(Transaction.objects.all()[2].reconciled)
 
+    def test_reconcile_account_view_success_unchecked_transaction_deleted(self):
+        """
+        A `POST` to the `reconcile_account` view with a valid
+        ReconcileTransactionFormSet data along with a unchecked deleted
+        Transaction should succeed.
+        """
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        trans3 = create_transaction(entry, self.liability_account, -50)
+        trans4 = create_transaction(entry, self.liability_account, -50)
+        trans3_id = trans3.id
+        trans3.delete()
+        response = self.client.post(reverse('accounts.views.reconcile_account',
+                                            kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '-50',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': trans3_id,
+                                          'form-0-reconciled': False,
+                                          'form-1-id': trans4.id,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+
+        self.assertRedirects(response, reverse('accounts.views.show_account_detail',
+                                               kwargs={'account_slug': self.liability_account.slug}))
+        self.assertEqual(Transaction.objects.count(), 3)
+        self.assertTrue(Transaction.objects.get(id=trans4.id).reconciled)
+
     def test_reconcile_account_view_fail_invalid_form_data(self):
         """
         A `POST` to the `reconcile_account` view with an invalid data
@@ -1930,6 +1960,37 @@ class AccountReconcileViewTests(TestCase):
         self.assertFalse(Transaction.objects.all()[3].reconciled)
         self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
                          'The selected Transactions are out of balance with the Statement Amount.')
+
+    def test_reconcile_account_view_fail_checked_transaction_deleted(self):
+        """
+        A `POST` to the `reconcile_account` view with a deleted Transaction
+        marked as reconciled will not mark the Transactions as Reconciled and
+        return a "selected transaction removed" error. The deleted Transaction
+        should be removed from the errored formset.
+        """
+        entry = create_entry(datetime.date.today(), 'test memo')
+        create_transaction(entry, self.bank_account, 50)
+        create_transaction(entry, self.bank_account, 50)
+        trans3 = create_transaction(entry, self.liability_account, -50)
+        trans4 = create_transaction(entry, self.liability_account, -50)
+        trans3_id = trans3.id
+        trans3.delete()
+        response = self.client.post(reverse('accounts.views.reconcile_account', kwargs={'account_slug': self.liability_account.slug}),
+                                    data={'account-statement_date': datetime.date.today(),
+                                          'account-statement_balance': '-50',
+                                          'form-TOTAL_FORMS': 2,
+                                          'form-INITIAL_FORMS': 2,
+                                          'form-0-id': trans3_id,
+                                          'form-0-reconciled': True,
+                                          'form-1-id': trans4.id,
+                                          'form-1-reconciled': True,
+                                          'submit': 'Reconcile Transactions'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Transaction.objects.count(), 3)
+        self.assertFalse(Transaction.objects.get(id=trans4.id).reconciled)
+        self.assertEqual(response.context['transaction_formset'].non_form_errors()[0],
+            'You selected a deleted Transaction for reconciliation.')
+        self.assertEqual(len(response.context['transaction_formset'].forms), 1)
 
     def test_adds_new_transactions_on_form_error(self):
         """

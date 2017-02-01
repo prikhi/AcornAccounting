@@ -2,6 +2,7 @@ from django import forms
 from django.forms.formsets import (INITIAL_FORM_COUNT, TOTAL_FORM_COUNT)
 from django.forms.models import (modelformset_factory,
                                  BaseModelFormSet)
+from django.forms.util import ErrorList
 from parsley.decorators import parsleyfy
 
 from entries.models import Transaction
@@ -67,9 +68,10 @@ class BaseReconcileTransactionFormSet(BaseModelFormSet):
 
     def clean(self):
         """Checks that Reconciled amounts balance with the Statement amount."""
+        self._check_for_deleted_transactions()
         super(BaseReconcileTransactionFormSet, self).clean()
         if any(self.errors):
-            return self.cleaned_data
+            return self.cleaned_data if hasattr(self, 'cleaned_data') else None
         balance = (self.account_form.cleaned_data.get('statement_balance') -
                    self.reconciled_balance)
         for form in self.forms:
@@ -78,6 +80,34 @@ class BaseReconcileTransactionFormSet(BaseModelFormSet):
         if balance != 0:
             raise forms.ValidationError("The selected Transactions are out of "
                                         "balance with the Statement Amount.")
+
+    def _check_for_deleted_transactions(self):
+        """Validate that No Deleted Transactions are Checked.
+
+        Also removes any unchecked but deleted Transactions from the forms.
+
+        """
+        deleted_transaction_selected = False
+        removed_forms = 0
+        for (index, form) in enumerate(self.forms):
+            form_id = self.data[form.prefix + '-id']
+            if not Transaction.objects.filter(id=form_id).exists():
+                if form.data[form.prefix + "-reconciled"] != "False":
+                    deleted_transaction_selected = True
+                del self.forms[index]
+                removed_forms += 1
+
+        total_form_key = self.management_form.prefix + "-TOTAL_FORMS"
+        self.management_form.data[total_form_key] = int(self.management_form.data[total_form_key]) - removed_forms
+
+        for (index, error) in enumerate(self.errors):
+            if 'id' in error:
+                if any("valid choice" in id_error for id_error in error['id']):
+                    del self.errors[index]
+
+        if deleted_transaction_selected:
+            raise forms.ValidationError(
+                "You selected a deleted Transaction for reconciliation.")
 
     def add_form(self, instance):
         """Add a new form instance to a bound Formset."""
