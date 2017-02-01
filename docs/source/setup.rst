@@ -54,7 +54,7 @@ On Debian/Ubuntu:
 
 .. code-block:: bash
 
-    $ sudo apt-get install python-pip
+    $ sudo apt-get install python-pip libxml2-dev libxslt-dev
 
 Optionally you may want to install `virtualenv`_ and `virtualenvwrapper`_ to
 manage and isolate the python dependencies.
