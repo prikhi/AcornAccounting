@@ -111,7 +111,10 @@ table. See an existing entry template for an example.
   {% block before_transaction_table %}{% endblock %}
 
   {% block transaction_table %}
-    {% include "entries/includes/transaction_table.html" with formset=transaction_formset %}
+    <table class="table table-condensed" id="transaction-table">
+      {% include "entries/includes/transaction_table.html" with formset=transaction_formset %}
+      <tfoot>{% block table_footer %}{% endblock %}</tfoot>
+    </table>
   {% endblock %}
 
   {% block after_transaction_table %}{% endblock %}

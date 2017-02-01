@@ -28,7 +28,9 @@
 
   {% if transfer_formset and transfer_formset.forms|length > 0 %}
     <h2>Transfers</h2>
-    {% include "entries/includes/transaction_table.html" with formset=transfer_formset %}
+    <table class="table table-condensed" id="transaction-table">
+      {% include "entries/includes/transaction_table.html" with formset=transfer_formset %}
+    </table>
   {% elif transfer_formset %}
     <h2>Transfers</h2>
     <p class='text-center text-success'>All Transfers Already Imported.</p>
@@ -37,7 +39,9 @@
 
   {% if withdrawal_formset and withdrawal_formset.forms|length > 0 %}
     <h2>Withdrawals</h2>
-    {% include "entries/includes/transaction_table.html" with formset=withdrawal_formset %}
+    <table class="table table-condensed" id="transaction-table">
+      {% include "entries/includes/transaction_table.html" with formset=withdrawal_formset %}
+    </table>
   {% elif withdrawal_formset %}
     <h2>Withdrawals</h2>
     <p class='text-center text-success'>All Withdrawals Already Imported.</p>
@@ -46,7 +50,9 @@
 
   {% if deposit_formset and deposit_formset.forms|length > 0 %}
     <h2>Deposits</h2>
-    {% include "entries/includes/transaction_table.html" with formset=deposit_formset %}
+    <table class="table table-condensed" id="transaction-table">
+      {% include "entries/includes/transaction_table.html" with formset=deposit_formset %}
+    </table>
   {% elif deposit_formset %}
     <h2>Deposits</h2>
     <p class='text-center text-success'>All Deposits Already Imported.</p>
