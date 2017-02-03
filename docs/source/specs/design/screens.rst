@@ -878,8 +878,9 @@ The table should have 5 columns:
 #. Root Header/Cacluation Total
 
 Names should be indented by their depth level. Only root Headers, their
-children and grandchildren should have their totals shown. The general layout
-will look like::
+children and grandchildren should have their totals shown. The total for a root
+Header is shown at the end of the table, after all the child Headers. The
+general layout will look like::
 
     Root Header
       Child Account                         $7.00
