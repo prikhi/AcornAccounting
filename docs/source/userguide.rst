@@ -296,3 +296,58 @@ information.
     :alt: The Page Setup Dialog Showing Disabled Headers & Footers
     :width: 387px
     :align: center
+
+
+Credit Card Entries
+====================
+
+For Communards to be able to submit Credit Card Entries, an Accountant needs to
+add a ``Credit Card`` that they can assign purchases to.
+
+After Credit Card Entries have been submitted, an Accountant needs to review
+the purchases and approve the entry.
+
+Adding Cards
+^^^^^^^^^^^^^
+
+First we'll create an ``Account`` for the card, then mark the Account to show
+up in the ``Credit Card`` field of Credit Card Entries.
+
+#. Open up the Accounting Application and click ``Add Account`` from the
+   ``Admin`` menu.
+#. Name the new account(Acorn uses the name and last 4 digits of the credit
+   card - ``VCB Visa Card - 5555``). Set the ``Parent`` to ``Credit Cards
+   Payable``.
+#. Hit ``Save``.
+#. Go back to the Home Page by clicking the ``Accounting Administration`` link
+   at the top of the page.
+#. Click ``Add Credit Card`` from the ``Admin`` Menu.
+#. Choose the ``Account`` you just created and a name for it show up as on the
+   Credit Card Entry page. You can leave the name blank to re-use the name of
+   the ``Account``.
+#. Hit ``Save``.
+
+Approving
+^^^^^^^^^^
+
+It's easiest to approve entries whenever you receive a new statement. Print it
+out so that you can cross items off the statement as you approve entries.
+
+#. Open the ``Accountants`` menu and click ``Credit Cards`` from the ``Approve
+   Entries`` section.
+#. You will be brought to a list of all unapproved Credit Card Entries, sorted
+   by Credit Card, then Date. Find the first unapproved entry for the credit
+   card you are approving and click the ``Approve`` link in the table row.
+#. You will now be at the ``Approve a Credit Card Entry`` form. You can use
+   this form to edit any of the entry details before approving it.
+#. At the bottom of the form will be links to any uploaded receipts. You should
+   review the receipt and ensure every item in the form is present on the
+   receipt. If there is no receipt attached, you will see a warning message.
+   You should ensure the communard has turned in a physical copy of the receipt
+   before approving the entry.
+#. Once every thing looks OK, you can hit ``Approve`` to turn the Credit Card
+   Entry into a General Journal Entry, causing it to charge or credit the
+   relevant accounts. You will be taken back to the unapproved entry list. You
+   can hit ``Approve & Open Next`` to approve the entry and open the approval
+   form for the next entry for the credit card(by date). If there are no more
+   entries, you will be brought back to the unapproved entry list.
