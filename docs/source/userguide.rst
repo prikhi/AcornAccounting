@@ -276,5 +276,23 @@ This is kinda low priority, but the basics and peculiarities should be covered
 before v1.0.
 
 
+Removing Headers & Footers From Printed Pages
+==============================================
+
+When printing out a page, your browser may add a Header or Footer to the page,
+containing information such as the date and time, page title, and the URL. If
+you desire cleaner printing, you can tell your browser to hide this
+information.
+
+#. In Firefox, open the ``File`` menu.
+#. Select the ``Page Setup`` item, above ``Print`` and ``Print Preview``.
+#. Select the ``Margins & Header/Footer`` tab.
+#. In the ``Headers & Footers`` section, change all the dropdowns to
+   ``--blank--``.
+#. Hit ``OK`` and print the page.
 
 
+.. figure:: _images/print_hide_header_footer.png
+    :alt: The Page Setup Dialog Showing Disabled Headers & Footers
+    :width: 387px
+    :align: center
