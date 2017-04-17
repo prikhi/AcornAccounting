@@ -87,6 +87,13 @@ Account`` input in the navigation menu. You should see your Accounts in the
 dropdown menu, select one of the Accounts to be taken to it's Details page,
 which shows a list of deposits and withdrawals.
 
+.. figure:: _images/jump_to_stipend.png
+    :alt: Using the Jump to an Account Dropdown to Find Your Stipend
+    :width: 820px
+    :align: center
+
+    You can use the ``Jump to an Account`` dropdown in the navigation menu to quickly find your Stipend or Deposited Assets Accounts.
+
 You can also find a list of everyone's stipend or deposited assets, by clicking
 opening the ``Communards`` and clicking ``Member Stipends`` or ``Member
 Deposited Assets`` under the ``View Accounts`` heading.
