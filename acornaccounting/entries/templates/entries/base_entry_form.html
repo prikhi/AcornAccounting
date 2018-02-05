@@ -84,6 +84,14 @@ table. See an existing entry template for an example.
   </div>
 {% endwith %}
 
+{% if entry_form.non_field_errors %}
+  <div class='alert alert-danger'><ul>
+    {% for error in entry_form.non_field_errors %}
+      <li>{{ error|escape }}</li>
+    {% endfor %}
+  </ul></div>
+{% endif %}
+
 <form action="." method="POST" id="entry_form" role="form" enctype='multipart/form-data'>
   {% csrf_token %}
 
