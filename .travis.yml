@@ -3,8 +3,8 @@ cache:
     directories:
         - $HOME/.cache/pip
 install:
+    - pip uninstall pytest
     - pip install  -r requirements/local.txt
-    - pip install  -r requirements/test.txt
     - pip install coveralls
 script:
     - cd acornaccounting && py.test && cd ..
