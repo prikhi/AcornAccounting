@@ -52,18 +52,25 @@ class CSVImporter(BaseImporter):
     string used to parse the date field. By default, ``MM/DD/YYYY`` is
     expected.
 
+    An optional ``CSV_FIELD_ORDER`` class attribute may be used to specify the
+    column names & their order in the CSV file. It should be a list of the
+    column names used in ``CSV_TO_DATA_FIELDS``. The default value is ``None``,
+    which will cause the importer to use the first line of the CSV to determine
+    the column names and order.
+
     """
 
     CSV_TO_DATA_FIELDS = None
     CSV_TYPE_TO_DATA_TYPE = None
     CSV_DATE_FORMAT = "%m/%d/%Y"
+    CSV_FIELD_ORDER = None
 
     def process_file(self, file_object):
         """Read the CSV file and Return the Data using CSV_TO_DATA_FIELDS."""
         if None in [self.CSV_TO_DATA_FIELDS, self.CSV_TYPE_TO_DATA_TYPE]:
             raise NotImplementedError()
 
-        reader = csv.DictReader(file_object)
+        reader = csv.DictReader(file_object, fieldnames=self.CSV_FIELD_ORDER)
         data = []
         space_reducing_regex = re.compile(r'\s\s+')
         for row in reader:

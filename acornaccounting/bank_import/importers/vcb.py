@@ -18,10 +18,21 @@ class CSVImporter(base.CSVImporter):
         'ACH Payment': 'withdrawal',
         'Check': 'withdrawal',
         'Withdrawal': 'withdrawal',
+        'Overdraft Fee': 'withdrawal',
+        'Stop Pmt Charge': 'withdrawal',
         'Deposit': 'deposit',
         'IB Transfer Deposit': 'transfer_deposit',
-        'IB Tranfer W/D': 'transfer_withdrawal',
+        'IB Transfer W/D': 'transfer_withdrawal',
     }
+
+    CSV_FIELD_ORDER = [
+        'Account',
+        'Date',
+        'Amount',
+        'Check Number',
+        'Reference',
+        'Transaction Description',
+    ]
 
     def get_data(self):
         """Reverse the data, imported lines are in descending order by date."""
