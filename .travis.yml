@@ -5,6 +5,7 @@ cache:
         - $HOME/.cache/pip
 install:
     - pip uninstall -y pytest
+    - pip install pytest==2.6
     - pip install -r requirements/local.txt
     - pip install coveralls
 script:
