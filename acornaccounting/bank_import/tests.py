@@ -474,12 +474,11 @@ class ImportBankStatementTests(TestCase):
     def test_post_upload_returns_formsets(self):
         """Test a POST with a valid import file returns a set of FormSets."""
         file_content = """
-Date,Amount,Transaction Description,Check Number,Reference
-06/30/2016,837.23,Check,14151,
-06/29/2016,1364.96,ACH Payment,0,Rewards MC
-06/24/2016,5369.05,Deposit,0,
-06/22/2016,428.00,ACH Deposit,0,SSA TREAS 310 XXSOC SEC
-06/14/2016,91000.00,IB Transfer Deposit,0,From DDA xxxxxxxx3701
+,06/30/2016,837.23,14151,,Check
+,06/29/2016,1364.96,0,Rewards MC,ACH Payment
+,06/24/2016,5369.05,0,,Deposit
+,06/22/2016,428.00,0,SSA TREAS 310 XXSOC SEC,ACH Deposit
+,06/14/2016,91000.00,0,From DDA xxxxxxxx3701,IB Transfer Deposit
         """
         response = self.client.post(
             reverse('bank_import.views.import_bank_statement'),
