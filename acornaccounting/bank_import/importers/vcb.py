@@ -15,12 +15,16 @@ class CSVImporter(base.CSVImporter):
 
     CSV_TYPE_TO_DATA_TYPE = {
         'ACH Deposit': 'deposit',
+        'Accr Earning Pymt': 'deposit',
         'ACH Payment': 'withdrawal',
         'Check': 'withdrawal',
         'Withdrawal': 'withdrawal',
+        'Virtual Item W/D': 'withdrawal',
         'Overdraft Fee': 'withdrawal',
         'Stop Pmt Charge': 'withdrawal',
         'Deposit': 'deposit',
+        'Deposit Item Ret': 'withdrawal',
+        'Dep Item Ret Chrg': 'withdrawal',
         'IB Transfer Deposit': 'transfer_deposit',
         'IB Transfer W/D': 'transfer_withdrawal',
     }
