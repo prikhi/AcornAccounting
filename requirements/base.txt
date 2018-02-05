@@ -1,4 +1,4 @@
-psycopg2>=2.5,<2.6
+psycopg2>=2.5,<2.7
 python-dateutil==2.2
 python-memcached==1.53
 Django==1.4.10
