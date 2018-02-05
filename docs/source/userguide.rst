@@ -243,14 +243,11 @@ Accountants
 
 The following will be created/migrated from the acorn wiki:
 
-* Credit Card Entries
-    * Approving
 * Trip Entries
     * Adding Local Stores
     * Approving
 * Bank Statements
     * Adding Banks
-    * Importing Statements
 * Fiscal Years
 
 
@@ -351,3 +348,38 @@ out so that you can cross items off the statement as you approve entries.
    can hit ``Approve & Open Next`` to approve the entry and open the approval
    form for the next entry for the credit card(by date). If there are no more
    entries, you will be brought back to the unapproved entry list.
+
+
+Importing Bank Statements
+==========================
+
+#. Download a statement export from your banks website(see following sections).
+#. Open the ``Accountants`` menu and click ``Bank Statements`` from the
+   ``Import`` section.
+#. Select the export you downloaded and select the ``Bank Account`` it is for.
+#. Click ``Import`` to upload the export.
+#. The application will try to match any existing entries and remove them from
+   the import. You will be shown a form with Transfers, Withdrawals, &
+   Deposits. Some of the fields may be pre-filled based on the memos of
+   existing entries.
+#. Fill out the form by adding any missing ``Accounts``, ``Memos``, ``Payors``,
+   & ``Payees``.
+#. Once you are finished, press ``Save`` to create the new Entries.
+
+.. figure:: _images/bank_import_form_completed.png
+    :alt: A Completed Bank Import Form
+    :width: 1200px
+    :align: center
+
+
+Downloading VCB Exports
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Log in to your VCB Account.
+#. Click ``History`` in the left sidebar.
+#. Click the ``Download`` link in the ``Selection`` section of the History
+   page.
+#. Select the ``Account`` you want to export, and the first & last day of the
+   month you want to import.
+#. Select ``Comma Separated`` for the ``Download Format``.
+#. Click ``Download`` and save the file to your computer.
