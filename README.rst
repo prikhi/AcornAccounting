@@ -2,6 +2,12 @@
 Acorn Accounting
 =================
 
+.. ATTENTION::
+    This project is no longer actively used or maintained. Future work is being
+    done on a `new project that integrates with QuickBooks Desktop
+    <https://github.com/prikhi/quickbooks-for-communes>`_.
+
+
 Acorn Accounting is an Open Source Double Entry Accounting System written using
 Python and Django.
 
